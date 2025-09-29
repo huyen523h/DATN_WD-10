@@ -25,7 +25,15 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
-            return redirect()->intended(route('admin.dashboard'));
+            
+            // Phân biệt role để redirect
+            $user = Auth::user();
+            if ($user->role === 'admin') {
+                return redirect()->intended(route('admin.dashboard'));
+            } else {
+                // Customer sẽ được redirect về trang chủ hoặc trang customer
+                return redirect()->intended('/');
+            }
         }
 
         return back()->withErrors(['email' => 'Thông tin đăng nhập không đúng.'])->onlyInput('email');
@@ -46,9 +54,8 @@ class AuthController extends Controller
 
         $user = User::create($validated);
 
-        Auth::login($user);
-
-        return redirect()->intended(route('admin.dashboard'));
+        // Không tự động đăng nhập, redirect về trang chủ với thông báo
+        return redirect('/')->with('success', 'Đăng ký thành công! Vui lòng đăng nhập.');
     }
 
     public function logout(Request $request): RedirectResponse
@@ -56,7 +63,7 @@ class AuthController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        return redirect('/login');
+        return redirect('/');
     }
 }
 

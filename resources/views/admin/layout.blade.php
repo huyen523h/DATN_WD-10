@@ -26,6 +26,9 @@
         <button class="btn btn-outline-light d-lg-none me-2" id="sidebarToggle"><i class="bi bi-list"></i></button>
         <a class="navbar-brand" href="{{ route('admin.dashboard') }}">Tour365 Admin</a>
         <div class="ms-auto d-flex align-items-center gap-3">
+            <a href="/" class="btn btn-outline-light btn-sm">
+                <i class="bi bi-house me-1"></i>Trang chủ
+            </a>
             <span class="text-white-50 small">{{ now()->format('d/m/Y') }}</span>
         </div>
     </div>
@@ -43,6 +46,21 @@
             <a class="nav-link {{ request()->routeIs('admin.bookings') ? 'active' : '' }}" href="{{ route('admin.bookings') }}"><i class="bi bi-journal-check me-2"></i>Đặt tour</a>
             <a class="nav-link {{ request()->routeIs('admin.customers') ? 'active' : '' }}" href="{{ route('admin.customers') }}"><i class="bi bi-people me-2"></i>Khách hàng</a>
             <a class="nav-link {{ request()->routeIs('admin.settings') ? 'active' : '' }}" href="{{ route('admin.settings') }}"><i class="bi bi-gear me-2"></i>Cấu hình</a>
+            
+            <hr class="my-3">
+            
+            <div class="nav-item">
+                <div class="nav-link text-muted small">
+                    <i class="bi bi-person-circle me-2"></i>{{ Auth::user()->name }}
+                </div>
+            </div>
+            
+            <form method="POST" action="{{ route('logout') }}" class="nav-item">
+                @csrf
+                <button type="submit" class="nav-link text-danger border-0 bg-transparent w-100 text-start">
+                    <i class="bi bi-box-arrow-right me-2"></i>Đăng xuất
+                </button>
+            </form>
         </nav>
     </aside>
 
