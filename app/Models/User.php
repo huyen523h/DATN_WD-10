@@ -48,4 +48,10 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    // Thêm quan hệ: User hasMany Reviews - Sprint 3
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
+    }
 }

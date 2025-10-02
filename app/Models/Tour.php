@@ -34,4 +34,16 @@ class Tour extends Model
     {
         return $this->belongsTo(category::class);
     }
+
+    // Thêm quan hệ: Tour hasMany Reviews
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    // Accessor: Tính average rating (bonus)
+    public function getAverageRatingAttribute()
+    {
+        return $this->reviews()->avg('rating') ?? 0;
+    }
 }
