@@ -14,9 +14,11 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('tour_id')->constrained('tours')->cascadeOnDelete();
             $table->date('departure_date');
-            $table->integer('seats_total')->nullable();
-            $table->integer('seats_available')->nullable();
-            $table->timestamp('created_at')->nullable();
+            $table->date('return_date')->nullable();
+            $table->integer('available_seats')->nullable();
+            $table->string('status', 20)->default('active');
+            $table->text('notes')->nullable();
+            $table->timestamps();
         });
     }
 

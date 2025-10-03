@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Role;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -45,6 +46,7 @@ class AuthController extends Controller
         ]);
 
         $user = User::create($validated);
+        $user->roles()->attach(Role::where('name', 'customer')->first());
 
         Auth::login($user);
 

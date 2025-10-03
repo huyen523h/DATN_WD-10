@@ -14,9 +14,10 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('tour_id')->constrained('tours')->cascadeOnDelete();
             $table->string('image_url', 1024);
-            $table->boolean('is_cover')->default(false);
+            $table->boolean('is_main')->default(false);
+            $table->string('alt_text', 255)->nullable();
             $table->integer('sort_order')->nullable();
-            $table->timestamp('created_at')->nullable();
+            $table->timestamps();
         });
     }
 
