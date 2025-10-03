@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Admin\TourController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -43,6 +44,10 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/bookings', [AdminController::class, 'bookings'])->name('bookings');
     Route::get('/customers', [AdminController::class, 'customers'])->name('customers');
     Route::get('/settings', [AdminController::class, 'settings'])->name('settings');
+
+    // ✅ CRUD Tour
+    Route::resource('tours', TourController::class);
+
 });
 
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login')->middleware('guest');
@@ -50,3 +55,7 @@ Route::post('/login', [AuthController::class, 'login'])->middleware('guest');
 Route::get('/register', [AuthController::class, 'showRegister'])->name('register')->middleware('guest');
 Route::post('/register', [AuthController::class, 'register'])->middleware('guest');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+// Route::prefix('admin')->group(function () {
+//     Route::resource('tours', TourController::class);
+// });
