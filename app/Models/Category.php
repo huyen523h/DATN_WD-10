@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Category extends Model
 {
@@ -12,11 +13,14 @@ class Category extends Model
     protected $fillable = [
         'name',
         'description',
-        'slug'
+        'image_url',
+        'status',
     ];
 
-    // Relation với Tours
-    public function tours()
+    /**
+     * Get the tours for the category.
+     */
+    public function tours(): HasMany
     {
         return $this->hasMany(Tour::class);
     }
