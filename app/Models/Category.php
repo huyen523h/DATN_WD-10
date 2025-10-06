@@ -13,9 +13,8 @@ class Category extends Model
     protected $fillable = [
         'name',
         'description',
-        'image_url',
-        'status',
     ];
+    
 
     /**
      * Get the tours for the category.
