@@ -32,7 +32,7 @@
                         <table class="table table-hover">
                             <thead>
                                 <tr>
-                                    <th>Hình ảnh</th>
+                                    {{-- <th>Hình ảnh</th> --}}
                                     <th>Tên danh mục</th>
                                     <th>Mô tả</th>
                                     <th>Số tours</th>
@@ -44,7 +44,7 @@
                             <tbody>
                                 @foreach($categories as $category)
                                     <tr>
-                                        <td>
+                                        {{-- <td>
                                             @if($category->image_url)
                                                 <img src="{{ $category->image_url }}" alt="{{ $category->name }}" 
                                                      class="category-thumbnail">
@@ -53,7 +53,7 @@
                                                     <i class="fas fa-image text-muted"></i>
                                                 </div>
                                             @endif
-                                        </td>
+                                        </td> --}}
                                         <td>
                                             <div class="fw-bold">{{ $category->name }}</div>
                                         </td>
@@ -139,10 +139,10 @@
                         <label for="description" class="form-label">Mô tả</label>
                         <textarea class="form-control" id="description" name="description" rows="3"></textarea>
                     </div>
-                    <div class="mb-3">
+                    {{-- <div class="mb-3">
                         <label for="image_url" class="form-label">URL hình ảnh</label>
                         <input type="url" class="form-control" id="image_url" name="image_url">
-                    </div>
+                    </div> --}}
                     <div class="mb-3">
                         <label for="status" class="form-label">Trạng thái</label>
                         <select class="form-select" id="status" name="status">

@@ -313,8 +313,7 @@ class AdminController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'image_url' => 'nullable|url',
-            'status' => 'required|in:active,inactive',
+            
         ]);
 
         \App\Models\Category::create($validated);
@@ -333,7 +332,7 @@ class AdminController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'image_url' => 'nullable|url',
-            'status' => 'required|in:active,inactive',
+            
         ]);
 
         $category->update($validated);

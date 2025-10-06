@@ -304,7 +304,7 @@ function bulkDelete() {
         console.log('Deleting tours:', selectedTours);
     }
 }
-
+  
 document.getElementById('confirmDelete').addEventListener('click', function() {
     if (tourToDelete) {
         // Implement delete logic here
