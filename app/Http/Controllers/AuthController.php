@@ -3,10 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Role;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
@@ -27,21 +28,11 @@ class AuthController extends Controller
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
             
-            // Phân biệt role để redirect
-            $user = Auth::user();
-            
-            // Kiểm tra role thông qua bảng user_roles
-            $isAdmin = DB::table('user_roles')
-                ->join('roles', 'user_roles.role_id', '=', 'roles.id')
-                ->where('user_roles.user_id', $user->id)
-                ->where('roles.name', 'admin')
-                ->exists();
-            
-            if ($isAdmin) {
+            // Redirect based on user role
+            if (Auth::user()->isAdmin()) {
                 return redirect()->intended(route('admin.dashboard'));
             } else {
-                // Customer sẽ được redirect về trang chủ hoặc trang customer
-                return redirect()->intended('/');
+                return redirect()->intended('/tours');
             }
         }
 
@@ -59,20 +50,37 @@ class AuthController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'confirmed', Password::min(8)],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'address' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $user = User::create($validated);
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+            'phone' => $validated['phone'] ?? null,
+            'address' => $validated['address'] ?? null,
+        ]);
 
-        // Không tự động đăng nhập, redirect về trang chủ với thông báo
-        return redirect('/')->with('success', 'Đăng ký thành công! Vui lòng đăng nhập.');
+        // Gán role customer cho user mới
+        $customerRole = Role::where('name', 'customer')->first();
+        if ($customerRole) {
+            $user->roles()->attach($customerRole->id);
+        }
+
+        Auth::login($user);
+
+        return redirect()->intended('/tours');
     }
 
-    public function logout(Request $request): RedirectResponse
+    public function logout(Request $request)
     {
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        return redirect('/');
+        
+        // Return logout page instead of redirect
+        return view('auth.logout');
     }
 }
 

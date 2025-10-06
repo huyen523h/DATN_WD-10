@@ -4,107 +4,89 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Tour extends Model
 {
     use HasFactory;
 
-    protected $table = 'tours';
-
     protected $fillable = [
         'category_id',
-        'title', // Tên
-        'short_description',
-        'description', // Lịch trình
-        'price', // Giá
-        'location', // Địa điểm
-        'duration',
-        'available_seats',
-        'departure_date', // Ngày khởi hành
-        'image', // Hình ảnh (path)
+        'title',
+        'description',
+        'duration_days',
+        'price',
+        'status',
     ];
 
     protected $casts = [
-        'departure_date' => 'date',
         'price' => 'decimal:2',
     ];
 
-    protected $appends = [
-        'formatted_price',
-        'image_url',
-        'formatted_departure_date',
-        'status'
-    ];
-
-    // Relation với Category nếu bảng categories tồn tại
-    public function category()
+    /**
+     * Get the category that owns the tour.
+     */
+    public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
     }
 
-    // Accessor để format giá tiền
-    public function getFormattedPriceAttribute()
+    /**
+     * Get the images for the tour.
+     */
+    public function images(): HasMany
     {
-        return number_format($this->price, 0, ',', '.') . ' VNĐ';
+        return $this->hasMany(TourImage::class);
     }
 
-    // Accessor để lấy URL hình ảnh đầy đủ
-    public function getImageUrlAttribute()
+    /**
+     * Get the schedules for the tour.
+     */
+    public function schedules(): HasMany
     {
-        if ($this->image) {
-            return asset('storage/' . $this->image);
-        }
-        return asset('images/tour-default.jpg'); // Default image
+        return $this->hasMany(TourSchedule::class);
     }
 
-    // Accessor để format ngày khởi hành
-    public function getFormattedDepartureDateAttribute()
+    /**
+     * Get the departures for the tour.
+     */
+    public function departures(): HasMany
     {
-        if ($this->departure_date) {
-            return $this->departure_date->format('d/m/Y');
-        }
-        return null;
+        return $this->hasMany(TourDeparture::class);
     }
 
-    // Accessor để lấy trạng thái tour
-    public function getStatusAttribute()
+    /**
+     * Get the bookings for the tour.
+     */
+    public function bookings(): HasMany
     {
-        if (!$this->departure_date) {
-            return 'Chưa có lịch';
-        }
-        
-        if ($this->departure_date->isPast()) {
-            return 'Đã kết thúc';
-        }
-        
-        if ($this->available_seats <= 0) {
-            return 'Hết chỗ';
-        }
-        
-        return 'Còn chỗ';
+        return $this->hasMany(Booking::class);
     }
 
-    // Scope để lấy tours còn chỗ
-    public function scopeAvailable($query)
+    /**
+     * Get the reviews for the tour.
+     */
+    public function reviews(): HasMany
     {
-        return $query->where('available_seats', '>', 0);
+        return $this->hasMany(Review::class);
     }
 
-    // Scope để lấy tours theo location
-    public function scopeByLocation($query, $location)
+    /**
+     * The users that have this tour in their wishlist.
+     */
+    public function wishlistedBy(): BelongsToMany
     {
-        return $query->where('location', 'like', '%' . $location . '%');
+        return $this->belongsToMany(User::class, 'wishlists')
+                    ->withTimestamps();
     }
 
-    // Scope để lấy tours theo khoảng giá
-    public function scopeByPriceRange($query, $minPrice = null, $maxPrice = null)
+    /**
+     * Get the cover image for the tour.
+     */
+    public function coverImage()
     {
-        if ($minPrice) {
-            $query->where('price', '>=', $minPrice);
-        }
-        if ($maxPrice) {
-            $query->where('price', '<=', $maxPrice);
-        }
-        return $query;
+        return $this->images()->where('is_cover', true)->first();
     }
 }
