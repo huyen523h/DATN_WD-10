@@ -63,6 +63,16 @@ class AuthController extends Controller
 
         $user = User::create($validated);
 
+        // Gán role customer cho user mới (không dùng timestamps)
+        $customerRoleId = DB::table('roles')->where('name', 'customer')->value('id');
+        if ($customerRoleId) {
+            DB::table('user_roles')->insert([
+                'user_id' => $user->id,
+                'role_id' => $customerRoleId,
+                'assigned_at' => now()
+            ]);
+        }
+
         // Không tự động đăng nhập, redirect về trang chủ với thông báo
         return redirect('/')->with('success', 'Đăng ký thành công! Vui lòng đăng nhập.');
     }

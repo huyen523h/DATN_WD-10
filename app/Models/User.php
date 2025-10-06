@@ -12,6 +12,9 @@ class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, HasApiTokens;
+    
+    // Disable timestamps vì database không có created_at, updated_at
+    public $timestamps = false;
 
     /**
      * The attributes that are mass assignable.
