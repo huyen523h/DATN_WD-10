@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
@@ -28,7 +29,15 @@ class AuthController extends Controller
             
             // Phân biệt role để redirect
             $user = Auth::user();
-            if ($user->role === 'admin') {
+            
+            // Kiểm tra role thông qua bảng user_roles
+            $isAdmin = DB::table('user_roles')
+                ->join('roles', 'user_roles.role_id', '=', 'roles.id')
+                ->where('user_roles.user_id', $user->id)
+                ->where('roles.name', 'admin')
+                ->exists();
+            
+            if ($isAdmin) {
                 return redirect()->intended(route('admin.dashboard'));
             } else {
                 // Customer sẽ được redirect về trang chủ hoặc trang customer
