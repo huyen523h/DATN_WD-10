@@ -7,6 +7,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\TourController;
 use App\Http\Controllers\BookingController;
 
+
 Route::get('/', function () {
     return view('welcome');
 });
@@ -81,6 +82,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     
     // Categories management
     Route::get('/categories', [AdminController::class, 'categories'])->name('categories');
+    Route::get('/categories/create', [AdminController::class, 'createCategory'])->name('categories.create');
     Route::post('/categories', [AdminController::class, 'storeCategory'])->name('categories.store');
     Route::get('/categories/{category}/edit', [AdminController::class, 'editCategory'])->name('categories.edit');
     Route::put('/categories/{category}', [AdminController::class, 'updateCategory'])->name('categories.update');
@@ -95,18 +97,29 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/payments', [AdminController::class, 'payments'])->name('payments');
     Route::put('/payments/{payment}', [AdminController::class, 'updatePayment'])->name('payments.update');
     Route::delete('/payments/{payment}', [AdminController::class, 'deletePayment'])->name('payments.destroy');
+
+    // Promotions management
+    Route::get('/promotions', [AdminController::class, 'promotions'])->name('promotions');
+    Route::get('/promotions/create', [AdminController::class, 'createPromotion'])->name('promotions.create');
+    Route::post('/promotions', [AdminController::class, 'storePromotion'])->name('promotions.store');
+    Route::get('/promotions/{promotion}/edit', [AdminController::class, 'editPromotion'])->name('promotions.edit');
+    Route::put('/promotions/{promotion}', [AdminController::class, 'updatePromotion'])->name('promotions.update');
+    Route::delete('/promotions/{promotion}', [AdminController::class, 'deletePromotion'])->name('promotions.destroy');
     
     // Reports
     Route::get('/reports', [AdminController::class, 'reports'])->name('reports');
     
     // Notifications management
     Route::get('/notifications', [AdminController::class, 'notifications'])->name('notifications');
+    Route::get('/notifications/create', [AdminController::class, 'createNotification'])->name('notifications.create');
     Route::post('/notifications', [AdminController::class, 'storeNotification'])->name('notifications.store');
     Route::put('/notifications/{notification}', [AdminController::class, 'updateNotification'])->name('notifications.update');
     Route::delete('/notifications/{notification}', [AdminController::class, 'deleteNotification'])->name('notifications.destroy');
     
     // Support management
     Route::get('/support', [AdminController::class, 'support'])->name('support');
+    Route::get('/support/create', [AdminController::class, 'createSupportTicket'])->name('support.create');
+    Route::post('/support', [AdminController::class, 'storeSupportTicket'])->name('support.store');
     Route::put('/support/{ticket}', [AdminController::class, 'updateTicket'])->name('support.update');
     Route::delete('/support/{ticket}', [AdminController::class, 'deleteTicket'])->name('support.destroy');
     
