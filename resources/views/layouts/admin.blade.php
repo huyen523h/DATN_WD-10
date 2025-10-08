@@ -479,7 +479,7 @@
                     <i class="fas fa-map-marked-alt"></i>
                     <span class="nav-text">Quản lý Tours</span>
                 </a>
-            </div>
+                    </div>
 
             <!-- Bookings Management -->
             <div class="nav-item">
@@ -489,13 +489,13 @@
                 </a>
             </div>
 
-            <!-- Customers Management -->
-            <div class="nav-item">
-                <a href="{{ route('admin.customers') }}" class="nav-link {{ request()->routeIs('admin.customers*') ? 'active' : '' }}">
-                    <i class="fas fa-users"></i>
-                    <span class="nav-text">Quản lý Khách hàng</span>
-                </a>
-            </div>
+        <!-- Users Management -->
+        <div class="nav-item">
+            <a href="{{ route('admin.users.index') }}" class="nav-link {{ request()->routeIs('admin.users*') ? 'active' : '' }}">
+                <i class="fas fa-users"></i>
+                <span class="nav-text">Quản lý Người dùng</span>
+            </a>
+        </div>
 
             <!-- Categories Management -->
             <div class="nav-item">
@@ -511,7 +511,7 @@
                     <i class="fas fa-star"></i>
                     <span class="nav-text">Quản lý Đánh giá</span>
                 </a>
-            </div>
+    </div>
 
             <!-- Payments Management -->
             <div class="nav-item">
@@ -527,7 +527,7 @@
                     <i class="fas fa-chart-bar"></i>
                     <span class="nav-text">Báo cáo & Thống kê</span>
                 </a>
-            </div>
+        </div>
 
             <!-- Notifications -->
             <div class="nav-item">
@@ -589,7 +589,7 @@
                         <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Admin</a></li>
                         @yield('breadcrumb')
                     </ol>
-                </nav>
+        </nav>
             </div>
             
             <div class="header-right">
@@ -683,14 +683,14 @@
             @endif
 
             @yield('content')
-        </main>
-    </div>
+    </main>
+</div>
 
     <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     
     <!-- Custom Admin JS -->
-    <script>
+<script>
         document.addEventListener('DOMContentLoaded', function() {
             // Sidebar toggle
             const sidebarToggle = document.getElementById('sidebarToggle');
@@ -773,7 +773,7 @@
                 window.location.href = '{{ route("logout.get") }}';
             }
         }
-    </script>
+</script>
     
     @yield('scripts')
 </body>

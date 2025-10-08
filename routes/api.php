@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\TourController;
 
@@ -28,6 +29,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('admin')->group(function () {
         Route::get('/users', [AuthController::class, 'getAllUsers']);
         Route::delete('/users/{id}', [AuthController::class, 'deleteUser']);
+    });
+    
+    // API User Management
+    Route::prefix('users')->group(function () {
+        Route::get('/', [UserController::class, 'apiIndex']);
+        Route::post('/', [UserController::class, 'apiStore']);
+        Route::get('/{user}', [UserController::class, 'apiShow']);
+        Route::put('/{user}', [UserController::class, 'apiUpdate']);
+        Route::delete('/{user}', [UserController::class, 'apiDestroy']);
     });
 });
 

@@ -8,6 +8,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
@@ -56,7 +57,7 @@ class User extends Authenticatable
     public function roles(): BelongsToMany
     {
         return $this->belongsToMany(Role::class, 'user_roles')
-                    ->withTimestamps();
+                    ->withPivot('assigned_at');
     }
 
     /**
@@ -154,5 +155,16 @@ class User extends Authenticatable
     public function isCustomer(): bool
     {
         return $this->hasRole('customer');
+    }
+
+    /**
+     * Assign a role to the user.
+     */
+    public function assignRole(string $roleName): void
+    {
+        $role = Role::where('name', $roleName)->first();
+        if ($role && !$this->hasRole($roleName)) {
+            $this->roles()->attach($role->id, ['assigned_at' => now()]);
+        }
     }
 }

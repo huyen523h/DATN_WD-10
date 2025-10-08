@@ -6,6 +6,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\TourController;
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\UserController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -60,6 +61,15 @@ Route::middleware('auth')->group(function () {
 // Admin routes
 Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
+    
+    // Users management
+    Route::get('/users', [UserController::class, 'index'])->name('users.index');
+    Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
+    Route::post('/users', [UserController::class, 'store'])->name('users.store');
+    Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
+    Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+    Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+    Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
     
     // Tours management
     Route::get('/tours', [AdminController::class, 'tours'])->name('tours');
