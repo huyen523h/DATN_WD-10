@@ -3,150 +3,265 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use App\Http\Requests\StoreUserRequest;
-use App\Http\Requests\UpdateUserRequest;
+use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index(Request $request)
     {
-        $query = User::query();
+        $query = User::with('roles');
 
-        // Filter by role if specified
-        if ($request->has('role') && $request->role !== '') {
-            $query->where('role', $request->role);
-        }
-
-        // Filter by status if specified
-        if ($request->has('status') && $request->status !== '') {
-            $query->where('is_active', $request->status === 'active');
-        }
-
-        // Search by name or email
-        if ($request->has('search') && $request->search !== '') {
+        // Search functionality
+        if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
             });
         }
 
-        $users = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
+        // Filter by role
+        if ($request->filled('role')) {
+            $query->whereHas('roles', function ($q) use ($request) {
+                $q->where('name', $request->role);
+            });
+        }
 
-        return view('admin.users.index', compact('users'));
+        $users = $query->orderBy('created_at', 'desc')->paginate(15);
+        $roles = Role::all();
+
+        return view('admin.users.index', compact('users', 'roles'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
-        return view('admin.users.create');
+        $roles = Role::all();
+        return view('admin.users.create', compact('roles'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoreUserRequest $request)
+    public function store(Request $request)
     {
-        try {
-            $user = User::create([
-                'name' => $request->name,
-                'email' => $request->email,
-                'password' => Hash::make($request->password),
-                'role' => $request->role,
-                'phone' => $request->phone,
-                'address' => $request->address,
-                'is_active' => $request->has('is_active'),
-            ]);
+        $request->validate([
+            'name' => 'required|string|max:100',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:8|confirmed',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:255',
+            'role' => 'required|exists:roles,name',
+        ]);
 
-            return redirect()->route('admin.users.index')
-                ->with('success', 'Tạo người dùng thành công.');
-        } catch (\Exception $e) {
-            return redirect()->back()
-                ->withInput()
-                ->with('error', 'Có lỗi xảy ra: ' . $e->getMessage());
-        }
+        $userData = $request->all();
+        $userData['password'] = Hash::make($userData['password']);
+
+        $user = User::create($userData);
+
+        // Assign role
+        $role = $userData['role'] ?? 'customer';
+        $user->assignRole($role);
+
+        return redirect()->route('admin.users.index')
+            ->with('success', 'Tạo người dùng thành công.');
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(User $user)
     {
+        $user->load(['roles', 'bookings', 'reviews']);
         return view('admin.users.show', compact('user'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
     public function edit(User $user)
     {
-        return view('admin.users.edit', compact('user'));
+        $roles = Role::all();
+        $user->load('roles');
+        return view('admin.users.edit', compact('user', 'roles'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateUserRequest $request, User $user)
+    public function update(Request $request, User $user)
     {
-        $data = [
-            'name' => $request->name,
-            'email' => $request->email,
-            'role' => $request->role,
-            'phone' => $request->phone,
-            'address' => $request->address,
-            'is_active' => $request->has('is_active'),
-        ];
+        $request->validate([
+            'name' => 'required|string|max:100',
+            'email' => 'required|email|unique:users,email,' . $user->id,
+            'password' => 'nullable|string|min:8|confirmed',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:255',
+            'role' => 'required|exists:roles,name',
+        ]);
 
-        // Only update password if provided
-        if ($request->filled('password')) {
-            $data['password'] = Hash::make($request->password);
+        $userData = $request->all();
+
+        // Update password if provided
+        if (isset($userData['password'])) {
+            $userData['password'] = Hash::make($userData['password']);
+        } else {
+            unset($userData['password']);
         }
 
-        $user->update($data);
+        $user->update($userData);
+
+        // Update role
+        $role = $userData['role'] ?? 'customer';
+        $user->roles()->detach();
+        $user->assignRole($role);
 
         return redirect()->route('admin.users.index')
             ->with('success', 'Cập nhật người dùng thành công.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(User $user)
     {
-        // Prevent admin from deleting themselves
-        if (auth()->id() === $user->id) {
-            return redirect()->route('admin.users.index')
-                ->with('error', 'Bạn không thể xóa tài khoản của chính mình.');
+        // Prevent deleting current user
+        if ($user->id === Auth::id()) {
+            return redirect()->back()
+                ->with('error', 'Không thể xóa chính mình.');
         }
 
+        // Check if user has bookings
+        if ($user->bookings()->count() > 0) {
+            return redirect()->back()
+                ->with('error', 'Không thể xóa người dùng có booking.');
+        }
+
+        // Check if user has reviews
+        if ($user->reviews()->count() > 0) {
+            return redirect()->back()
+                ->with('error', 'Không thể xóa người dùng có đánh giá.');
+        }
+
+        // Detach roles before deleting
+        $user->roles()->detach();
         $user->delete();
 
         return redirect()->route('admin.users.index')
             ->with('success', 'Xóa người dùng thành công.');
     }
 
-    /**
-     * Toggle user active status
-     */
-    public function toggleStatus(User $user)
+    // API Methods
+    public function apiIndex(Request $request)
     {
-        // Prevent admin from deactivating themselves
-        if (auth()->id() === $user->id) {
-            return redirect()->route('admin.users.index')
-                ->with('error', 'Bạn không thể vô hiệu hóa tài khoản của chính mình.');
+        $query = User::with('roles');
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
         }
 
-        $user->update(['is_active' => !$user->is_active]);
+        if ($request->filled('role')) {
+            $query->whereHas('roles', function ($q) use ($request) {
+                $q->where('name', $request->role);
+            });
+        }
 
-        $status = $user->is_active ? 'kích hoạt' : 'vô hiệu hóa';
-        return redirect()->route('admin.users.index')
-            ->with('success', "Người dùng đã được {$status} thành công.");
+        $users = $query->orderBy('created_at', 'desc')->paginate(15);
+
+        return response()->json([
+            'success' => true,
+            'data' => $users
+        ]);
+    }
+
+    public function apiStore(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:100',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:8',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:255',
+            'role' => 'required|exists:roles,name',
+        ]);
+
+        $userData = $request->all();
+        $userData['password'] = Hash::make($userData['password']);
+
+        $user = User::create($userData);
+        $user->assignRole($userData['role']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tạo người dùng thành công.',
+            'data' => $user->load('roles')
+        ], 201);
+    }
+
+    public function apiShow(User $user)
+    {
+        $user->load(['roles', 'bookings', 'reviews']);
+        
+        return response()->json([
+            'success' => true,
+            'data' => $user
+        ]);
+    }
+
+    public function apiUpdate(Request $request, User $user)
+    {
+        $request->validate([
+            'name' => 'required|string|max:100',
+            'email' => 'required|email|unique:users,email,' . $user->id,
+            'password' => 'nullable|string|min:8',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:255',
+            'role' => 'required|exists:roles,name',
+        ]);
+
+        $userData = $request->all();
+
+        if (isset($userData['password'])) {
+            $userData['password'] = Hash::make($userData['password']);
+        } else {
+            unset($userData['password']);
+        }
+
+        $user->update($userData);
+
+        $role = $userData['role'] ?? 'customer';
+        $user->roles()->detach();
+        $user->assignRole($role);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Cập nhật người dùng thành công.',
+            'data' => $user->load('roles')
+        ]);
+    }
+
+    public function apiDestroy(User $user)
+    {
+        if ($user->id === Auth::id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không thể xóa chính mình.'
+            ], 400);
+        }
+
+        if ($user->bookings()->count() > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không thể xóa người dùng có booking.'
+            ], 400);
+        }
+
+        if ($user->reviews()->count() > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không thể xóa người dùng có đánh giá.'
+            ], 400);
+        }
+
+        $user->roles()->detach();
+        $user->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Xóa người dùng thành công.'
+        ]);
     }
 }

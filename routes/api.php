@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\TourController;
 use App\Http\Controllers\Api\PromotionController;
@@ -44,6 +45,15 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/{promotion}', [PromotionController::class, 'update']); // PUT /api/admin/promotions/1
             Route::delete('/{promotion}', [PromotionController::class, 'destroy']); // DELETE /api/admin/promotions/1
         });
+    });
+    
+    // API User Management
+    Route::prefix('users')->group(function () {
+        Route::get('/', [UserController::class, 'apiIndex']);
+        Route::post('/', [UserController::class, 'apiStore']);
+        Route::get('/{user}', [UserController::class, 'apiShow']);
+        Route::put('/{user}', [UserController::class, 'apiUpdate']);
+        Route::delete('/{user}', [UserController::class, 'apiDestroy']);
     });
 });
 
