@@ -147,7 +147,7 @@
             
             if (timeLeft <= 0) {
                 clearInterval(countdown);
-                window.location.href = '{{ route("login") }}';
+                window.location.href = '{{ route("tours.index") }}';
             }
         }, 1000);
     </script>

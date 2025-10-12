@@ -145,7 +145,7 @@ class EmployeeAuthController extends Controller
     /**
      * Handle employee logout
      */
-    public function logout(Request $request): RedirectResponse
+    public function logout(Request $request)
     {
         // Clear employee session data
         $request->session()->forget(['employee_id', 'employee_role', 'employee_name', 'employee_avatar']);
@@ -154,7 +154,8 @@ class EmployeeAuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         
-        return redirect()->route('employee.login')->with('success', 'Đăng xuất thành công!');
+        // Return logout page instead of redirect (same as admin and customer)
+        return view('auth.logout');
     }
 
     /**
