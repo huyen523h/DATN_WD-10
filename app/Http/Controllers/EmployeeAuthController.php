@@ -154,15 +154,7 @@ class EmployeeAuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         
-        return redirect()->route('employee.logout-success');
-    }
-
-    /**
-     * Show logout success page
-     */
-    public function logoutSuccess(): View
-    {
-        return view('employee.auth.logout-success');
+        return redirect()->route('employee.login')->with('success', 'Đăng xuất thành công!');
     }
 
     /**
