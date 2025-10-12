@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\TourController;
+use App\Http\Controllers\Api\TourImageController; // thêm: controller ảnh
 
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -28,8 +29,23 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('admin')->group(function () {
         Route::get('/users', [AuthController::class, 'getAllUsers']);
         Route::delete('/users/{id}', [AuthController::class, 'deleteUser']);
+
+        // ============================================
+        // NEW: Tour Images API (chỉ admin mới được dùng)
+        // ============================================
+        Route::prefix('tours/{tour}')->group(function () {
+            // Upload thêm 1..n ảnh (append)
+            Route::post('images', [TourImageController::class, 'store']);              // POST /api/tours/{tour}/images
+            // Thay toàn bộ ảnh (xóa cũ + up mới) trong transaction
+            Route::put('images/replace', [TourImageController::class, 'replaceAll']);  // PUT  /api/tours/{tour}/images/replace
+        });
+
+        // Cập nhật 1 ảnh: set cover / sort_order
+        Route::patch('tour-images/{image}', [TourImageController::class, 'update']);   // PATCH /api/tour-images/{image}
+        // Xóa 1 ảnh
+        Route::delete('tour-images/{image}', [TourImageController::class, 'destroy']); // DELETE /api/tour-images/{image}
     });
-});
+    });
 
 // Test route
 Route::get('/user', function (Request $request) {
