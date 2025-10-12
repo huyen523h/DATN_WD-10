@@ -244,6 +244,14 @@
                 <i class="fas fa-globe"></i>
                 <span>Xem trang web</span>
             </a>
+            
+            <form action="{{ route('employee.logout') }}" method="POST" class="d-inline w-100">
+                @csrf
+                <button type="submit" class="nav-link w-100 text-start" style="border: none; background: none; color: rgba(255,255,255,0.8); padding: 0.75rem 1.5rem; border-radius: 0; transition: all 0.3s ease; border-left: 3px solid transparent;" onmouseover="this.style.color='white'; this.style.backgroundColor='rgba(255,255,255,0.1)'; this.style.borderLeftColor='white';" onmouseout="this.style.color='rgba(255,255,255,0.8)'; this.style.backgroundColor='transparent'; this.style.borderLeftColor='transparent';">
+                    <i class="fas fa-sign-out-alt" style="width: 20px; margin-right: 0.75rem;"></i>
+                    <span>Đăng xuất</span>
+                </button>
+            </form>
         </nav>
     </div>
 
