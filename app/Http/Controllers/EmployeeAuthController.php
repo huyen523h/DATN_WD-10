@@ -147,11 +147,22 @@ class EmployeeAuthController extends Controller
      */
     public function logout(Request $request): RedirectResponse
     {
+        // Clear employee session data
+        $request->session()->forget(['employee_id', 'employee_role', 'employee_name', 'employee_avatar']);
+        
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         
-        return redirect()->route('employee.login');
+        return redirect()->route('employee.logout-success');
+    }
+
+    /**
+     * Show logout success page
+     */
+    public function logoutSuccess(): View
+    {
+        return view('employee.auth.logout-success');
     }
 
     /**

@@ -145,6 +145,7 @@ Route::prefix('employee')->name('employee.')->group(function () {
     Route::get('/login', [EmployeeAuthController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [EmployeeAuthController::class, 'login']);
     Route::post('/logout', [EmployeeAuthController::class, 'logout'])->name('logout');
+    Route::get('/logout-success', [EmployeeAuthController::class, 'logoutSuccess'])->name('logout-success');
     
     Route::middleware(['auth', 'employee'])->group(function () {
         Route::get('/dashboard', [EmployeeAuthController::class, 'dashboard'])->name('dashboard');
