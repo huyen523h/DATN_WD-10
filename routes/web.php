@@ -6,6 +6,9 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\TourController;
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\Admin\EmployeeController;
+use App\Http\Controllers\EmployeeAuthController;
 
 
 Route::get('/', function () {
@@ -131,4 +134,30 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     // Settings
     Route::get('/settings', [AdminController::class, 'settings'])->name('settings');
     Route::put('/settings', [AdminController::class, 'updateSettings'])->name('settings.update');
+    
+    // Users management
+    Route::get('/users', [UserController::class, 'index'])->name('users.index');
+    Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
+    Route::post('/users', [UserController::class, 'store'])->name('users.store');
+    Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
+    Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+    Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+    Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+    
+    // Employees management
+    Route::resource('employees', EmployeeController::class);
+    Route::post('/employees/{employee}/create-account', [EmployeeController::class, 'createUserAccount'])->name('employees.create-account');
+});
+
+// Employee routes
+Route::prefix('employee')->name('employee.')->group(function () {
+    Route::get('/login', [EmployeeAuthController::class, 'showLoginForm'])->name('login');
+    Route::post('/login', [EmployeeAuthController::class, 'login']);
+    Route::post('/logout', [EmployeeAuthController::class, 'logout'])->name('logout');
+    
+    Route::middleware(['auth', 'employee'])->group(function () {
+        Route::get('/dashboard', [EmployeeAuthController::class, 'dashboard'])->name('dashboard');
+        Route::get('/profile', [EmployeeAuthController::class, 'profile'])->name('profile');
+        Route::post('/profile', [EmployeeAuthController::class, 'updateProfile'])->name('profile.update');
+    });
 });
