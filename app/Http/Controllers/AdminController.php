@@ -225,6 +225,12 @@ class AdminController extends Controller
         return redirect()->route('admin.tours')->with('success', 'Tour đã được cập nhật thành công!');
     }
 
+    public function showTour(Tour $tour): View
+    {
+        $tour->load(['category', 'images', 'schedules', 'departures', 'bookings.user', 'reviews.user']);
+        return view('admin.tours.show', compact('tour'));
+    }
+
     public function deleteTour(Tour $tour): RedirectResponse
     {
         $tour->delete();
@@ -240,6 +246,12 @@ class AdminController extends Controller
         return view('admin.bookings.index', compact('bookings'));
     }
 
+    public function showBooking(Booking $booking): View
+    {
+        $booking->load(['tour', 'user', 'departure', 'payments', 'documents', 'chat.messages.sender']);
+        return view('admin.bookings.show', compact('booking'));
+    }
+
     public function customers()
     {
         $customers = User::whereHas('roles', function($query) {
@@ -251,10 +263,22 @@ class AdminController extends Controller
         return view('admin.customers.index', compact('customers'));
     }
 
+    public function showCustomer(User $user): View
+    {
+        $user->load(['bookings.tour', 'reviews.tour', 'supportTickets', 'notifications']);
+        return view('admin.customers.show', compact('user'));
+    }
+
     public function categories()
     {
         $categories = Category::withCount('tours')->paginate(10);
         return view('admin.categories.index', compact('categories'));
+    }
+
+    public function showCategory(Category $category): View
+    {
+        $category->load(['tours.images', 'tours.bookings']);
+        return view('admin.categories.show', compact('category'));
     }
 
     public function createCategory(): View
@@ -282,6 +306,12 @@ class AdminController extends Controller
     {
         $promotions = Promotion::orderBy('created_at', 'desc')->paginate(10);
         return view('admin.promotions.index', compact('promotions'));
+    }
+
+    public function showPromotion(Promotion $promotion): View
+    {
+        $promotion->load(['bookings.user', 'bookings.tour']);
+        return view('admin.promotions.show', compact('promotion'));
     }
 
     public function createPromotion(): View
