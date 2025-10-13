@@ -102,7 +102,7 @@
                                             <td>{{ $booking->created_at->format('d/m/Y H:i') }}</td>
                                             <td>
                                                 <div class="btn-group" role="group">
-                                                    <a href="{{ route('bookings.show', $booking) }}" 
+                                                    <a href="{{ route('admin.bookings.show', $booking) }}" 
                                                        class="btn btn-sm btn-outline-info" title="Xem chi tiết">
                                                         <i class="fas fa-eye"></i>
                                                     </a>
