@@ -66,17 +66,20 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/tours', [AdminController::class, 'tours'])->name('tours');
     Route::get('/tours/create', [AdminController::class, 'createTour'])->name('tours.create');
     Route::post('/tours', [AdminController::class, 'storeTour'])->name('tours.store');
+    Route::get('/tours/{tour}', [AdminController::class, 'showTour'])->name('tours.show');
     Route::get('/tours/{tour}/edit', [AdminController::class, 'editTour'])->name('tours.edit');
     Route::put('/tours/{tour}', [AdminController::class, 'updateTour'])->name('tours.update');
     Route::delete('/tours/{tour}', [AdminController::class, 'deleteTour'])->name('tours.destroy');
     
     // Bookings management
     Route::get('/bookings', [AdminController::class, 'bookings'])->name('bookings');
+    Route::get('/bookings/{booking}', [AdminController::class, 'showBooking'])->name('bookings.show');
     Route::put('/bookings/{booking}', [AdminController::class, 'updateBooking'])->name('bookings.update');
     Route::delete('/bookings/{booking}', [AdminController::class, 'deleteBooking'])->name('bookings.destroy');
     
     // Customers management
     Route::get('/customers', [AdminController::class, 'customers'])->name('customers');
+    Route::get('/customers/{user}', [AdminController::class, 'showCustomer'])->name('customers.show');
     Route::put('/customers/{user}', [AdminController::class, 'updateCustomer'])->name('customers.update');
     Route::delete('/customers/{user}', [AdminController::class, 'deleteCustomer'])->name('customers.destroy');
     
@@ -84,6 +87,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/categories', [AdminController::class, 'categories'])->name('categories');
     Route::get('/categories/create', [AdminController::class, 'createCategory'])->name('categories.create');
     Route::post('/categories', [AdminController::class, 'storeCategory'])->name('categories.store');
+    Route::get('/categories/{category}', [AdminController::class, 'showCategory'])->name('categories.show');
     Route::get('/categories/{category}/edit', [AdminController::class, 'editCategory'])->name('categories.edit');
     Route::put('/categories/{category}', [AdminController::class, 'updateCategory'])->name('categories.update');
     Route::delete('/categories/{category}', [AdminController::class, 'deleteCategory'])->name('categories.destroy');
@@ -102,6 +106,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/promotions', [AdminController::class, 'promotions'])->name('promotions');
     Route::get('/promotions/create', [AdminController::class, 'createPromotion'])->name('promotions.create');
     Route::post('/promotions', [AdminController::class, 'storePromotion'])->name('promotions.store');
+    Route::get('/promotions/{promotion}', [AdminController::class, 'showPromotion'])->name('promotions.show');
     Route::get('/promotions/{promotion}/edit', [AdminController::class, 'editPromotion'])->name('promotions.edit');
     Route::put('/promotions/{promotion}', [AdminController::class, 'updatePromotion'])->name('promotions.update');
     Route::delete('/promotions/{promotion}', [AdminController::class, 'deletePromotion'])->name('promotions.destroy');

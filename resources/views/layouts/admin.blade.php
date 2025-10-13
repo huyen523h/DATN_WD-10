@@ -3,451 +3,820 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Admin Dashboard - Tour365')</title>
+    <meta name="description" content="Admin Dashboard - Tour365">
+    <meta name="theme-color" content="#6366F1">
     
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
     
-    <!-- Font Awesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/feather-icons@4.29.0/dist/feather.min.css" rel="stylesheet">
     
-    <!-- Custom Admin CSS -->
+    <!-- CSS -->
+    <link href="{{ asset('css/admin.css') }}" rel="stylesheet">
     <style>
         :root {
-            --admin-primary: #4F46E5;
-            --admin-secondary: #6B7280;
-            --admin-success: #10B981;
-            --admin-warning: #F59E0B;
-            --admin-danger: #EF4444;
-            --admin-info: #3B82F6;
-            --admin-light: #F9FAFB;
-            --admin-dark: #1F2937;
+            /* Primary Colors */
+            --primary-50: #EEF2FF;
+            --primary-100: #E0E7FF;
+            --primary-200: #C7D2FE;
+            --primary-300: #A5B4FC;
+            --primary-400: #818CF8;
+            --primary-500: #6366F1;
+            --primary-600: #4F46E5;
+            --primary-700: #4338CA;
+            --primary-800: #3730A3;
+            --primary-900: #312E81;
+            
+            /* Gray Colors */
+            --gray-50: #F9FAFB;
+            --gray-100: #F3F4F6;
+            --gray-200: #E5E7EB;
+            --gray-300: #D1D5DB;
+            --gray-400: #9CA3AF;
+            --gray-500: #6B7280;
+            --gray-600: #4B5563;
+            --gray-700: #374151;
+            --gray-800: #1F2937;
+            --gray-900: #111827;
+            
+            /* Success Colors */
+            --success-50: #ECFDF5;
+            --success-500: #10B981;
+            --success-600: #059669;
+            
+            /* Warning Colors */
+            --warning-50: #FFFBEB;
+            --warning-500: #F59E0B;
+            --warning-600: #D97706;
+            
+            /* Error Colors */
+            --error-50: #FEF2F2;
+            --error-500: #EF4444;
+            --error-600: #DC2626;
+            
+            /* Info Colors */
+            --info-50: #EFF6FF;
+            --info-500: #3B82F6;
+            --info-600: #2563EB;
+            
+            /* Shadows */
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            
+            /* Border Radius */
+            --radius-sm: 0.375rem;
+            --radius: 0.5rem;
+            --radius-md: 0.75rem;
+            --radius-lg: 1rem;
+            --radius-xl: 1.5rem;
+            
+            /* Spacing */
             --sidebar-width: 280px;
             --header-height: 70px;
         }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: #F8FAFC;
+        
+        * {
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
         }
-
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--gray-50);
+            color: var(--gray-900);
+            line-height: 1.6;
+            font-size: 14px;
+        }
+        
         /* Sidebar */
-        .admin-sidebar {
+        .sidebar {
             position: fixed;
             top: 0;
             left: 0;
-            height: 100vh;
             width: var(--sidebar-width);
-            background: linear-gradient(180deg, #1E293B 0%, #334155 100%);
+            height: 100vh;
+            background: linear-gradient(180deg, var(--primary-600) 0%, var(--primary-700) 100%);
+            color: white;
             z-index: 1000;
             transition: all 0.3s ease;
             overflow-y: auto;
+            box-shadow: var(--shadow-xl);
         }
-
-        .admin-sidebar.collapsed {
-            width: 70px;
+        
+        .sidebar.collapsed {
+            width: 80px;
         }
-
-        .admin-sidebar .sidebar-header {
+        
+        .sidebar-header {
             padding: 1.5rem;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .admin-sidebar .sidebar-brand {
-            color: white;
-            text-decoration: none;
-            font-size: 1.5rem;
-            font-weight: 700;
             display: flex;
             align-items: center;
             gap: 0.75rem;
         }
-
-        .admin-sidebar .sidebar-brand i {
-            font-size: 2rem;
-            color: var(--admin-primary);
+        
+        .sidebar-logo {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            color: white;
+            flex-shrink: 0;
         }
-
-        .admin-sidebar .sidebar-nav {
+        
+        .sidebar-brand {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: white;
+            text-decoration: none;
+            transition: opacity 0.3s ease;
+        }
+        
+        .sidebar.collapsed .sidebar-brand {
+            opacity: 0;
+            width: 0;
+            overflow: hidden;
+        }
+        
+        .sidebar-nav {
             padding: 1rem 0;
         }
-
-        .admin-sidebar .nav-item {
+        
+        .nav-section {
+            margin-bottom: 2rem;
+        }
+        
+        .nav-section-title {
+            padding: 0 1.5rem 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: rgba(255, 255, 255, 0.6);
+            transition: opacity 0.3s ease;
+        }
+        
+        .sidebar.collapsed .nav-section-title {
+            opacity: 0;
+            height: 0;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .nav-item {
             margin: 0.25rem 0;
         }
-
-        .admin-sidebar .nav-link {
-            color: rgba(255, 255, 255, 0.8);
-            padding: 0.75rem 1.5rem;
+        
+        .nav-link {
             display: flex;
             align-items: center;
             gap: 0.75rem;
+            padding: 0.75rem 1.5rem;
+            color: rgba(255, 255, 255, 0.8);
             text-decoration: none;
             transition: all 0.3s ease;
-            border-radius: 0;
+            position: relative;
+            font-weight: 500;
         }
-
-        .admin-sidebar .nav-link:hover {
-            color: white;
+        
+        .nav-link:hover {
             background: rgba(255, 255, 255, 0.1);
-        }
-
-        .admin-sidebar .nav-link.active {
             color: white;
-            background: var(--admin-primary);
-            border-right: 3px solid #F59E0B;
         }
-
-        .admin-sidebar .nav-link i {
+        
+        .nav-link.active {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            font-weight: 600;
+        }
+        
+        .nav-link.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: white;
+            border-radius: 0 2px 2px 0;
+        }
+        
+        .nav-icon {
             width: 20px;
-            text-align: center;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
         }
-
-        .admin-sidebar .nav-dropdown {
-            background: rgba(0, 0, 0, 0.2);
+        
+        .nav-text {
+            transition: opacity 0.3s ease;
         }
-
-        .admin-sidebar .nav-dropdown .nav-link {
-            padding-left: 3rem;
-            font-size: 0.9rem;
+        
+        .sidebar.collapsed .nav-text {
+            opacity: 0;
+            width: 0;
+            overflow: hidden;
         }
-
+        
+        .nav-badge {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--radius);
+            margin-left: auto;
+            transition: opacity 0.3s ease;
+        }
+        
+        .sidebar.collapsed .nav-badge {
+            opacity: 0;
+            width: 0;
+            padding: 0;
+            margin: 0;
+        }
+        
         /* Main Content */
-        .admin-main {
+        .main-content {
             margin-left: var(--sidebar-width);
             min-height: 100vh;
-            transition: all 0.3s ease;
+            transition: margin-left 0.3s ease;
         }
-
-        .admin-main.sidebar-collapsed {
-            margin-left: 70px;
+        
+        .sidebar.collapsed + .main-content {
+            margin-left: 80px;
         }
-
+        
         /* Header */
-        .admin-header {
+        .header {
             height: var(--header-height);
             background: white;
-            border-bottom: 1px solid #E5E7EB;
+            border-bottom: 1px solid var(--gray-200);
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding: 0 2rem;
             position: sticky;
             top: 0;
-            z-index: 999;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+            box-shadow: var(--shadow-sm);
         }
-
-        .admin-header .header-left {
+        
+        .header-left {
             display: flex;
             align-items: center;
             gap: 1rem;
         }
-
-        .admin-header .sidebar-toggle {
+        
+        .sidebar-toggle {
             background: none;
             border: none;
+            color: var(--gray-600);
             font-size: 1.25rem;
-            color: var(--admin-secondary);
             cursor: pointer;
             padding: 0.5rem;
-            border-radius: 0.5rem;
+            border-radius: var(--radius);
             transition: all 0.3s ease;
         }
-
-        .admin-header .sidebar-toggle:hover {
-            background: var(--admin-light);
-            color: var(--admin-primary);
+        
+        .sidebar-toggle:hover {
+            background: var(--gray-100);
+            color: var(--gray-900);
         }
-
-        .admin-header .breadcrumb {
-            margin: 0;
-            background: none;
-            padding: 0;
+        
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--gray-600);
         }
-
-        .admin-header .breadcrumb-item {
-            color: var(--admin-secondary);
+        
+        .breadcrumb-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
-
-        .admin-header .breadcrumb-item.active {
-            color: var(--admin-dark);
-            font-weight: 600;
+        
+        .breadcrumb-item:not(:last-child)::after {
+            content: '/';
+            color: var(--gray-400);
         }
-
-        .admin-header .header-right {
+        
+        .breadcrumb-item.active {
+            color: var(--gray-900);
+            font-weight: 500;
+        }
+        
+        .header-right {
             display: flex;
             align-items: center;
             gap: 1rem;
         }
-
-        .admin-header .search-box {
+        
+        .search-box {
             position: relative;
-        }
-
-        .admin-header .search-box input {
             width: 300px;
-            padding: 0.5rem 1rem 0.5rem 2.5rem;
-            border: 1px solid #D1D5DB;
-            border-radius: 2rem;
-            font-size: 0.9rem;
         }
-
-        .admin-header .search-box i {
+        
+        .search-input {
+            width: 100%;
+            padding: 0.5rem 1rem 0.5rem 2.5rem;
+            border: 1px solid var(--gray-300);
+            border-radius: var(--radius-lg);
+            font-size: 0.875rem;
+            background: var(--gray-50);
+            transition: all 0.3s ease;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-500);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        
+        .search-icon {
             position: absolute;
             left: 0.75rem;
             top: 50%;
             transform: translateY(-50%);
-            color: var(--admin-secondary);
+            color: var(--gray-400);
+            font-size: 0.875rem;
         }
-
-        .admin-header .notification-btn {
-            position: relative;
+        
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .header-btn {
             background: none;
             border: none;
-            color: var(--admin-secondary);
-            font-size: 1.25rem;
-            padding: 0.5rem;
-            border-radius: 0.5rem;
+            color: var(--gray-600);
+            font-size: 1.125rem;
             cursor: pointer;
+            padding: 0.5rem;
+            border-radius: var(--radius);
             transition: all 0.3s ease;
+            position: relative;
         }
-
-        .admin-header .notification-btn:hover {
-            background: var(--admin-light);
-            color: var(--admin-primary);
+        
+        .header-btn:hover {
+            background: var(--gray-100);
+            color: var(--gray-900);
         }
-
-        .admin-header .notification-badge {
+        
+        .notification-badge {
             position: absolute;
             top: 0.25rem;
             right: 0.25rem;
-            background: var(--admin-danger);
+            background: var(--error-500);
             color: white;
+            font-size: 0.625rem;
+            padding: 0.125rem 0.375rem;
             border-radius: 50%;
-            width: 18px;
-            height: 18px;
-            font-size: 0.7rem;
+            min-width: 1.25rem;
+            height: 1.25rem;
             display: flex;
             align-items: center;
             justify-content: center;
         }
-
-        .admin-header .user-dropdown {
+        
+        .user-menu {
             position: relative;
         }
-
-        .admin-header .user-avatar {
+        
+        .user-avatar {
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--admin-primary), #8B5CF6);
-            color: white;
+            background: var(--primary-500);
             display: flex;
             align-items: center;
             justify-content: center;
+            color: white;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
         }
-
-        .admin-header .user-avatar:hover {
+        
+        .user-avatar:hover {
+            background: var(--primary-600);
             transform: scale(1.05);
         }
-
-        /* Content */
-        .admin-content {
+        
+        /* Content Area */
+        .content {
             padding: 2rem;
         }
-
+        
         /* Cards */
-        .admin-card {
+        .card {
             background: white;
-            border-radius: 0.75rem;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-            border: 1px solid #E5E7EB;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--gray-200);
             overflow: hidden;
-        }
-
-        .admin-card .card-header {
-            background: var(--admin-light);
-            border-bottom: 1px solid #E5E7EB;
-            padding: 1.5rem;
-        }
-
-        .admin-card .card-body {
-            padding: 1.5rem;
-        }
-
-        /* Stats Cards */
-        .stats-card {
-            background: white;
-            border-radius: 0.75rem;
-            padding: 1.5rem;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-            border: 1px solid #E5E7EB;
             transition: all 0.3s ease;
         }
-
-        .stats-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        
+        .card:hover {
+            box-shadow: var(--shadow-md);
         }
-
-        .stats-card .stats-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 0.75rem;
+        
+        .card-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--gray-200);
+            background: var(--gray-50);
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+        
+        .card-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--gray-200);
+            background: var(--gray-50);
+        }
+        
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        
+        .btn-primary {
+            background: var(--primary-500);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-600);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .btn-secondary {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--gray-200);
+        }
+        
+        .btn-success {
+            background: var(--success-500);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: var(--success-600);
+        }
+        
+        .btn-warning {
+            background: var(--warning-500);
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background: var(--warning-600);
+        }
+        
+        .btn-danger {
+            background: var(--error-500);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: var(--error-600);
+        }
+        
+        .btn-outline-primary {
+            background: transparent;
+            color: var(--primary-500);
+            border: 1px solid var(--primary-500);
+        }
+        
+        .btn-outline-primary:hover {
+            background: var(--primary-500);
+            color: white;
+        }
+        
+        .btn-sm {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+        }
+        
+        .btn-lg {
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+        }
+        
+        /* Tables */
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .table th,
+        .table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--gray-200);
+        }
+        
+        .table th {
+            background: var(--gray-50);
+            font-weight: 600;
+            color: var(--gray-700);
+            font-size: 0.875rem;
+        }
+        
+        .table tbody tr:hover {
+            background: var(--gray-50);
+        }
+        
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: var(--radius);
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .badge-success {
+            background: var(--success-50);
+            color: var(--success-600);
+        }
+        
+        .badge-warning {
+            background: var(--warning-50);
+            color: var(--warning-600);
+        }
+        
+        .badge-danger {
+            background: var(--error-50);
+            color: var(--error-600);
+        }
+        
+        .badge-info {
+            background: var(--info-50);
+            color: var(--info-600);
+        }
+        
+        .badge-primary {
+            background: var(--primary-50);
+            color: var(--primary-600);
+        }
+        
+        /* Forms */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--gray-700);
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--gray-300);
+            border-radius: var(--radius);
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-500);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        
+        .form-select {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem;
+        }
+        
+        /* Alerts */
+        .alert {
+            padding: 1rem;
+            border-radius: var(--radius);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .alert-success {
+            background: var(--success-50);
+            color: var(--success-600);
+            border: 1px solid var(--success-200);
+        }
+        
+        .alert-warning {
+            background: var(--warning-50);
+            color: var(--warning-600);
+            border: 1px solid var(--warning-200);
+        }
+        
+        .alert-danger {
+            background: var(--error-50);
+            color: var(--error-600);
+            border: 1px solid var(--error-200);
+        }
+        
+        .alert-info {
+            background: var(--info-50);
+            color: var(--info-600);
+            border: 1px solid var(--info-200);
+        }
+        
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--gray-200);
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-lg);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 1.5rem;
-            color: white;
+            margin-bottom: 1rem;
         }
-
-        .stats-card .stats-number {
+        
+        .stat-icon-primary {
+            background: var(--primary-50);
+            color: var(--primary-500);
+        }
+        
+        .stat-icon-success {
+            background: var(--success-50);
+            color: var(--success-500);
+        }
+        
+        .stat-icon-warning {
+            background: var(--warning-50);
+            color: var(--warning-500);
+        }
+        
+        .stat-icon-info {
+            background: var(--info-50);
+            color: var(--info-500);
+        }
+        
+        .stat-value {
             font-size: 2rem;
             font-weight: 700;
-            color: var(--admin-dark);
-            line-height: 1;
+            color: var(--gray-900);
+            margin-bottom: 0.25rem;
         }
-
-        .stats-card .stats-label {
-            color: var(--admin-secondary);
+        
+        .stat-label {
+            color: var(--gray-600);
             font-size: 0.875rem;
             font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
         }
-
-        .stats-card .stats-change {
+        
+        .stat-change {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            margin-top: 0.5rem;
             font-size: 0.75rem;
             font-weight: 500;
         }
-
-        /* Tables */
-        .admin-table {
-            background: white;
-            border-radius: 0.75rem;
-            overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        
+        .stat-change.positive {
+            color: var(--success-600);
         }
-
-        .admin-table table {
-            margin: 0;
+        
+        .stat-change.negative {
+            color: var(--error-600);
         }
-
-        .admin-table th {
-            background: var(--admin-light);
-            border: none;
-            font-weight: 600;
-            color: var(--admin-dark);
-            font-size: 0.875rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            padding: 1rem;
-        }
-
-        .admin-table td {
-            border: none;
-            padding: 1rem;
-            vertical-align: middle;
-            border-bottom: 1px solid #F3F4F6;
-        }
-
-        .admin-table tbody tr:hover {
-            background: #F9FAFB;
-        }
-
-        /* Buttons */
-        .btn-admin-primary {
-            background: var(--admin-primary);
-            border-color: var(--admin-primary);
-            color: white;
-        }
-
-        .btn-admin-primary:hover {
-            background: #3730A3;
-            border-color: #3730A3;
-            color: white;
-        }
-
-        .btn-admin-success {
-            background: var(--admin-success);
-            border-color: var(--admin-success);
-            color: white;
-        }
-
-        .btn-admin-warning {
-            background: var(--admin-warning);
-            border-color: var(--admin-warning);
-            color: white;
-        }
-
-        .btn-admin-danger {
-            background: var(--admin-danger);
-            border-color: var(--admin-danger);
-            color: white;
-        }
-
-        /* Badges */
-        .badge-admin {
-            padding: 0.375rem 0.75rem;
-            border-radius: 0.5rem;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-
+        
         /* Responsive */
-        @media (max-width: 768px) {
-            .admin-sidebar {
+        @media (max-width: 1024px) {
+            .sidebar {
                 transform: translateX(-100%);
             }
-
-            .admin-sidebar.show {
+            
+            .sidebar.open {
                 transform: translateX(0);
             }
-
-            .admin-main {
+            
+            .main-content {
                 margin-left: 0;
             }
-
-            .admin-header .search-box input {
+            
+            .search-box {
                 width: 200px;
             }
         }
-
+        
+        @media (max-width: 768px) {
+            .header {
+                padding: 0 1rem;
+            }
+            
+            .content {
+                padding: 1rem;
+            }
+            
+            .search-box {
+                display: none;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
         /* Animations */
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
+            from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-
+        
         .fade-in {
-            animation: fadeIn 0.5s ease-out;
+            animation: fadeIn 0.3s ease-out;
         }
-
+        
         /* Custom Scrollbar */
-        .admin-sidebar::-webkit-scrollbar {
-            width: 6px;
+        .sidebar::-webkit-scrollbar {
+            width: 4px;
         }
-
-        .admin-sidebar::-webkit-scrollbar-track {
+        
+        .sidebar::-webkit-scrollbar-track {
             background: rgba(255, 255, 255, 0.1);
         }
-
-        .admin-sidebar::-webkit-scrollbar-thumb {
+        
+        .sidebar::-webkit-scrollbar-thumb {
             background: rgba(255, 255, 255, 0.3);
-            border-radius: 3px;
+            border-radius: 2px;
         }
-
-        .admin-sidebar::-webkit-scrollbar-thumb:hover {
+        
+        .sidebar::-webkit-scrollbar-thumb:hover {
             background: rgba(255, 255, 255, 0.5);
         }
     </style>
@@ -456,329 +825,242 @@
 </head>
 <body>
     <!-- Sidebar -->
-    <nav class="admin-sidebar" id="adminSidebar">
+    <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <a href="{{ route('admin.dashboard') }}" class="sidebar-brand">
+            <div class="sidebar-logo">
                 <i class="fas fa-plane"></i>
-                <span class="brand-text">Tour365 Admin</span>
+            </div>
+            <a href="{{ route('admin.dashboard') }}" class="sidebar-brand">
+                Tour365 Admin
             </a>
         </div>
         
-        <div class="sidebar-nav">
+        <nav class="sidebar-nav">
             <!-- Dashboard -->
-            <div class="nav-item">
-                <a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
-                    <i class="fas fa-tachometer-alt"></i>
-                    <span class="nav-text">Dashboard</span>
-                </a>
+            <div class="nav-section">
+                <div class="nav-section-title">Tổng quan</div>
+                <div class="nav-item">
+                    <a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+                        <div class="nav-icon">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </div>
+                        <span class="nav-text">Dashboard</span>
+                    </a>
+                </div>
             </div>
-
+            
             <!-- Tours Management -->
-            <div class="nav-item">
-                <a href="{{ route('admin.tours') }}" class="nav-link {{ request()->routeIs('admin.tours*') ? 'active' : '' }}">
-                    <i class="fas fa-map-marked-alt"></i>
-                    <span class="nav-text">Quản lý Tours</span>
-                </a>
+            <div class="nav-section">
+                <div class="nav-section-title">Quản lý Tour</div>
+                <div class="nav-item">
+                    <a href="{{ route('admin.tours') }}" class="nav-link {{ request()->routeIs('admin.tours*') ? 'active' : '' }}">
+                        <div class="nav-icon">
+                            <i class="fas fa-map-marked-alt"></i>
+                        </div>
+                        <span class="nav-text">Tours</span>
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="{{ route('admin.categories') }}" class="nav-link {{ request()->routeIs('admin.categories*') ? 'active' : '' }}">
+                        <div class="nav-icon">
+                            <i class="fas fa-tags"></i>
+                        </div>
+                        <span class="nav-text">Danh mục</span>
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="{{ route('admin.promotions') }}" class="nav-link {{ request()->routeIs('admin.promotions*') ? 'active' : '' }}">
+                        <div class="nav-icon">
+                            <i class="fas fa-gift"></i>
+                        </div>
+                        <span class="nav-text">Mã giảm giá</span>
+                    </a>
+                </div>
             </div>
-
+            
             <!-- Bookings Management -->
-            <div class="nav-item">
-                <a href="{{ route('admin.bookings') }}" class="nav-link {{ request()->routeIs('admin.bookings*') ? 'active' : '' }}">
-                    <i class="fas fa-calendar-check"></i>
-                    <span class="nav-text">Quản lý Đặt tour</span>
-                </a>
+            <div class="nav-section">
+                <div class="nav-section-title">Đặt tour</div>
+                <div class="nav-item">
+                    <a href="{{ route('admin.bookings') }}" class="nav-link {{ request()->routeIs('admin.bookings*') ? 'active' : '' }}">
+                        <div class="nav-icon">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <span class="nav-text">Đặt tour</span>
+                        <span class="nav-badge">{{ \App\Models\Booking::where('status', 'pending')->count() }}</span>
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="{{ route('admin.customers') }}" class="nav-link {{ request()->routeIs('admin.customers*') ? 'active' : '' }}">
+                        <div class="nav-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <span class="nav-text">Khách hàng</span>
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="{{ route('admin.payments') }}" class="nav-link {{ request()->routeIs('admin.payments*') ? 'active' : '' }}">
+                        <div class="nav-icon">
+                            <i class="fas fa-credit-card"></i>
+                        </div>
+                        <span class="nav-text">Thanh toán</span>
+                    </a>
+                </div>
             </div>
-
-            <!-- Customers Management -->
-            <div class="nav-item">
-                <a href="{{ route('admin.customers') }}" class="nav-link {{ request()->routeIs('admin.customers*') ? 'active' : '' }}">
-                    <i class="fas fa-users"></i>
-                    <span class="nav-text">Quản lý Khách hàng</span>
-                </a>
+            
+            <!-- Reviews & Support -->
+            <div class="nav-section">
+                <div class="nav-section-title">Hỗ trợ</div>
+                <div class="nav-item">
+                    <a href="{{ route('admin.reviews') }}" class="nav-link {{ request()->routeIs('admin.reviews*') ? 'active' : '' }}">
+                        <div class="nav-icon">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <span class="nav-text">Đánh giá</span>
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="{{ route('admin.support') }}" class="nav-link {{ request()->routeIs('admin.support*') ? 'active' : '' }}">
+                        <div class="nav-icon">
+                            <i class="fas fa-headset"></i>
+                        </div>
+                        <span class="nav-text">Hỗ trợ</span>
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="{{ route('admin.notifications') }}" class="nav-link {{ request()->routeIs('admin.notifications*') ? 'active' : '' }}">
+                        <div class="nav-icon">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <span class="nav-text">Thông báo</span>
+                    </a>
+                </div>
             </div>
-
-            <!-- Categories Management -->
-            <div class="nav-item">
-                <a href="{{ route('admin.categories') }}" class="nav-link {{ request()->routeIs('admin.categories*') ? 'active' : '' }}">
-                    <i class="fas fa-tags"></i>
-                    <span class="nav-text">Quản lý Danh mục</span>
-                </a>
+            
+            <!-- Reports & Settings -->
+            <div class="nav-section">
+                <div class="nav-section-title">Hệ thống</div>
+                <div class="nav-item">
+                    <a href="{{ route('admin.reports') }}" class="nav-link {{ request()->routeIs('admin.reports*') ? 'active' : '' }}">
+                        <div class="nav-icon">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <span class="nav-text">Báo cáo</span>
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="{{ route('admin.settings') }}" class="nav-link {{ request()->routeIs('admin.settings*') ? 'active' : '' }}">
+                        <div class="nav-icon">
+                            <i class="fas fa-cog"></i>
+                        </div>
+                        <span class="nav-text">Cài đặt</span>
+                    </a>
+                </div>
             </div>
-            <div class="nav-item">
-                <a href="{{ route('admin.promotions') }}" class="nav-link {{ request()->routeIs('admin.promotions*') ? 'active' : '' }}">
-                    <i class="fas fa-percent"></i>
-                    <span class="nav-text">Quản lý mã giảm giá</span>
-                </a>
-            </div>
-
-            <!-- Reviews Management -->
-            <div class="nav-item">
-                <a href="{{ route('admin.reviews') }}" class="nav-link {{ request()->routeIs('admin.reviews*') ? 'active' : '' }}">
-                    <i class="fas fa-star"></i>
-                    <span class="nav-text">Quản lý Đánh giá</span>
-                </a>
-            </div>
-
-            <!-- Payments Management -->
-            <div class="nav-item">
-                <a href="{{ route('admin.payments') }}" class="nav-link {{ request()->routeIs('admin.payments*') ? 'active' : '' }}">
-                    <i class="fas fa-credit-card"></i>
-                    <span class="nav-text">Quản lý Thanh toán</span>
-                </a>
-            </div>
-
-            <!-- Reports -->
-            <div class="nav-item">
-                <a href="{{ route('admin.reports') }}" class="nav-link {{ request()->routeIs('admin.reports*') ? 'active' : '' }}">
-                    <i class="fas fa-chart-bar"></i>
-                    <span class="nav-text">Báo cáo & Thống kê</span>
-                </a>
-            </div>
-
-            <!-- Notifications -->
-            <div class="nav-item">
-                <a href="{{ route('admin.notifications') }}" class="nav-link {{ request()->routeIs('admin.notifications*') ? 'active' : '' }}">
-                    <i class="fas fa-bell"></i>
-                    <span class="nav-text">Thông báo</span>
-                    <span class="badge badge-admin bg-danger ms-auto">3</span>
-                </a>
-            </div>
-
-            <!-- Support Tickets -->
-            <div class="nav-item">
-                <a href="{{ route('admin.support') }}" class="nav-link {{ request()->routeIs('admin.support*') ? 'active' : '' }}">
-                    <i class="fas fa-headset"></i>
-                    <span class="nav-text">Hỗ trợ khách hàng</span>
-                    <span class="badge badge-admin bg-warning ms-auto">5</span>
-                </a>
-            </div>
-
-            <!-- Settings -->
-            <div class="nav-item">
-                <a href="{{ route('admin.settings') }}" class="nav-link {{ request()->routeIs('admin.settings*') ? 'active' : '' }}">
-                    <i class="fas fa-cog"></i>
-                    <span class="nav-text">Cài đặt hệ thống</span>
-                </a>
-            </div>
-
-            <!-- Divider -->
-            <hr style="border-color: rgba(255, 255, 255, 0.1); margin: 1rem 0;">
-
-            <!-- Back to Website -->
-            <div class="nav-item">
-                <a href="{{ route('tours.index') }}" class="nav-link" target="_blank">
-                    <i class="fas fa-external-link-alt"></i>
-                    <span class="nav-text">Xem website</span>
-                </a>
-            </div>
-
-            <!-- Logout -->
-            <div class="nav-item">
-                <a href="#" class="nav-link" onclick="logout()">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span class="nav-text">Đăng xuất</span>
-                </a>
-            </div>
-        </div>
-    </nav>
-
+        </nav>
+    </aside>
+    
     <!-- Main Content -->
-    <div class="admin-main" id="adminMain">
+    <div class="main-content">
         <!-- Header -->
-        <header class="admin-header">
+        <header class="header">
             <div class="header-left">
                 <button class="sidebar-toggle" id="sidebarToggle">
                     <i class="fas fa-bars"></i>
                 </button>
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Admin</a></li>
-                        @yield('breadcrumb')
-                    </ol>
+                <nav class="breadcrumb">
+                    @yield('breadcrumb')
                 </nav>
             </div>
             
             <div class="header-right">
-                <!-- Search -->
                 <div class="search-box">
-                    <i class="fas fa-search"></i>
-                    <input type="text" placeholder="Tìm kiếm..." class="form-control">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" class="search-input" placeholder="Tìm kiếm...">
                 </div>
-
-                <!-- Notifications -->
-                <button class="notification-btn" data-bs-toggle="dropdown">
-                    <i class="fas fa-bell"></i>
-                    <span class="notification-badge">3</span>
-                </button>
-                <div class="dropdown-menu dropdown-menu-end" style="width: 300px;">
-                    <div class="dropdown-header">
-                        <h6 class="mb-0">Thông báo mới</h6>
-                    </div>
-                    <div class="dropdown-divider"></div>
-                    <a href="#" class="dropdown-item">
-                        <div class="d-flex">
-                            <div class="flex-shrink-0">
-                                <i class="fas fa-calendar-check text-primary"></i>
-                            </div>
-                            <div class="flex-grow-1 ms-2">
-                                <div class="fw-bold">Đặt tour mới</div>
-                                <small class="text-muted">Khách hàng đã đặt tour Đà Nẵng</small>
-                            </div>
-                        </div>
-                    </a>
-                    <a href="#" class="dropdown-item">
-                        <div class="d-flex">
-                            <div class="flex-shrink-0">
-                                <i class="fas fa-star text-warning"></i>
-                            </div>
-                            <div class="flex-grow-1 ms-2">
-                                <div class="fw-bold">Đánh giá mới</div>
-                                <small class="text-muted">Tour Phú Quốc được đánh giá 5 sao</small>
-                            </div>
-                        </div>
-                    </a>
-                    <div class="dropdown-divider"></div>
-                    <a href="#" class="dropdown-item text-center">Xem tất cả thông báo</a>
+                
+                <div class="header-actions">
+                    <button class="header-btn" title="Thông báo">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">3</span>
+                    </button>
+                    <button class="header-btn" title="Tin nhắn">
+                        <i class="fas fa-envelope"></i>
+                        <span class="notification-badge">5</span>
+                    </button>
+                    <button class="header-btn" title="Cài đặt">
+                        <i class="fas fa-cog"></i>
+                    </button>
                 </div>
-
-                <!-- User Dropdown -->
-                <div class="user-dropdown">
-                    <div class="user-avatar" data-bs-toggle="dropdown">
-                        {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
-                    </div>
-                    <div class="dropdown-menu dropdown-menu-end">
-                        <div class="dropdown-header">
-                            <div class="fw-bold">{{ Auth::user()->name }}</div>
-                            <small class="text-muted">{{ Auth::user()->email }}</small>
-                        </div>
-                        <div class="dropdown-divider"></div>
-                        <a href="{{ route('profile.index') }}" class="dropdown-item">
-                            <i class="fas fa-user me-2"></i> Thông tin cá nhân
-                        </a>
-                        <a href="{{ route('admin.settings') }}" class="dropdown-item">
-                            <i class="fas fa-cog me-2"></i> Cài đặt
-                        </a>
-                        <div class="dropdown-divider"></div>
-                        <form method="POST" action="{{ route('logout') }}">
-                            @csrf
-                            <button type="submit" class="dropdown-item">
-                                <i class="fas fa-sign-out-alt me-2"></i> Đăng xuất
-                            </button>
-                        </form>
+                
+                <div class="user-menu">
+                    <div class="user-avatar" onclick="toggleUserMenu()">
+                        {{ substr(Auth::user()->name, 0, 1) }}
                     </div>
                 </div>
             </div>
         </header>
-
+        
         <!-- Content -->
-        <main class="admin-content fade-in">
-            @if(session('success'))
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <i class="fas fa-check-circle me-2"></i>
-                    {{ session('success') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            @endif
-
-            @if(session('error'))
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <i class="fas fa-exclamation-circle me-2"></i>
-                    {{ session('error') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            @endif
-
+        <main class="content">
             @yield('content')
         </main>
     </div>
-
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Custom Admin JS -->
+    <!-- Scripts -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Sidebar toggle
-            const sidebarToggle = document.getElementById('sidebarToggle');
-            const sidebar = document.getElementById('adminSidebar');
-            const main = document.getElementById('adminMain');
-
-            sidebarToggle.addEventListener('click', function() {
-                sidebar.classList.toggle('collapsed');
-                main.classList.toggle('sidebar-collapsed');
-                
-                // Save state to localStorage
-                const isCollapsed = sidebar.classList.contains('collapsed');
-                localStorage.setItem('adminSidebarCollapsed', isCollapsed);
+        // Sidebar Toggle
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const mainContent = document.querySelector('.main-content');
+        
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+        });
+        
+        // Mobile sidebar toggle
+        if (window.innerWidth <= 1024) {
+            sidebarToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('open');
             });
-
-            // Load saved state
-            const isCollapsed = localStorage.getItem('adminSidebarCollapsed') === 'true';
-            if (isCollapsed) {
-                sidebar.classList.add('collapsed');
-                main.classList.add('sidebar-collapsed');
-            }
-
-            // Mobile sidebar toggle
-            if (window.innerWidth <= 768) {
-                sidebarToggle.addEventListener('click', function() {
-                    sidebar.classList.toggle('show');
-                });
-            }
-
-            // Auto-hide alerts
-            setTimeout(function() {
-                const alerts = document.querySelectorAll('.alert');
-                alerts.forEach(function(alert) {
-                    const bsAlert = new bootstrap.Alert(alert);
-                    bsAlert.close();
-                });
-            }, 5000);
-
-            // Search functionality
-            const searchInput = document.querySelector('.search-box input');
-            searchInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    const query = this.value.trim();
-                    if (query) {
-                        window.location.href = `{{ route('admin.tours') }}?search=${encodeURIComponent(query)}`;
-                    }
+            
+            // Close sidebar when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!sidebar.contains(e.target) && !sidebarToggle.contains(e.target)) {
+                    sidebar.classList.remove('open');
                 }
             });
+        }
+        
+        // User menu toggle
+        function toggleUserMenu() {
+            // Implement user menu dropdown
+            console.log('Toggle user menu');
+        }
+        
+        // Search functionality
+        const searchInput = document.querySelector('.search-input');
+        searchInput.addEventListener('input', (e) => {
+            // Implement search functionality
+            console.log('Search:', e.target.value);
         });
-
-        // Global functions
-        function confirmDelete(message = 'Bạn có chắc chắn muốn xóa?') {
-            return confirm(message);
-        }
-
-        function showLoading() {
-            const loading = document.createElement('div');
-            loading.id = 'loadingOverlay';
-            loading.innerHTML = `
-                <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;">
-                    <div class="text-center text-white">
-                        <div class="spinner-border mb-3" role="status"></div>
-                        <div>Đang xử lý...</div>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(loading);
-        }
-
-        function hideLoading() {
-            const loading = document.getElementById('loadingOverlay');
-            if (loading) {
-                loading.remove();
-            }
-        }
-
-        function logout() {
-            if (confirm('Bạn có chắc chắn muốn đăng xuất?')) {
-                // Use GET logout to avoid CSRF issues
-                window.location.href = '{{ route("logout.get") }}';
-            }
-        }
+        
+        // Auto-hide alerts
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(alert => {
+            setTimeout(() => {
+                alert.style.opacity = '0';
+                alert.style.transform = 'translateY(-10px)';
+                setTimeout(() => {
+                    alert.remove();
+                }, 300);
+            }, 5000);
+        });
+        
+        // Initialize tooltips
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize any tooltips or other interactive elements
+        });
     </script>
     
     @yield('scripts')
