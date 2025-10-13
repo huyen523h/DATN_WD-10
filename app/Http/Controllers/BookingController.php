@@ -70,7 +70,7 @@ class BookingController extends Controller
 
         // Apply promotion if provided
         $promotion = null;
-        if ($validated['promotion_code']) {
+        if (!empty($validated['promotion_code'] ?? null)) {
             $promotion = Promotion::where('code', $validated['promotion_code'])->first();
             if ($promotion && $promotion->isActive()) {
                 $discount = $promotion->calculateDiscount($totalAmount);
@@ -82,7 +82,7 @@ class BookingController extends Controller
             'user_id' => Auth::id(),
             'tour_id' => $validated['tour_id'],
             'departure_id' => $validated['departure_id'],
-            'promotion_code' => $validated['promotion_code'],
+            'promotion_id' => $promotion?->id,
             'adults' => $validated['adults'],
             'children' => $validated['children'] ?? 0,
             'infants' => $validated['infants'] ?? 0,
