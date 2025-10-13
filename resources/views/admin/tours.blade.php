@@ -83,6 +83,7 @@
             </form>
         </div>
     </div>
+</div>
 
     <!-- Tours Table -->
     <div class="card">
@@ -266,8 +267,8 @@
     </div>
 </div>
 
-<!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteModal" tabindex="-1">
+{{-- Delete Confirmation Modal --}}
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
@@ -275,8 +276,11 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <p>Bạn có chắc chắn muốn xóa tour này không?</p>
-                <p class="text-danger small">Hành động này không thể hoàn tác!</p>
+                Bạn có chắc chắn muốn xóa tour này không?
+                {{-- <div class="text-danger small mt-2">Hành động này không thể hoàn tác!</div> --}}
+                <div id="deleteSpinner" class="mt-3 d-none">
+                    <i class="fas fa-spinner fa-spin me-2"></i> Đang xóa...
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
@@ -363,57 +367,53 @@
 </style>
 @endsection
 
-@section('scripts')
-<script>
-let tourToDelete = null;
-
-function selectAll() {
-    const checkboxes = document.querySelectorAll('.tour-checkbox');
-    const selectAllCheckbox = document.getElementById('selectAll');
-    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-    
-    checkboxes.forEach(cb => cb.checked = !allChecked);
-    selectAllCheckbox.checked = !allChecked;
+// Xóa hàng loạt (placeholder)
+function bulkDelete(){
+  const ids=[...document.querySelectorAll('.tour-checkbox:checked')].map(cb=>cb.value);
+  if(ids.length===0){ alert('Vui lòng chọn ít nhất một tour để xóa'); return; }
+  alert('Bạn đã chọn ' + ids.length + ' tour. (Chưa gắn API xóa hàng loạt)');
 }
 
-function toggleSelectAll() {
-    const selectAllCheckbox = document.getElementById('selectAll');
-    const checkboxes = document.querySelectorAll('.tour-checkbox');
-    
-    checkboxes.forEach(cb => cb.checked = selectAllCheckbox.checked);
-}
+// Gửi request xóa (AJAX + method spoofing)
+document.getElementById('confirmDelete').addEventListener('click', async function(){
+    if(!deletingId) return;
 
-function deleteTour(tourId) {
-    tourToDelete = tourId;
-    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
-    modal.show();
-}
+    const spinner = document.getElementById('deleteSpinner');
+    this.disabled = true;
+    spinner.classList.remove('d-none');
 
-function bulkDelete() {
-    const selectedTours = Array.from(document.querySelectorAll('.tour-checkbox:checked'))
-                               .map(cb => cb.value);
-    
-    if (selectedTours.length === 0) {
-        alert('Vui lòng chọn ít nhất một tour để xóa');
-        return;
-    }
-    
-    if (confirm(`Bạn có chắc chắn muốn xóa ${selectedTours.length} tour đã chọn?`)) {
-        // Implement bulk delete logic here
-        console.log('Deleting tours:', selectedTours);
-    }
-}
+    const url = "{{ route('admin.tours.destroy', ':id') }}".replace(':id', deletingId);
 
-document.getElementById('confirmDelete').addEventListener('click', function() {
-    if (tourToDelete) {
-        // Implement delete logic here
-        console.log('Deleting tour:', tourToDelete);
-        // You can use fetch API to send DELETE request
-        // fetch(`/admin/tours/${tourToDelete}`, { method: 'DELETE' })
-        //     .then(response => response.json())
-        //     .then(data => {
-        //         location.reload();
-        //     });
+    try{
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': CSRF
+            },
+            body: JSON.stringify({_method: 'DELETE'})
+        });
+
+        if(!res.ok){
+            let msg='Xóa thất bại';
+            try{ const data = await res.json(); msg = data.message || msg; }catch(e){}
+            throw new Error(msg + ' (HTTP ' + res.status + ')');
+        }
+
+        // Nếu controller trả JSON {ok:true}
+        try{
+            const data = await res.json();
+            if(data.ok){ location.reload(); return; }
+        }catch(e){
+            // Nếu controller redirect HTML -> cứ reload
+            location.reload();
+        }
+    }catch(err){
+        console.error(err);
+        alert('Không thể xóa tour. Vui lòng xem Console/log để biết chi tiết.');
+        this.disabled = false;
+        spinner.classList.add('d-none');
     }
 });
 </script>
