@@ -6,6 +6,7 @@ use App\Models\Tour;
 use App\Models\Booking;
 use App\Models\User;
 use App\Models\Category;
+use App\Models\Promotion;
 use App\Models\TourImage;
 use App\Models\TourSchedule;
 use App\Models\TourDeparture;
@@ -236,7 +237,7 @@ class AdminController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(10);
         
-        return view('admin.bookings', compact('bookings'));
+        return view('admin.bookings.index', compact('bookings'));
     }
 
     public function customers()
@@ -247,13 +248,18 @@ class AdminController extends Controller
         ->orderBy('created_at', 'desc')
         ->paginate(10);
         
-        return view('admin.customers', compact('customers'));
+        return view('admin.customers.index', compact('customers'));
     }
 
     public function categories()
     {
         $categories = Category::withCount('tours')->paginate(10);
-        return view('admin.categories', compact('categories'));
+        return view('admin.categories.index', compact('categories'));
+    }
+
+    public function createCategory(): View
+    {
+        return view('admin.categories.create');
     }
 
     public function reviews()
@@ -261,7 +267,7 @@ class AdminController extends Controller
         $reviews = \App\Models\Review::with(['tour', 'user'])
             ->orderBy('created_at', 'desc')
             ->paginate(10);
-        return view('admin.reviews', compact('reviews'));
+        return view('admin.reviews.index', compact('reviews'));
     }
 
     public function payments()
@@ -269,7 +275,75 @@ class AdminController extends Controller
         $payments = \App\Models\Payment::with(['booking.user', 'booking.tour'])
             ->orderBy('created_at', 'desc')
             ->paginate(10);
-        return view('admin.payments', compact('payments'));
+        return view('admin.payments.index', compact('payments'));
+    }
+
+    public function promotions()
+    {
+        $promotions = Promotion::orderBy('created_at', 'desc')->paginate(10);
+        return view('admin.promotions.index', compact('promotions'));
+    }
+
+    public function createPromotion(): View
+    {
+        return view('admin.promotions.create');
+    }
+
+    public function storePromotion(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'code' => 'required|string|max:50|unique:promotions,code',
+            'description' => 'nullable|string',
+            'discount_percent' => 'nullable|numeric|min:0|max:100',
+            'discount_amount' => 'nullable|numeric|min:0',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'status' => 'required|in:active,inactive',
+        ]);
+
+        if (empty($validated['discount_percent']) && empty($validated['discount_amount'])) {
+            return back()->withErrors(['discount_percent' => 'Cần nhập phần trăm hoặc số tiền giảm.'])->withInput();
+        }
+
+        $validated['code'] = strtoupper($validated['code']);
+
+        Promotion::create($validated);
+
+        return redirect()->route('admin.promotions')->with('success', 'Mã giảm giá đã được tạo.');
+    }
+
+    public function editPromotion(Promotion $promotion): View
+    {
+        return view('admin.promotions.edit', compact('promotion'));
+    }
+
+    public function updatePromotion(Request $request, Promotion $promotion): RedirectResponse
+    {
+        $validated = $request->validate([
+            'code' => 'required|string|max:50|unique:promotions,code,' . $promotion->id,
+            'description' => 'nullable|string',
+            'discount_percent' => 'nullable|numeric|min:0|max:100',
+            'discount_amount' => 'nullable|numeric|min:0',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'status' => 'required|in:active,inactive',
+        ]);
+
+        if (empty($validated['discount_percent']) && empty($validated['discount_amount'])) {
+            return back()->withErrors(['discount_percent' => 'Cần nhập phần trăm hoặc số tiền giảm.'])->withInput();
+        }
+
+        $validated['code'] = strtoupper($validated['code']);
+
+        $promotion->update($validated);
+
+        return redirect()->route('admin.promotions')->with('success', 'Mã giảm giá đã được cập nhật.');
+    }
+
+    public function deletePromotion(Promotion $promotion): RedirectResponse
+    {
+        $promotion->delete();
+        return redirect()->route('admin.promotions')->with('success', 'Mã giảm giá đã được xóa.');
     }
 
     public function reports()
@@ -291,7 +365,13 @@ class AdminController extends Controller
         $notifications = \App\Models\Notification::with('user')
             ->orderBy('created_at', 'desc')
             ->paginate(10);
-        return view('admin.notifications', compact('notifications'));
+        return view('admin.notifications.index', compact('notifications'));
+    }
+
+    public function createNotification(): View
+    {
+        $users = User::all();
+        return view('admin.notifications.create', compact('users'));
     }
 
     public function support()
@@ -299,7 +379,13 @@ class AdminController extends Controller
         $tickets = \App\Models\SupportTicket::with(['user'])
             ->orderBy('created_at', 'desc')
             ->paginate(10);
-        return view('admin.support', compact('tickets'));
+        return view('admin.support.index', compact('tickets'));
+    }
+
+    public function createSupportTicket(): View
+    {
+        $users = User::all();
+        return view('admin.support.create', compact('users'));
     }
 
     public function settings()
@@ -360,6 +446,20 @@ class AdminController extends Controller
         \App\Models\Notification::create($validated);
 
         return redirect()->route('admin.notifications')->with('success', 'Thông báo đã được gửi thành công!');
+    }
+
+    public function storeSupportTicket(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'priority' => 'required|in:low,medium,high',
+            'user_id' => 'required|exists:users,id',
+        ]);
+
+        \App\Models\SupportTicket::create($validated);
+
+        return redirect()->route('admin.support')->with('success', 'Ticket đã được tạo thành công!');
     }
 
     public function updateNotification(Request $request, \App\Models\Notification $notification): RedirectResponse
