@@ -8,6 +8,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Laravel\Sanctum\HasApiTokens;  
 
 class User extends Authenticatable
@@ -63,6 +64,14 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Role::class, 'user_roles')
                     ->withTimestamps();
+    }
+
+    /**
+     * Get the employee record for the user.
+     */
+    public function employee(): HasOne
+    {
+        return $this->hasOne(Employee::class);
     }
 
     /**
