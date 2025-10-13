@@ -504,6 +504,12 @@
                     <span class="nav-text">Quản lý Danh mục</span>
                 </a>
             </div>
+            <div class="nav-item">
+                <a href="{{ route('admin.promotions') }}" class="nav-link {{ request()->routeIs('admin.promotions*') ? 'active' : '' }}">
+                    <i class="fas fa-percent"></i>
+                    <span class="nav-text">Quản lý mã giảm giá</span>
+                </a>
+            </div>
 
             <!-- Reviews Management -->
             <div class="nav-item">

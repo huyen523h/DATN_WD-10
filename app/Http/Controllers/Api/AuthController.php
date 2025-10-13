@@ -257,8 +257,8 @@ class AuthController extends Controller
                 ], 403);
             }
 
-            $users = User::select('id', 'name', 'email', 'phone', 'role', 'created_at')
-                        ->orderBy('created_at', 'desc')
+            $users = User::select('id', 'name', 'email', 'phone', 'role')
+                        ->orderBy('id', 'desc')
                         ->paginate(10);
 
             return response()->json([
