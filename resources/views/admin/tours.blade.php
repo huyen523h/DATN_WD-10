@@ -367,6 +367,7 @@
 </style>
 @endsection
 
+<script>
 // Xóa hàng loạt (placeholder)
 function bulkDelete(){
   const ids=[...document.querySelectorAll('.tour-checkbox:checked')].map(cb=>cb.value);
@@ -417,4 +418,4 @@ document.getElementById('confirmDelete').addEventListener('click', async functio
     }
 });
 </script>
-@endsection
+

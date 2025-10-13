@@ -6,7 +6,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\TourController;
 use App\Http\Controllers\BookingController;
-
+use App\Http\Controllers\PaymentController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -56,12 +56,20 @@ Route::middleware('auth')->group(function () {
     Route::get('/bookings/create', [BookingController::class, 'create'])->name('bookings.create');
     Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
     Route::get('/bookings/{booking}', [BookingController::class, 'show'])->name('bookings.show');
+    Route::delete('/bookings/{booking}', [BookingController::class, 'destroy'])->name('bookings.destroy');
+
+    // Thanh toán MoMo & VNPAY
+    Route::get('/payment/{bookingId}', [PaymentController::class, 'processPayment'])->name('payment.process');
+    Route::get('/payment/momo/return', [PaymentController::class, 'momoReturn'])->name('payment.momo.return');
+    Route::post('/payment/momo/notify', [PaymentController::class, 'momoNotify'])->name('payment.momo.notify');
+
+    Route::get('/payment/vnpay/callback', [PaymentController::class, 'vnpayCallback'])->name('payment.vnpay.callback');
 });
 
 // Admin routes
 Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
-    
+
     // Tours management
     Route::get('/tours', [AdminController::class, 'tours'])->name('tours');
     Route::get('/tours/create', [AdminController::class, 'createTour'])->name('tours.create');
@@ -70,19 +78,19 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/tours/{tour}/edit', [AdminController::class, 'editTour'])->name('tours.edit');
     Route::put('/tours/{tour}', [AdminController::class, 'updateTour'])->name('tours.update');
     Route::delete('/tours/{tour}', [AdminController::class, 'deleteTour'])->name('tours.destroy');
-    
+
     // Bookings management
     Route::get('/bookings', [AdminController::class, 'bookings'])->name('bookings');
     Route::get('/bookings/{booking}', [AdminController::class, 'showBooking'])->name('bookings.show');
     Route::put('/bookings/{booking}', [AdminController::class, 'updateBooking'])->name('bookings.update');
     Route::delete('/bookings/{booking}', [AdminController::class, 'deleteBooking'])->name('bookings.destroy');
-    
+
     // Customers management
     Route::get('/customers', [AdminController::class, 'customers'])->name('customers');
     Route::get('/customers/{user}', [AdminController::class, 'showCustomer'])->name('customers.show');
     Route::put('/customers/{user}', [AdminController::class, 'updateCustomer'])->name('customers.update');
     Route::delete('/customers/{user}', [AdminController::class, 'deleteCustomer'])->name('customers.destroy');
-    
+
     // Categories management
     Route::get('/categories', [AdminController::class, 'categories'])->name('categories');
     Route::get('/categories/create', [AdminController::class, 'createCategory'])->name('categories.create');
@@ -91,12 +99,12 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/categories/{category}/edit', [AdminController::class, 'editCategory'])->name('categories.edit');
     Route::put('/categories/{category}', [AdminController::class, 'updateCategory'])->name('categories.update');
     Route::delete('/categories/{category}', [AdminController::class, 'deleteCategory'])->name('categories.destroy');
-    
+
     // Reviews management
     Route::get('/reviews', [AdminController::class, 'reviews'])->name('reviews');
     Route::put('/reviews/{review}', [AdminController::class, 'updateReview'])->name('reviews.update');
     Route::delete('/reviews/{review}', [AdminController::class, 'deleteReview'])->name('reviews.destroy');
-    
+
     // Payments management
     Route::get('/payments', [AdminController::class, 'payments'])->name('payments');
     Route::put('/payments/{payment}', [AdminController::class, 'updatePayment'])->name('payments.update');
@@ -110,24 +118,24 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/promotions/{promotion}/edit', [AdminController::class, 'editPromotion'])->name('promotions.edit');
     Route::put('/promotions/{promotion}', [AdminController::class, 'updatePromotion'])->name('promotions.update');
     Route::delete('/promotions/{promotion}', [AdminController::class, 'deletePromotion'])->name('promotions.destroy');
-    
+
     // Reports
     Route::get('/reports', [AdminController::class, 'reports'])->name('reports');
-    
+
     // Notifications management
     Route::get('/notifications', [AdminController::class, 'notifications'])->name('notifications');
     Route::get('/notifications/create', [AdminController::class, 'createNotification'])->name('notifications.create');
     Route::post('/notifications', [AdminController::class, 'storeNotification'])->name('notifications.store');
     Route::put('/notifications/{notification}', [AdminController::class, 'updateNotification'])->name('notifications.update');
     Route::delete('/notifications/{notification}', [AdminController::class, 'deleteNotification'])->name('notifications.destroy');
-    
+
     // Support management
     Route::get('/support', [AdminController::class, 'support'])->name('support');
     Route::get('/support/create', [AdminController::class, 'createSupportTicket'])->name('support.create');
     Route::post('/support', [AdminController::class, 'storeSupportTicket'])->name('support.store');
     Route::put('/support/{ticket}', [AdminController::class, 'updateTicket'])->name('support.update');
     Route::delete('/support/{ticket}', [AdminController::class, 'deleteTicket'])->name('support.destroy');
-    
+
     // Settings
     Route::get('/settings', [AdminController::class, 'settings'])->name('settings');
     Route::put('/settings', [AdminController::class, 'updateSettings'])->name('settings.update');
