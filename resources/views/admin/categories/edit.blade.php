@@ -60,7 +60,7 @@
                         @enderror
                     </div>
 
-                    <div class="mb-3">
+                    {{-- <div class="mb-3">
                         <label for="image_url" class="form-label">URL hình ảnh</label>
                         <input type="url" class="form-control @error('image_url') is-invalid @enderror" 
                                id="image_url" name="image_url" value="{{ old('image_url', $category->image_url) }}">
@@ -73,7 +73,7 @@
                                      class="img-thumbnail" style="max-width: 200px;">
                             </div>
                         @endif
-                    </div>
+                    </div> --}}
 
                     <div class="d-flex justify-content-end">
                         <a href="{{ route('admin.categories') }}" class="btn btn-secondary me-2">
