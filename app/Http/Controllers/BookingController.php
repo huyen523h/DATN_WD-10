@@ -19,9 +19,9 @@ class BookingController extends Controller
     public function index(): View
     {
         $bookings = Booking::with(['tour', 'departure', 'user'])
-                          ->where('user_id', Auth::id())
-                          ->orderBy('created_at', 'desc')
-                          ->paginate(10);
+            ->where('user_id', Auth::id())
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
 
         return view('bookings.index', compact('bookings'));
     }
@@ -34,9 +34,9 @@ class BookingController extends Controller
         $tour = Tour::with(['departures', 'images'])->findOrFail($request->tour_id);
         $departures = $tour->departures()->where('seats_available', '>', 0)->get();
         $promotions = Promotion::where('status', 'active')
-                              ->where('start_date', '<=', now())
-                              ->where('end_date', '>=', now())
-                              ->get();
+            ->where('start_date', '<=', now())
+            ->where('end_date', '>=', now())
+            ->get();
 
         return view('bookings.create', compact('tour', 'departures', 'promotions'));
     }
@@ -95,7 +95,7 @@ class BookingController extends Controller
         $departure->decrement('seats_available', $totalPassengers);
 
         return redirect()->route('bookings.show', $booking)
-                        ->with('success', 'Đặt tour thành công! Vui lòng thanh toán để hoàn tất.');
+            ->with('success', 'Đặt tour thành công! Vui lòng thanh toán để hoàn tất.');
     }
 
     /**
@@ -104,7 +104,19 @@ class BookingController extends Controller
     public function show(Booking $booking): View
     {
         $booking->load(['tour.images', 'departure', 'payments']);
-        
+
         return view('bookings.show', compact('booking'));
+    }
+    public function destroy($id)
+    {
+        $booking = Booking::findOrFail($id);
+
+        // Chỉ cho phép huỷ nếu chưa thanh toán hoặc đang chờ
+        if (in_array($booking->status, ['pending', 'confirmed'])) {
+            $booking->update(['status' => 'cancelled']);
+            return redirect()->route('bookings.index')->with('success', 'Đã hủy đặt tour thành công.');
+        }
+
+        return redirect()->back()->with('error', 'Không thể hủy tour đã hoàn thành hoặc đã thanh toán.');
     }
 }

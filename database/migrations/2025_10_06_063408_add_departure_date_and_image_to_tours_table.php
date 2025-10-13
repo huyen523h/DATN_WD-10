@@ -12,8 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('tours', function (Blueprint $table) {
-            $table->date('departure_date')->nullable()->after('available_seats');
-            $table->string('image')->nullable()->after('departure_date');
+            // Kiểm tra trước khi thêm, tránh lỗi trùng cột
+            if (!Schema::hasColumn('tours', 'departure_date')) {
+                $table->date('departure_date')->nullable()->after('available_seats');
+            }
+
+            if (!Schema::hasColumn('tours', 'image')) {
+                $table->string('image')->nullable()->after('departure_date');
+            }
         });
     }
 
@@ -23,7 +29,12 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('tours', function (Blueprint $table) {
-            $table->dropColumn(['departure_date', 'image']);
+            if (Schema::hasColumn('tours', 'departure_date')) {
+                $table->dropColumn('departure_date');
+            }
+            if (Schema::hasColumn('tours', 'image')) {
+                $table->dropColumn('image');
+            }
         });
     }
 };
