@@ -6,10 +6,13 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\TourController;
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\Api\WishlistsController;
+
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\EmployeeAuthController;
+
 
 
 Route::get('/', function () {
@@ -60,6 +63,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/bookings/create', [BookingController::class, 'create'])->name('bookings.create');
     Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
     Route::get('/bookings/{booking}', [BookingController::class, 'show'])->name('bookings.show');
+
+
+    // Wishlist routes
+    Route::get('/wishlists', [WishlistsController::class, 'index'])->name('wishlists.index');
+    Route::post('/wishlists', [WishlistsController::class, 'store'])->name('wishlists.store');
+    Route::delete('/wishlists/{id}', [WishlistsController::class, 'destroy'])->name('wishlists.destroy');
+
     Route::delete('/bookings/{booking}', [BookingController::class, 'destroy'])->name('bookings.destroy');
 
     // Thanh toán MoMo & VNPAY
@@ -68,6 +78,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/payment/momo/notify', [PaymentController::class, 'momoNotify'])->name('payment.momo.notify');
 
     Route::get('/payment/vnpay/callback', [PaymentController::class, 'vnpayCallback'])->name('payment.vnpay.callback');
+
 });
 
 // Admin routes
@@ -114,6 +125,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::put('/payments/{payment}', [AdminController::class, 'updatePayment'])->name('payments.update');
     Route::delete('/payments/{payment}', [AdminController::class, 'deletePayment'])->name('payments.destroy');
 
+
     // Promotions management
     Route::get('/promotions', [AdminController::class, 'promotions'])->name('promotions');
     Route::get('/promotions/create', [AdminController::class, 'createPromotion'])->name('promotions.create');
@@ -153,7 +165,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
     
-    // Employees management
+     // Employees management
     Route::resource('employees', EmployeeController::class);
     Route::post('/employees/{employee}/create-account', [EmployeeController::class, 'createUserAccount'])->name('employees.create-account');
 });
