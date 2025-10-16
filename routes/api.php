@@ -2,11 +2,11 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+
+// CHÚ THÍCH: Đã gộp và giữ lại các controller cần thiết cho chức năng Đánh giá
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\TourController;
 use App\Http\Controllers\Api\TourImageController; // thêm: controller ảnh
-
-// Chú thích: Thêm 2 Controller mới cho chức năng Đánh giá
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\Admin\ReviewController as AdminReviewController;
 
@@ -23,8 +23,7 @@ Route::prefix('tours')->group(function () {
     Route::get('/{id}', [TourController::class, 'show']); // GET /api/tours/1
 });
 
-// CHỨC NĂNG ĐÁNH GIÁ & RATING (PHẦN MỚI)
-
+// CHÚ THÍCH: Đã gộp và giữ lại các route cho chức năng Đánh giá
 // --- API Public cho người dùng ---
 // Lấy danh sách đánh giá đã được duyệt của 1 tour
 Route::get('/tours/{tour}/reviews', [ReviewController::class, 'index']);
@@ -51,7 +50,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // ============================================
         Route::prefix('tours/{tour}')->group(function () {
             // Upload thêm 1..n ảnh (append)
-            Route::post('images', [TourImageController::class, 'store']);          // POST /api/tours/{tour}/images
+            Route::post('images', [TourImageController::class, 'store']);       // POST /api/tours/{tour}/images
             // Thay toàn bộ ảnh (xóa cũ + up mới) trong transaction
             Route::put('images/replace', [TourImageController::class, 'replaceAll']);   // PUT  /api/tours/{tour}/images/replace
         });
