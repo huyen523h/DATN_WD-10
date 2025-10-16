@@ -15,7 +15,8 @@ class AdminMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!$request->user() || $request->user()->role !== 'admin') {
+        // Lý do: Model User của bạn dùng phương thức isAdmin() để kiểm tra vai trò, không phải dùng     thuộc tính 'role'.
+        if (!$request->user() || !$request->user()->isAdmin()) { // !$request->user() || $request->user()->role !== 'admin'  bỏ đoạn code cũ này 
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized. Admin access required.'
