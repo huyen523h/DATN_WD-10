@@ -63,7 +63,7 @@ class AdminController extends Controller
 
         $tours = $query->orderBy('created_at', 'desc')->paginate(10);
         $categories = Category::all();
-        
+
         return view('admin.tours', compact('tours', 'categories'));
     }
 
@@ -235,7 +235,6 @@ class AdminController extends Controller
         $bookings = Booking::with(['tour', 'user', 'departure'])
             ->orderBy('created_at', 'desc')
             ->paginate(10);
-        
         return view('admin.bookings', compact('bookings'));
     }
 
@@ -246,7 +245,7 @@ class AdminController extends Controller
         })->with(['bookings'])
         ->orderBy('created_at', 'desc')
         ->paginate(10);
-        
+
         return view('admin.customers', compact('customers'));
     }
 
@@ -282,7 +281,7 @@ class AdminController extends Controller
             'total_bookings' => Booking::count(),
             'completed_bookings' => Booking::where('status', 'completed')->count(),
         ];
-        
+
         return view('admin.reports', compact('stats'));
     }
 

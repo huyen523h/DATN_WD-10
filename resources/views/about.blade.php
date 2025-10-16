@@ -22,13 +22,13 @@
             <div class="col-lg-6">
                 <h2 class="display-5 fw-bold mb-4">Câu chuyện của chúng tôi</h2>
                 <p class="lead text-muted mb-4">
-                    Tour365 được thành lập với sứ mệnh mang đến những trải nghiệm du lịch tuyệt vời 
-                    và đáng nhớ cho mọi khách hàng. Chúng tôi tin rằng mỗi chuyến đi đều là một cơ hội 
+                    Tour365 được thành lập với sứ mệnh mang đến những trải nghiệm du lịch tuyệt vời
+                    và đáng nhớ cho mọi khách hàng. Chúng tôi tin rằng mỗi chuyến đi đều là một cơ hội
                     để khám phá, học hỏi và tạo ra những kỷ niệm đẹp.
                 </p>
                 <p class="text-muted mb-4">
-                    Với hơn 5 năm kinh nghiệm trong ngành du lịch, chúng tôi đã phục vụ hơn 10,000 khách hàng 
-                    và tổ chức hơn 500 chuyến tour thành công. Đội ngũ của chúng tôi bao gồm những chuyên gia 
+                    Với hơn 5 năm kinh nghiệm trong ngành du lịch, chúng tôi đã phục vụ hơn 10,000 khách hàng
+                    và tổ chức hơn 500 chuyến tour thành công. Đội ngũ của chúng tôi bao gồm những chuyên gia
                     du lịch giàu kinh nghiệm, hướng dẫn viên chuyên nghiệp và nhân viên chăm sóc khách hàng tận tâm.
                 </p>
                 <div class="row">
@@ -47,7 +47,7 @@
                 </div>
             </div>
             <div class="col-lg-6">
-                <img src="https://via.placeholder.com/600x400/0EA5E9/ffffff?text=About+Tour365" 
+                <img src="https://via.placeholder.com/600x400/0EA5E9/ffffff?text=About+Tour365"
                      alt="About Tour365" class="img-fluid rounded-3 shadow">
             </div>
         </div>
@@ -66,13 +66,13 @@
                         </div>
                         <h4 class="card-title">Sứ mệnh</h4>
                         <p class="card-text text-muted">
-                            Mang đến những trải nghiệm du lịch chất lượng cao, an toàn và đáng nhớ 
+                            Mang đến những trải nghiệm du lịch chất lượng cao, an toàn và đáng nhớ
                             cho mọi khách hàng, góp phần quảng bá vẻ đẹp của Việt Nam và thế giới.
                         </p>
                     </div>
                 </div>
             </div>
-            
+
             <div class="col-lg-4 mb-4">
                 <div class="card h-100 border-0 shadow-sm">
                     <div class="card-body text-center p-4">
@@ -81,13 +81,13 @@
                         </div>
                         <h4 class="card-title">Tầm nhìn</h4>
                         <p class="card-text text-muted">
-                            Trở thành công ty du lịch hàng đầu Việt Nam, được khách hàng tin tưởng 
+                            Trở thành công ty du lịch hàng đầu Việt Nam, được khách hàng tin tưởng
                             và yêu mến, góp phần phát triển ngành du lịch bền vững.
                         </p>
                     </div>
                 </div>
             </div>
-            
+
             <div class="col-lg-4 mb-4">
                 <div class="card h-100 border-0 shadow-sm">
                     <div class="card-body text-center p-4">
@@ -96,7 +96,7 @@
                         </div>
                         <h4 class="card-title">Giá trị cốt lõi</h4>
                         <p class="card-text text-muted">
-                            Chất lượng, uy tín, tận tâm và sáng tạo. Chúng tôi cam kết mang đến 
+                            Chất lượng, uy tín, tận tâm và sáng tạo. Chúng tôi cam kết mang đến
                             dịch vụ tốt nhất với giá cả hợp lý và sự chăm sóc chu đáo.
                         </p>
                     </div>
@@ -115,13 +115,13 @@
                 <p class="lead text-muted">Những con người tài năng và tận tâm</p>
             </div>
         </div>
-        
+
         <div class="row">
             <div class="col-lg-3 col-md-6 mb-4">
                 <div class="card team-card border-0 shadow-sm">
                     <div class="card-body text-center">
                         <div class="team-avatar mb-3">
-                            <img src="https://via.placeholder.com/150x150/4F46E5/ffffff?text=CEO" 
+                            <img src="https://via.placeholder.com/150x150/4F46E5/ffffff?text=CEO"
                                  alt="CEO" class="rounded-circle">
                         </div>
                         <h5 class="card-title">Nguyễn Văn A</h5>
@@ -143,12 +143,12 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="col-lg-3 col-md-6 mb-4">
                 <div class="card team-card border-0 shadow-sm">
                     <div class="card-body text-center">
                         <div class="team-avatar mb-3">
-                            <img src="https://via.placeholder.com/150x150/059669/ffffff?text=CTO" 
+                            <img src="https://via.placeholder.com/150x150/059669/ffffff?text=CTO"
                                  alt="CTO" class="rounded-circle">
                         </div>
                         <h5 class="card-title">Trần Thị B</h5>
@@ -170,12 +170,12 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="col-lg-3 col-md-6 mb-4">
                 <div class="card team-card border-0 shadow-sm">
                     <div class="card-body text-center">
                         <div class="team-avatar mb-3">
-                            <img src="https://via.placeholder.com/150x150/DC2626/ffffff?text=CMO" 
+                            <img src="https://via.placeholder.com/150x150/DC2626/ffffff?text=CMO"
                                  alt="CMO" class="rounded-circle">
                         </div>
                         <h5 class="card-title">Lê Văn C</h5>
@@ -197,12 +197,12 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="col-lg-3 col-md-6 mb-4">
                 <div class="card team-card border-0 shadow-sm">
                     <div class="card-body text-center">
                         <div class="team-avatar mb-3">
-                            <img src="https://via.placeholder.com/150x150/7C3AED/ffffff?text=CFO" 
+                            <img src="https://via.placeholder.com/150x150/7C3AED/ffffff?text=CFO"
                                  alt="CFO" class="rounded-circle">
                         </div>
                         <h5 class="card-title">Phạm Thị D</h5>
@@ -237,7 +237,7 @@
                 <p class="lead text-muted">Những thành tựu chúng tôi đạt được</p>
             </div>
         </div>
-        
+
         <div class="row">
             <div class="col-lg-3 col-md-6 mb-4">
                 <div class="award-item text-center">
@@ -248,7 +248,7 @@
                     <p class="text-muted">Giải thưởng Du lịch Việt Nam 2024</p>
                 </div>
             </div>
-            
+
             <div class="col-lg-3 col-md-6 mb-4">
                 <div class="award-item text-center">
                     <div class="award-icon mb-3">
@@ -258,7 +258,7 @@
                     <p class="text-muted">Chứng nhận ISO 9001:2015</p>
                 </div>
             </div>
-            
+
             <div class="col-lg-3 col-md-6 mb-4">
                 <div class="award-item text-center">
                     <div class="award-icon mb-3">
@@ -268,7 +268,7 @@
                     <p class="text-muted">Đánh giá 5 sao từ 95% khách hàng</p>
                 </div>
             </div>
-            
+
             <div class="col-lg-3 col-md-6 mb-4">
                 <div class="award-item text-center">
                     <div class="award-icon mb-3">

@@ -25,9 +25,9 @@
                                 <div class="col-md-6">
                                     <h6>Mã đặt tour</h6>
                                     <p class="text-muted">#{{ str_pad($booking->id, 6, '0', STR_PAD_LEFT) }}</p>
-                                    
+
                                     <h6>Trạng thái</h6>
-                                    <span class="badge 
+                                    <span class="badge
                                         @if($booking->status === 'pending') bg-warning
                                         @elseif($booking->status === 'confirmed') bg-success
                                         @elseif($booking->status === 'cancelled') bg-danger
@@ -45,7 +45,7 @@
                                 <div class="col-md-6">
                                     <h6>Ngày đặt</h6>
                                     <p class="text-muted">{{ $booking->created_at->format('d/m/Y H:i') }}</p>
-                                    
+
                                     <h6>Tổng tiền</h6>
                                     <p class="h5 text-primary mb-0">
                                         {{ number_format($booking->total_amount, 0, ',', '.') }}đ
@@ -64,10 +64,10 @@
                             <div class="row">
                                 <div class="col-md-4">
                                     @if($booking->tour->images->count() > 0)
-                                        <img src="{{ $booking->tour->images->first()->image_url }}" 
+                                        <img src="{{ $booking->tour->images->first()->image_url }}"
                                              class="img-fluid rounded" alt="{{ $booking->tour->title }}">
                                     @else
-                                        <img src="https://via.placeholder.com/300x200/4F46E5/ffffff?text={{ urlencode($booking->tour->title) }}" 
+                                        <img src="https://via.placeholder.com/300x200/4F46E5/ffffff?text={{ urlencode($booking->tour->title) }}"
                                              class="img-fluid rounded" alt="{{ $booking->tour->title }}">
                                     @endif
                                 </div>
@@ -82,7 +82,7 @@
                                         </div>
                                         <div class="col-6">
                                             <small class="text-muted">
-                                                <i class="fas fa-calendar"></i> 
+                                                <i class="fas fa-calendar"></i>
                                                 {{ \Carbon\Carbon::parse($booking->departure->departure_date)->format('d/m/Y') }}
                                             </small>
                                         </div>
@@ -118,7 +118,7 @@
                                             <i class="fas fa-tag"></i> {{ $booking->promotion_code }}
                                         </p>
                                     @endif
-                                    
+
                                     @if($booking->note)
                                         <h6>Ghi chú</h6>
                                         <p class="text-muted">{{ $booking->note }}</p>
@@ -152,7 +152,7 @@
                                         </div>
                                         <div class="col-md-6">
                                             <h6>Trạng thái</h6>
-                                            <span class="badge 
+                                            <span class="badge
                                                 @if($payment->status === 'pending') bg-warning
                                                 @elseif($payment->status === 'completed') bg-success
                                                 @elseif($payment->status === 'failed') bg-danger
@@ -199,9 +199,9 @@
                                 </div>
                             @elseif($booking->status === 'confirmed')
                                 <div class="d-grid gap-2">
-                                    <button class="btn btn-primary">
+                                    <a href="{{ route('payments.checkout', $booking) }}" class="btn btn-primary">
                                         <i class="fas fa-credit-card"></i> Thanh toán ngay
-                                    </button>
+                                    </a>
                                     <button class="btn btn-outline-danger">
                                         <i class="fas fa-times"></i> Hủy đặt tour
                                     </button>
@@ -219,7 +219,7 @@
                             @endif
 
                             <hr>
-                            
+
                             <div class="text-center">
                                 <h6>Liên hệ hỗ trợ</h6>
                                 <p class="text-muted">

@@ -51,83 +51,109 @@
                                 </thead>
                                 <tbody>
                                     @foreach($bookings as $booking)
-                                        <tr data-status="{{ $booking->status }}">
-                                            <td>
-                                                <strong>#{{ str_pad($booking->id, 6, '0', STR_PAD_LEFT) }}</strong>
-                                            </td>
-                                            <td>
-                                                <div>
-                                                    <strong>{{ $booking->user->name }}</strong><br>
-                                                    <small class="text-muted">{{ $booking->user->email }}</small>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div>
-                                                    <strong>{{ $booking->tour->title }}</strong><br>
-                                                    <small class="text-muted">{{ $booking->tour->duration_days }} ngày</small>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                {{ \Carbon\Carbon::parse($booking->departure->departure_date)->format('d/m/Y') }}
-                                            </td>
-                                            <td>
-                                                <div>
-                                                    {{ $booking->adults }} người lớn
-                                                    @if($booking->children > 0)<br>{{ $booking->children }} trẻ em@endif
-                                                    @if($booking->infants > 0)<br>{{ $booking->infants }} em bé@endif
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <strong class="text-primary">
-                                                    {{ number_format($booking->total_amount, 0, ',', '.') }}đ
-                                                </strong>
-                                            </td>
-                                            <td>
-                                                <span class="badge 
-                                                    @if($booking->status === 'pending') bg-warning
-                                                    @elseif($booking->status === 'confirmed') bg-success
-                                                    @elseif($booking->status === 'cancelled') bg-danger
-                                                    @elseif($booking->status === 'completed') bg-info
-                                                    @else bg-secondary
-                                                    @endif">
-                                                    @switch($booking->status)
-                                                        @case('pending') Chờ xác nhận @break
-                                                        @case('confirmed') Đã xác nhận @break
-                                                        @case('cancelled') Đã hủy @break
-                                                        @case('completed') Hoàn thành @break
-                                                        @default {{ $booking->status }} @break
-                                                    @endswitch
-                                                </span>
-                                            </td>
-                                            <td>{{ $booking->created_at->format('d/m/Y H:i') }}</td>
-                                            <td>
-                                                <div class="btn-group" role="group">
-                                                    <a href="{{ route('bookings.show', $booking) }}" 
-                                                       class="btn btn-sm btn-outline-info" title="Xem chi tiết">
-                                                        <i class="fas fa-eye"></i>
-                                                    </a>
-                                                    @if($booking->status === 'pending')
-                                                        <button class="btn btn-sm btn-outline-success" 
-                                                                onclick="updateBookingStatus({{ $booking->id }}, 'confirmed')" 
-                                                                title="Xác nhận">
-                                                            <i class="fas fa-check"></i>
-                                                        </button>
-                                                        <button class="btn btn-sm btn-outline-danger" 
-                                                                onclick="updateBookingStatus({{ $booking->id }}, 'cancelled')" 
-                                                                title="Hủy">
-                                                            <i class="fas fa-times"></i>
-                                                        </button>
-                                                    @elseif($booking->status === 'confirmed')
-                                                        <button class="btn btn-sm btn-outline-info" 
-                                                                onclick="updateBookingStatus({{ $booking->id }}, 'completed')" 
-                                                                title="Hoàn thành">
-                                                            <i class="fas fa-flag-checkered"></i>
-                                                        </button>
-                                                    @endif
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    @endforeach
+                                    <tr data-status="{{ $booking->status }}">
+                                        <td>
+                                            <strong>#{{ str_pad($booking->id, 6, '0', STR_PAD_LEFT) }}</strong>
+                                        </td>
+
+                                        <td>
+                                            <div>
+                                                <strong>{{ $booking->user->name }}</strong><br>
+                                                <small class="text-muted">{{ $booking->user->email }}</small>
+                                            </div>
+                                        </td>
+
+                                        <td>
+                                            <div>
+                                                <strong>{{ $booking->tour->title }}</strong><br>
+                                                <small class="text-muted">{{ $booking->tour->duration_days }} ngày</small>
+                                            </div>
+                                        </td>
+
+                                        <td>
+                                            {{ \Carbon\Carbon::parse($booking->departure->departure_date)->format('d/m/Y') }}
+                                        </td>
+
+                                        <td>
+                                            <div>
+                                                {{ $booking->adults }} người lớn
+                                                @if($booking->children > 0)
+                                                    <br>{{ $booking->children }} trẻ em
+                                                @endif
+                                                @if($booking->infants > 0)
+                                                    <br>{{ $booking->infants }} em bé
+                                                @endif
+                                            </div>
+                                        </td>
+
+                                        <td>
+                                            <strong class="text-primary">
+                                                {{ number_format($booking->total_amount, 0, ',', '.') }}đ
+                                            </strong>
+                                        </td>
+
+                                        <td>
+                                            <span class="badge
+                                                @if($booking->status === 'pending') bg-warning
+                                                @elseif($booking->status === 'confirmed') bg-success
+                                                @elseif($booking->status === 'cancelled') bg-danger
+                                                @elseif($booking->status === 'completed') bg-info
+                                                @else bg-secondary
+                                                @endif">
+                                                @switch($booking->status)
+                                                    @case('pending')
+                                                        Chờ xác nhận
+                                                        @break
+                                                    @case('confirmed')
+                                                        Đã xác nhận
+                                                        @break
+                                                    @case('cancelled')
+                                                        Đã hủy
+                                                        @break
+                                                    @case('completed')
+                                                        Hoàn thành
+                                                        @break
+                                                    @default
+                                                        {{ $booking->status }}
+                                                        @break
+                                                @endswitch
+                                            </span>
+                                        </td>
+
+                                        <td>{{ $booking->created_at->format('d/m/Y H:i') }}</td>
+
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <a href="{{ route('bookings.show', $booking) }}"
+                                                   class="btn btn-sm btn-outline-info" title="Xem chi tiết">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+
+                                                @if($booking->status === 'pending')
+                                                    <button class="btn btn-sm btn-outline-success"
+                                                            onclick="updateBookingStatus({{ $booking->id }}, 'confirmed')"
+                                                            title="Xác nhận">
+                                                        <i class="fas fa-check"></i>
+                                                    </button>
+
+                                                    <button class="btn btn-sm btn-outline-danger"
+                                                            onclick="updateBookingStatus({{ $booking->id }}, 'cancelled')"
+                                                            title="Hủy">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+
+                                                @elseif($booking->status === 'confirmed')
+                                                    <button class="btn btn-sm btn-outline-info"
+                                                            onclick="updateBookingStatus({{ $booking->id }}, 'completed')"
+                                                            title="Hoàn thành">
+                                                        <i class="fas fa-flag-checkered"></i>
+                                                    </button>
+                                                @endif
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+
                                 </tbody>
                             </table>
                         </div>
@@ -189,20 +215,20 @@ function filterBookings(status) {
 function updateBookingStatus(bookingId, status) {
     currentBookingId = bookingId;
     currentStatus = status;
-    
+
     const statusText = {
         'confirmed': 'Đã xác nhận',
         'cancelled': 'Đã hủy',
         'completed': 'Hoàn thành'
     };
-    
+
     document.getElementById('statusInfo').innerHTML = `
         <div class="alert alert-info">
             <strong>Mã đặt tour:</strong> #${String(bookingId).padStart(6, '0')}<br>
             <strong>Trạng thái mới:</strong> ${statusText[status]}
         </div>
     `;
-    
+
     new bootstrap.Modal(document.getElementById('updateStatusModal')).show();
 }
 
@@ -211,10 +237,10 @@ document.getElementById('confirmUpdate').addEventListener('click', function() {
         // Here you would typically make an AJAX request to update the status
         // For now, we'll just show a success message
         alert(`Đã cập nhật trạng thái đặt tour #${String(currentBookingId).padStart(6, '0')} thành ${currentStatus}`);
-        
+
         // Close modal
         bootstrap.Modal.getInstance(document.getElementById('updateStatusModal')).hide();
-        
+
         // Reload page to show updated status
         location.reload();
     }
