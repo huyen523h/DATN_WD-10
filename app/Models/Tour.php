@@ -15,14 +15,43 @@ class Tour extends Model
     protected $fillable = [
         'category_id',
         'title',
+        'short_description',
         'description',
-        'duration_days',
+        'location',
+        'duration',       // dạng text "3 ngày 2 đêm"
+        'duration_days',  // số ngày (mới)
+        'duration_nights', // số đêm (mới)
+
         'price',
-        'status',
+        'original_price',
+        'discount_price', // mới
+
+        'price_adult',
+        'price_child',
+        'price_infant',
+
+        'includes',
+        'excludes',
+        'surcharges',         // mới
+        'notes',
+        'cancellation_policy',
+        'visa_requirements',  // mới
+
+        'available_seats',
+        'availability_status', // available|contact|sold_out (tổng thể)
+        'status',             // active|inactive|draft
+        'image',
+        'departure_date', // nếu bạn đang dùng ở chỗ khác
     ];
 
     protected $casts = [
-        'price' => 'decimal:2',
+        'price'          => 'decimal:2',
+        'original_price' => 'decimal:2',
+        'discount_price' => 'decimal:2',
+        'price_adult'    => 'decimal:2',
+        'price_child'    => 'decimal:2',
+        'price_infant'   => 'decimal:2',
+        'departure_date' => 'date',
     ];
 
     /**
@@ -38,7 +67,10 @@ class Tour extends Model
      */
     public function images(): HasMany
     {
-        return $this->hasMany(TourImage::class);
+        return $this->hasMany(TourImage::class)
+            ->orderByDesc('is_cover')   // CHANGED
+            ->orderBy('sort_order')     // CHANGED
+            ->orderByDesc('id');        // CHANGED (ảnh mới nhất nếu chưa có sort)
     }
 
     /**
@@ -79,7 +111,7 @@ class Tour extends Model
     public function wishlistedBy(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'wishlists')
-                    ->withTimestamps();
+            ->withTimestamps();
     }
 
     /**

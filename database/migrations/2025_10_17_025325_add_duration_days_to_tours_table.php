@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('tours', function (Blueprint $table) {
-            $table->string('image')->nullable()->after('departure_date');
+            if (!Schema::hasColumn('tours', 'duration_days')) {
+                $table->integer('duration_days')->nullable();
+            }
         });
     }
 
@@ -22,7 +24,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('tours', function (Blueprint $table) {
-            $table->dropColumn('image');
+            $table->dropColumn('duration_days');
         });
     }
 };

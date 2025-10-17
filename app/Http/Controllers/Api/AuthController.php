@@ -8,7 +8,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
@@ -20,7 +19,7 @@ class AuthController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:255',
-                'email' => 'required|string|email|max:255|unique:users',
+                'email' => 'required|string|email|max:255|unique:users',        
                 'password' => 'required|string|min:8|confirmed',
                 'phone' => 'nullable|string|max:20',
                 'role' => 'nullable|string|in:customer,admin'
@@ -89,7 +88,7 @@ class AuthController extends Controller
                 ], 401);
             }
 
-            $user = User::where('email', $request->email)->firstOrFail();
+            $user = User::where('email', $request->email)->firstOrFail();       
             $token = $user->createToken('auth_token')->plainTextToken;
 
             return response()->json([
@@ -167,7 +166,7 @@ class AuthController extends Controller
 
             $validator = Validator::make($request->all(), [
                 'name' => 'sometimes|string|max:255',
-                'email' => 'sometimes|string|email|max:255|unique:users,email,' . $user->id,
+                'email' => 'sometimes|string|email|max:255|unique:users,email,' . $user->id,                                                                    
                 'phone' => 'nullable|string|max:20'
             ]);
 
@@ -219,7 +218,7 @@ class AuthController extends Controller
 
             $user = $request->user();
 
-            if (!Hash::check($request->current_password, $user->password)) {
+            if (!Hash::check($request->current_password, $user->password)) {    
                 return response()->json([
                     'success' => false,
                     'message' => 'Current password is incorrect'
@@ -257,8 +256,8 @@ class AuthController extends Controller
                 ], 403);
             }
 
-            $users = User::select('id', 'name', 'email', 'phone', 'role', 'created_at')
-                        ->orderBy('created_at', 'desc')
+            $users = User::select('id', 'name', 'email', 'phone', 'role')       
+                        ->orderBy('id', 'desc')
                         ->paginate(10);
 
             return response()->json([
@@ -289,7 +288,7 @@ class AuthController extends Controller
             }
 
             $user = User::findOrFail($id);
-            
+
             if ($user->id === $request->user()->id) {
                 return response()->json([
                     'success' => false,
