@@ -18,7 +18,7 @@ use App\Http\Controllers\EmployeeAuthController;
 
 Route::get('/', function () {
     return view('welcome');
-});
+})->name('welcome');
 
 
 // Public routes
