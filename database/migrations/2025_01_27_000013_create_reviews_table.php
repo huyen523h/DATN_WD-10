@@ -15,11 +15,17 @@ return new class extends Migration
             $table->id();
             $table->foreignId('tour_id')->constrained()->onDelete('cascade');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->integer('rating');
+            $table->unsignedTinyInteger('rating'); // Chú thích: Đổi thành unsignedTinyInteger cho hiệu năng tốt hơn (chỉ lưu số 1-5)
             $table->text('comment')->nullable();
             $table->text('images')->nullable();
-            $table->string('status', 20)->default('visible');
+            // Đổi default từ 'visible' thành 'pending'
+            // Thêm các trạng thái 'approved' và 'rejected' để quản lý rõ ràng hơn
+            $table->string('status', 20)->default('pending'); 
+
             $table->timestamps();
+
+            // Chú thích: Thêm ràng buộc để ngăn 1 user review 1 tour nhiều lần
+            $table->unique(['tour_id', 'user_id']);
         });
     }
 

@@ -7,34 +7,17 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * Chú thích: File migration này đã được vô hiệu hóa vì logic đã tồn tại
+     * trong file 2025_09_29_163055... Giữ lại file trống để đảm bảo
+     * tính nhất quán lịch sử migration cho cả team.
      */
     public function up(): void
     {
-        Schema::table('tours', function (Blueprint $table) {
-            // Kiểm tra trước khi thêm, tránh lỗi trùng cột
-            if (!Schema::hasColumn('tours', 'departure_date')) {
-                $table->date('departure_date')->nullable()->after('available_seats');
-            }
 
-            if (!Schema::hasColumn('tours', 'image')) {
-                $table->string('image')->nullable()->after('departure_date');
-            }
-        });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::table('tours', function (Blueprint $table) {
-            if (Schema::hasColumn('tours', 'departure_date')) {
-                $table->dropColumn('departure_date');
-            }
-            if (Schema::hasColumn('tours', 'image')) {
-                $table->dropColumn('image');
-            }
-        });
+
     }
 };
