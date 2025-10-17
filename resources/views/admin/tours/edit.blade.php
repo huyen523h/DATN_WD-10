@@ -1,379 +1,316 @@
 @extends('layouts.admin')
 
-@section('title', 'Sửa tour - Admin')
+@section('title', 'Chỉnh sửa Tour - Admin')
 
 @section('breadcrumb')
-<li class="breadcrumb-item"><a href="{{ route('admin.tours') }}">Quản lý Tours</a></li>
-<li class="breadcrumb-item active">Sửa tour</li>
+<li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
+<li class="breadcrumb-item"><a href="{{ route('admin.tours.index') }}">Tours</a></li>
+<li class="breadcrumb-item active">Chỉnh sửa</li>
 @endsection
 
 @section('content')
+<!-- Header -->
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h2><i class="fas fa-edit text-primary"></i> Sửa tour: {{ $tour->title }}</h2>
-        <p class="text-muted mb-0">Cập nhật thông tin tour</p>
+        <h2><i class="fas fa-edit text-primary"></i> Chỉnh sửa Tour</h2>
+        <p class="text-muted mb-0">Cập nhật thông tin tour: {{ $tour->title }}</p>
     </div>
-    <a href="{{ route('admin.tours') }}" class="btn btn-outline-secondary">
+    <a href="{{ route('admin.tours.index') }}" class="btn btn-outline-secondary">
         <i class="fas fa-arrow-left"></i> Quay lại
     </a>
 </div>
 
-<div class="row">
-    <div class="col-12">
-        <div class="admin-card">
-            <div class="card-body">
-                <form method="POST" action="{{ route('admin.tours.update', $tour) }}" enctype="multipart/form-data">
-                    @csrf
-                    @method('PUT')
+<!-- Success/Error Messages -->
+@if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i>
+        {{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
 
-                    {{-- Thông tin cơ bản --}}
-                    <div class="row">
-                        <div class="col-md-8">
-                            <div class="mb-3">
-                                <label class="form-label">Tên tour <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control @error('title') is-invalid @enderror"
-                                       name="title" value="{{ old('title', $tour->title) }}" required>
-                                @error('title')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Danh mục <span class="text-danger">*</span></label>
-                            <select class="form-select @error('category_id') is-invalid @enderror" name="category_id" required>
-                                <option value="">-- Chọn danh mục --</option>
-                                @foreach($categories as $category)
-                                    <option value="{{ $category->id }}" {{ old('category_id', $tour->category_id)==$category->id?'selected':'' }}>
-                                        {{ $category->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('category_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        </div>
+@if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        {{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+
+<!-- Edit Form -->
+<form action="{{ route('admin.tours.update', $tour) }}" method="POST" enctype="multipart/form-data" id="tourForm">
+    @csrf
+    @method('PUT')
+    
+    <!-- Basic Information -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-info-circle text-primary"></i> Thông tin cơ bản
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fas fa-heading text-primary"></i> Tên tour *
+                        </label>
+                        <input type="text" name="title" class="form-control" value="{{ old('title', $tour->title) }}" required>
+                        <div class="form-text">Tên tour sẽ hiển thị trên trang chủ và danh sách tours</div>
+                        @error('title')
+                            <div class="text-danger">{{ $message }}</div>
+                        @enderror
                     </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Mô tả tour <span class="text-danger">*</span></label>
-                        <textarea class="form-control @error('description') is-invalid @enderror" name="description" rows="4" required>{{ old('description', $tour->description) }}</textarea>
-                        @error('description')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fas fa-tags text-primary"></i> Danh mục *
+                        </label>
+                        <select name="category_id" class="form-select" required>
+                            <option value="">--- Chọn danh mục ---</option>
+                            @foreach($categories as $category)
+                                <option value="{{ $category->id }}" {{ old('category_id', $tour->category_id) == $category->id ? 'selected' : '' }}>
+                                    {{ $category->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('category_id')
+                            <div class="text-danger">{{ $message }}</div>
+                        @enderror
                     </div>
-
-                    <div class="row g-3">
-                        <div class="col-md-3">
-                            <label class="form-label">Thời lượng (text)</label>
-                            <input class="form-control" name="duration" value="{{ old('duration', $tour->duration) }}">
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Số ngày</label>
-                            <input type="number" min="1" class="form-control" name="duration_days" value="{{ old('duration_days', $tour->duration_days) }}">
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Số đêm</label>
-                            <input type="number" min="0" class="form-control" name="nights" value="{{ old('nights', $tour->nights) }}">
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Giá (VNĐ) <span class="text-danger">*</span></label>
-                            <input type="number" min="0" step="1000" class="form-control" name="price" value="{{ old('price', $tour->price) }}" required>
-                        </div>
-                        <div class="col-md-1">
-                            <label class="form-label">Giá gốc</label>
-                            <input type="number" min="0" step="1000" class="form-control" name="original_price" value="{{ old('original_price', $tour->original_price) }}">
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Giá KM</label>
-                            <input type="number" min="0" step="1000" class="form-control" name="discount_price" value="{{ old('discount_price', $tour->discount_price) }}">
-                        </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fas fa-align-left text-primary"></i> Mô tả tour *
+                </label>
+                <textarea name="description" class="form-control" rows="4" required>{{ old('description', $tour->description) }}</textarea>
+                <div class="form-text">Mô tả chi tiết sẽ giúp khách hàng hiểu rõ hơn về tour</div>
+                @error('description')
+                    <div class="text-danger">{{ $message }}</div>
+                @enderror
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fas fa-map-marker-alt text-primary"></i> Địa điểm
+                        </label>
+                        <input type="text" name="location" class="form-control" value="{{ old('location', $tour->location) }}">
+                        @error('location')
+                            <div class="text-danger">{{ $message }}</div>
+                        @enderror
                     </div>
-
-                    {{-- GIÁ THEO ĐỐI TƯỢNG --}}
-                    <div class="row g-3 mt-2">
-                        <div class="col-md-4">
-                            <label class="form-label">Giá người lớn</label>
-                            <input type="number" min="0" step="1000" class="form-control"
-                                   name="price_adult" value="{{ old('price_adult', $tour->price_adult) }}">
-                            <div class="form-text">Nếu bỏ trống, giá lịch sẽ fallback về “Giá (VNĐ)”.</div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Giá trẻ em</label>
-                            <input type="number" min="0" step="1000" class="form-control"
-                                   name="price_child" value="{{ old('price_child', $tour->price_child) }}">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Giá trẻ nhỏ</label>
-                            <input type="number" min="0" step="1000" class="form-control"
-                                   name="price_infant" value="{{ old('price_infant', $tour->price_infant) }}">
-                        </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fas fa-calendar-day text-primary"></i> Số ngày
+                        </label>
+                        <input type="number" name="duration_days" class="form-control" value="{{ old('duration_days', $tour->duration_days) }}" min="1">
+                        @error('duration_days')
+                            <div class="text-danger">{{ $message }}</div>
+                        @enderror
                     </div>
-
-                    {{-- Chỉ còn availability_status --}}
-                    <div class="row g-3 mt-2">
-                        <div class="col-md-3">
-                            <label class="form-label">Tình trạng chỗ (tổng)</label>
-                            <select class="form-select" name="availability_status">
-                                @php $av = old('availability_status', $tour->availability_status ?? 'available'); @endphp
-                                <option value="available" {{ $av=='available' ? 'selected':'' }}>Còn chỗ</option>
-                                <option value="contact"   {{ $av=='contact'   ? 'selected':'' }}>Liên hệ</option>
-                                <option value="sold_out"  {{ $av=='sold_out'  ? 'selected':'' }}>Hết chỗ</option>
-                            </select>
-                        </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fas fa-moon text-primary"></i> Số đêm
+                        </label>
+                        <input type="number" name="duration_nights" class="form-control" value="{{ old('duration_nights', $tour->duration_nights) }}" min="0">
+                        @error('duration_nights')
+                            <div class="text-danger">{{ $message }}</div>
+                        @enderror
                     </div>
-
-                    {{-- Tabs bổ sung --}}
-                    <ul class="nav nav-tabs mt-4" role="tablist">
-                        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#t_includes" type="button">Giá bao gồm</button></li>
-                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#t_excludes" type="button">Giá không bao gồm</button></li>
-                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#t_surcharges" type="button">Phụ thu</button></li>
-                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#t_notes" type="button">Lưu ý/Hướng dẫn</button></li>
-                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#t_cancel" type="button">Hủy/đổi</button></li>
-                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#t_visa" type="button">Visa</button></li>
-                    </ul>
-                    <div class="tab-content border-start border-end border-bottom p-3">
-                        <div class="tab-pane fade show active" id="t_includes">
-                            <textarea class="form-control" name="includes" rows="3">{{ old('includes', $tour->includes) }}</textarea>
-                        </div>
-                        <div class="tab-pane fade" id="t_excludes">
-                            <textarea class="form-control" name="excludes" rows="3">{{ old('excludes', $tour->excludes) }}</textarea>
-                        </div>
-                        <div class="tab-pane fade" id="t_surcharges">
-                            <textarea class="form-control" name="surcharges" rows="3">{{ old('surcharges', $tour->surcharges) }}</textarea>
-                        </div>
-                        <div class="tab-pane fade" id="t_notes">
-                            <textarea class="form-control" name="notes" rows="3">{{ old('notes', $tour->notes) }}</textarea>
-                        </div>
-                        <div class="tab-pane fade" id="t_cancel">
-                            <textarea class="form-control" name="cancellation_policy" rows="3">{{ old('cancellation_policy', $tour->cancellation_policy) }}</textarea>
-                        </div>
-                        <div class="tab-pane fade" id="t_visa">
-                            <textarea class="form-control" name="visa_requirements" rows="3">{{ old('visa_requirements', $tour->visa_requirements) }}</textarea>
-                        </div>
-                    </div>
-
-                    {{-- Ảnh hiện tại --}}
-                    @if($tour->images && $tour->images->count())
-                        <div class="mt-4">
-                            <h5><i class="fas fa-images"></i> Hình ảnh hiện tại</h5>
-                            <div class="row">
-                                @foreach($tour->images as $img)
-                                    <div class="col-md-3 mb-3">
-                                        <img src="{{ $img->image_url }}" class="img-fluid rounded" style="height:150px;object-fit:cover;">
-                                    </div>
-                                @endforeach
-                            </div>
-                        </div>
-                    @endif
-
-                    {{-- Thêm ảnh mới --}}
-                    <div class="mt-3">
-                        <label class="form-label">Thêm hình ảnh mới</label>
-                        <input type="file" class="form-control" name="images[]" multiple accept="image/*">
-                    </div>
-
-                    {{-- Lịch trình (day_number) --}}
-                    <h5 class="mt-4"><i class="fas fa-calendar-alt"></i> Lịch trình</h5>
-                    <div id="schedule-container">
-                        @forelse($tour->schedules as $s)
-                            <div class="schedule-item mb-3 p-3 border rounded">
-                                <div class="row g-2">
-                                    <div class="col-md-2">
-                                        <label class="form-label">Ngày</label>
-                                        <input type="number" class="form-control" name="schedule_day_number[]" value="{{ $s->day_number }}" min="1" max="60">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">Tiêu đề</label>
-                                        <input class="form-control" name="schedule_title[]" value="{{ $s->title }}">
-                                    </div>
-                                    <div class="col-md-5">
-                                        <label class="form-label">Mô tả</label>
-                                        <textarea class="form-control" name="schedule_description[]" rows="2">{{ $s->description }}</textarea>
-                                    </div>
-                                    <div class="col-md-1 d-flex align-items-end">
-                                        <button type="button" class="btn btn-outline-danger" onclick="this.closest('.schedule-item').remove()">Xóa</button>
-                                    </div>
-                                </div>
-                            </div>
-                        @empty
-                            <div class="schedule-item mb-3 p-3 border rounded">
-                                <div class="row g-2">
-                                    <div class="col-md-2">
-                                        <label class="form-label">Ngày</label>
-                                        <input type="number" class="form-control" name="schedule_day_number[]" value="1" min="1" max="60">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">Tiêu đề</label>
-                                        <input class="form-control" name="schedule_title[]">
-                                    </div>
-                                    <div class="col-md-5">
-                                        <label class="form-label">Mô tả</label>
-                                        <textarea class="form-control" name="schedule_description[]" rows="2"></textarea>
-                                    </div>
-                                    <div class="col-md-1 d-flex align-items-end">
-                                        <button type="button" class="btn btn-outline-danger" onclick="this.closest('.schedule-item').remove()">Xóa</button>
-                                    </div>
-                                </div>
-                            </div>
-                        @endforelse
-                    </div>
-                    <button type="button" class="btn btn-outline-primary" onclick="addSchedule()">+ Thêm ngày</button>
-
-                    {{-- Lịch khởi hành theo ngày --}}
-                    <h5 class="mt-4"><i class="fas fa-plane-departure"></i> Lịch khởi hành</h5>
-                    <div id="departure-container">
-                        @forelse($tour->departures as $d)
-                            <div class="departure-item mb-3 p-3 border rounded">
-                                <div class="row g-2">
-                                    <div class="col-md-2">
-                                        <label class="form-label">Ngày khởi hành</label>
-                                        <input type="date" class="form-control" name="departure_date[]" value="{{ $d->departure_date?->format('Y-m-d') }}">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label class="form-label">Tổng chỗ</label>
-                                        <input type="number" class="form-control" name="seats_total[]" value="{{ $d->seats_total }}" min="1" max="100">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label class="form-label">Còn chỗ</label>
-                                        <input type="number" class="form-control" name="seats_available[]" value="{{ $d->seats_available }}" min="0" max="100">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label class="form-label">Giá (ngày)</label>
-                                        <input type="number" class="form-control" name="price_dep[]" value="{{ $d->price }}" step="1000" min="0">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label class="form-label">Trạng thái</label>
-                                        <select class="form-select" name="status_dep[]">
-                                            <option value="available" {{ $d->status=='available'?'selected':'' }}>Còn chỗ</option>
-                                            <option value="contact"   {{ $d->status=='contact'  ?'selected':'' }}>Liên hệ</option>
-                                            <option value="sold_out"  {{ $d->status=='sold_out' ?'selected':'' }}>Hết chỗ</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-1">
-                                        <label class="form-label">Giá trẻ em</label>
-                                        <input type="number" class="form-control" name="child_price[]" value="{{ $d->child_price }}" step="1000" min="0">
-                                    </div>
-                                    <div class="col-md-1">
-                                        <label class="form-label">Giá trẻ nhỏ</label>
-                                        <input type="number" class="form-control" name="infant_price[]" value="{{ $d->infant_price }}" step="1000" min="0">
-                                    </div>
-                                    <div class="col-md-12 d-flex justify-content-end">
-                                        <button type="button" class="btn btn-outline-danger" onclick="this.closest('.departure-item').remove()">Xóa lịch</button>
-                                    </div>
-                                </div>
-                            </div>
-                        @empty
-                            <div class="departure-item mb-3 p-3 border rounded">
-                                <div class="row g-2">
-                                    <div class="col-md-2">
-                                        <label class="form-label">Ngày khởi hành</label>
-                                        <input type="date" class="form-control" name="departure_date[]" value="{{ date('Y-m-d', strtotime('+7 days')) }}">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label class="form-label">Tổng chỗ</label>
-                                        <input type="number" class="form-control" name="seats_total[]" value="20" min="1" max="100">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label class="form-label">Còn chỗ</label>
-                                        <input type="number" class="form-control" name="seats_available[]" value="20" min="0" max="100">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label class="form-label">Giá (ngày)</label>
-                                        <input type="number" class="form-control" name="price_dep[]" step="1000" min="0">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label class="form-label">Trạng thái</label>
-                                        <select class="form-select" name="status_dep[]">
-                                            <option value="available">Còn chỗ</option>
-                                            <option value="contact">Liên hệ</option>
-                                            <option value="sold_out">Hết chỗ</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-1">
-                                        <label class="form-label">Giá trẻ em</label>
-                                        <input type="number" class="form-control" name="child_price[]" step="1000" min="0">
-                                    </div>
-                                    <div class="col-md-1">
-                                        <label class="form-label">Giá trẻ nhỏ</label>
-                                        <input type="number" class="form-control" name="infant_price[]" step="1000" min="0">
-                                    </div>
-                                    <div class="col-md-12 d-flex justify-content-end">
-                                        <button type="button" class="btn btn-outline-danger" onclick="this.closest('.departure-item').remove()">Xóa lịch</button>
-                                    </div>
-                                </div>
-                            </div>
-                        @endforelse
-                    </div>
-                    <button type="button" class="btn btn-outline-primary" onclick="addDeparture()">+ Thêm lịch khởi hành</button>
-
-                    {{-- Submit --}}
-                    <div class="d-flex justify-content-end gap-2 mt-4">
-                        <a href="{{ route('admin.tours') }}" class="btn btn-secondary">Hủy</a>
-                        <button class="btn btn-primary">Cập nhật tour</button>
-                    </div>
-                </form>
+                </div>
             </div>
         </div>
     </div>
-</div>
+
+    <!-- Pricing -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-money-bill-wave text-primary"></i> Giá tour
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fas fa-dollar-sign text-primary"></i> Giá gốc (VNĐ) *
+                        </label>
+                        <input type="number" name="price" class="form-control" value="{{ old('price', $tour->price) }}" required min="0" step="1000">
+                        @error('price')
+                            <div class="text-danger">{{ $message }}</div>
+                        @enderror
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fas fa-percentage text-primary"></i> Giá khuyến mãi (VNĐ)
+                        </label>
+                        <input type="number" name="discount_price" class="form-control" value="{{ old('discount_price', $tour->discount_price) }}" min="0" step="1000">
+                        <div class="form-text">Để trống nếu không có khuyến mãi</div>
+                        @error('discount_price')
+                            <div class="text-danger">{{ $message }}</div>
+                        @enderror
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-toggle-on text-primary"></i> Trạng thái
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fas fa-info-circle text-primary"></i> Trạng thái tour *
+                </label>
+                <select name="status" class="form-select" required>
+                    <option value="active" {{ old('status', $tour->status) == 'active' ? 'selected' : '' }}>Hoạt động</option>
+                    <option value="inactive" {{ old('status', $tour->status) == 'inactive' ? 'selected' : '' }}>Không hoạt động</option>
+                    <option value="draft" {{ old('status', $tour->status) == 'draft' ? 'selected' : '' }}>Bản nháp</option>
+                </select>
+                @error('status')
+                    <div class="text-danger">{{ $message }}</div>
+                @enderror
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Images -->
+    @if($tour->images->count() > 0)
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-images text-primary"></i> Hình ảnh hiện tại
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                @foreach($tour->images as $image)
+                <div class="col-md-3 mb-3">
+                    <div class="position-relative">
+                        <img src="{{ Storage::url($image->image_url) }}" alt="Tour Image" class="img-fluid rounded" style="height: 150px; width: 100%; object-fit: cover;">
+                        @if($image->is_cover)
+                            <span class="badge bg-primary position-absolute top-0 start-0 m-2">Ảnh bìa</span>
+                        @endif
+                        <form action="{{ route('admin.tours.images.delete', ['tour' => $tour->id, 'image' => $image->id]) }}" method="POST" class="d-inline position-absolute top-0 end-0 m-2" onsubmit="return confirm('Bạn có chắc chắn muốn xóa hình ảnh này?')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-danger btn-sm">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Add New Images -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-plus text-primary"></i> Thêm hình ảnh mới
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fas fa-images text-primary"></i> Hình ảnh tour
+                </label>
+                <input type="file" name="images[]" class="form-control" multiple accept="image/*">
+                <div class="form-text">Có thể chọn nhiều hình ảnh cùng lúc (JPG, PNG, GIF - tối đa 2MB mỗi file)</div>
+                @error('images.*')
+                    <div class="text-danger">{{ $message }}</div>
+                @enderror
+            </div>
+        </div>
+    </div>
+
+    <!-- Submit Actions -->
+    <div class="card submit-section">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-1">
+                        <i class="fas fa-check-circle text-primary"></i> Hoàn tất chỉnh sửa
+                    </h6>
+                    <p class="text-muted mb-0">Kiểm tra lại thông tin trước khi lưu</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{{ route('admin.tours.index') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times"></i> Hủy
+                    </a>
+                    <button type="submit" class="btn btn-primary" id="saveBtn">
+                        <i class="fas fa-save"></i> Cập nhật tour
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
 @endsection
 
 @section('scripts')
 <script>
-function addSchedule(){
-    const c = document.getElementById('schedule-container');
-    const i = c.children.length + 1;
-    c.insertAdjacentHTML('beforeend', `
-    <div class="schedule-item mb-3 p-3 border rounded">
-      <div class="row g-2">
-        <div class="col-md-2">
-          <label class="form-label">Ngày</label>
-          <input type="number" class="form-control" name="schedule_day_number[]" value="${i}" min="1" max="60">
-        </div>
-        <div class="col-md-4">
-          <label class="form-label">Tiêu đề</label>
-          <input class="form-control" name="schedule_title[]" placeholder="VD: Tham quan ...">
-        </div>
-        <div class="col-md-5">
-          <label class="form-label">Mô tả</label>
-          <textarea class="form-control" name="schedule_description[]" rows="2"></textarea>
-        </div>
-        <div class="col-md-1 d-flex align-items-end">
-          <button type="button" class="btn btn-outline-danger" onclick="this.closest('.schedule-item').remove()">Xóa</button>
-        </div>
-      </div>
-    </div>`);
-}
 
-function addDeparture(){
-    const c = document.getElementById('departure-container');
-    c.insertAdjacentHTML('beforeend', `
-    <div class="departure-item mb-3 p-3 border rounded">
-      <div class="row g-2">
-        <div class="col-md-2"><label class="form-label">Ngày khởi hành</label>
-            <input type="date" class="form-control" name="departure_date[]" value="{{ date('Y-m-d', strtotime('+7 days')) }}">
-        </div>
-        <div class="col-md-2"><label class="form-label">Tổng chỗ</label>
-            <input type="number" class="form-control" name="seats_total[]" value="20" min="1" max="100">
-        </div>
-        <div class="col-md-2"><label class="form-label">Còn chỗ</label>
-            <input type="number" class="form-control" name="seats_available[]" value="20" min="0" max="100">
-        </div>
-        <div class="col-md-2"><label class="form-label">Giá (ngày)</label>
-            <input type="number" class="form-control" name="price_dep[]" step="1000" min="0">
-        </div>
-        <div class="col-md-2"><label class="form-label">Trạng thái</label>
-            <select class="form-select" name="status_dep[]">
-                <option value="available">Còn chỗ</option>
-                <option value="contact">Liên hệ</option>
-                <option value="sold_out">Hết chỗ</option>
-            </select>
-        </div>
-        <div class="col-md-1"><label class="form-label">Giá trẻ em</label>
-            <input type="number" class="form-control" name="child_price[]" step="1000" min="0">
-        </div>
-        <div class="col-md-1"><label class="form-label">Giá trẻ nhỏ</label>
-            <input type="number" class="form-control" name="infant_price[]" step="1000" min="0">
-        </div>
-        <div class="col-md-12 d-flex justify-content-end">
-            <button type="button" class="btn btn-outline-danger" onclick="this.closest('.departure-item').remove()">Xóa lịch</button>
-        </div>
-      </div>
-    </div>`);
-}
+// Form validation
+document.getElementById('tourForm').addEventListener('submit', function(e) {
+    const requiredFields = this.querySelectorAll('[required]');
+    let isValid = true;
+    let firstInvalidField = null;
+    
+    requiredFields.forEach(field => {
+        if (!field.value.trim()) {
+            field.classList.add('is-invalid');
+            isValid = false;
+            
+            if (!firstInvalidField) {
+                firstInvalidField = field;
+            }
+        } else {
+            field.classList.remove('is-invalid');
+        }
+    });
+    
+    if (!isValid) {
+        e.preventDefault();
+        
+        if (firstInvalidField) {
+            firstInvalidField.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+            });
+            firstInvalidField.focus();
+        }
+        
+        alert('Vui lòng điền đầy đủ các trường bắt buộc!');
+        return false;
+    }
+    
+    // Show loading state
+    const saveBtn = document.getElementById('saveBtn');
+    const originalText = saveBtn.innerHTML;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang cập nhật...';
+    saveBtn.disabled = true;
+});
 </script>
 @endsection

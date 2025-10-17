@@ -9,26 +9,26 @@
 @section('content')
 <!-- Welcome Header -->
 <div class="fade-in">
-    <div class="card mb-6" style="background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 100%); color: white;">
-        <div class="card-body py-8">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center">
-                    <div class="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mr-4">
-                        <i class="fas fa-user-circle text-2xl"></i>
+    <div class="card mb-6 welcome-banner">
+        <div class="card-body">
+            <div class="welcome-content">
+                <div class="welcome-left">
+                    <div class="welcome-avatar">
+                        <i class="fas fa-user-circle"></i>
                     </div>
-                    <div>
-                        <h1 class="text-2xl font-bold mb-1">Chào mừng trở lại, {{ Auth::user()->name }}!</h1>
-                        <p class="opacity-90">Quản lý hệ thống Tour365 một cách hiệu quả</p>
+                    <div class="welcome-text">
+                        <h1>Chào mừng trở lại, {{ Auth::user()->name }}!</h1>
+                        <p>Quản lý hệ thống Tour365 một cách hiệu quả</p>
                     </div>
                 </div>
-                <div class="text-right">
-                    <div class="flex items-center mb-2">
-                        <i class="fas fa-calendar-alt mr-2"></i>
-                        <span class="font-semibold">{{ now()->format('d/m/Y') }}</span>
+                <div class="welcome-right">
+                    <div class="welcome-date">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>{{ now()->format('d/m/Y') }}</span>
                     </div>
-                    <div class="flex items-center">
-                        <i class="fas fa-clock mr-2"></i>
-                        <span class="font-semibold">{{ now()->format('H:i') }}</span>
+                    <div class="welcome-time">
+                        <i class="fas fa-clock"></i>
+                        <span>{{ now()->format('H:i') }}</span>
                     </div>
                 </div>
             </div>
@@ -37,9 +37,11 @@
 
     <!-- Stats Cards -->
     <div class="stats-grid mb-6">
-        <div class="stat-card">
-            <div class="stat-icon stat-icon-primary">
-                <i class="fas fa-map-marked-alt"></i>
+        <div class="stat-card slide-in-left">
+            <div class="stat-header">
+                <div class="stat-icon stat-icon-primary">
+                    <i class="fas fa-map-marked-alt"></i>
+                </div>
             </div>
             <div class="stat-value">{{ $stats['total_tours'] }}</div>
             <div class="stat-label">Tổng Tours</div>
@@ -49,9 +51,11 @@
             </div>
         </div>
 
-        <div class="stat-card">
-            <div class="stat-icon stat-icon-success">
-                <i class="fas fa-calendar-check"></i>
+        <div class="stat-card slide-in-left" style="animation-delay: 0.1s;">
+            <div class="stat-header">
+                <div class="stat-icon stat-icon-success">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
             </div>
             <div class="stat-value">{{ $stats['total_bookings'] }}</div>
             <div class="stat-label">Tổng Đặt Tour</div>
@@ -61,9 +65,11 @@
             </div>
         </div>
 
-        <div class="stat-card">
-            <div class="stat-icon stat-icon-info">
-                <i class="fas fa-users"></i>
+        <div class="stat-card slide-in-left" style="animation-delay: 0.2s;">
+            <div class="stat-header">
+                <div class="stat-icon stat-icon-warning">
+                    <i class="fas fa-users"></i>
+                </div>
             </div>
             <div class="stat-value">{{ $stats['total_customers'] }}</div>
             <div class="stat-label">Tổng Khách Hàng</div>
@@ -73,9 +79,11 @@
             </div>
         </div>
 
-        <div class="stat-card">
-            <div class="stat-icon stat-icon-warning">
-                <i class="fas fa-clock"></i>
+        <div class="stat-card slide-in-left" style="animation-delay: 0.3s;">
+            <div class="stat-header">
+                <div class="stat-icon stat-icon-danger">
+                    <i class="fas fa-clock"></i>
+                </div>
             </div>
             <div class="stat-value">{{ $stats['pending_bookings'] }}</div>
             <div class="stat-label">Chờ Xử Lý</div>
@@ -87,40 +95,43 @@
     </div>
 
     <!-- Charts and Recent Activity -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    <div class="charts-section mb-6">
         <!-- Revenue Chart -->
-        <div class="lg:col-span-2">
-            <div class="card">
-                <div class="card-header">
-                    <div class="flex justify-between items-center">
-                        <h3 class="text-lg font-semibold text-gray-900">
-                            <i class="fas fa-chart-line text-indigo-600 mr-2"></i>
-                            Doanh thu theo tháng
-                        </h3>
-                        <button class="btn btn-secondary btn-sm">
-                            <i class="fas fa-download mr-1"></i>
-                            Xuất báo cáo
-                        </button>
-                    </div>
+        <div class="chart-card slide-in-right">
+            <div class="chart-header">
+                <h5 class="chart-title">
+                    <i class="fas fa-chart-line"></i>
+                    Doanh thu theo tháng
+                </h5>
+                <div class="chart-actions">
+                    <button class="chart-btn" title="Tải xuống">
+                        <i class="fas fa-download"></i>
+                    </button>
+                    <button class="chart-btn" title="Phóng to">
+                        <i class="fas fa-expand"></i>
+                    </button>
                 </div>
-                <div class="card-body">
-                    <canvas id="revenueChart" height="100"></canvas>
-                </div>
+            </div>
+            <div class="card-body">
+                <canvas id="revenueChart" height="300"></canvas>
             </div>
         </div>
 
         <!-- Popular Tours -->
-        <div>
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="text-lg font-semibold text-gray-900">
-                        <i class="fas fa-chart-pie text-indigo-600 mr-2"></i>
-                        Tours phổ biến
-                    </h3>
+        <div class="chart-card slide-in-right" style="animation-delay: 0.2s;">
+            <div class="chart-header">
+                <h5 class="chart-title">
+                    <i class="fas fa-chart-pie"></i>
+                    Tours phổ biến
+                </h5>
+                <div class="chart-actions">
+                    <button class="chart-btn" title="Xem chi tiết">
+                        <i class="fas fa-eye"></i>
+                    </button>
                 </div>
-                <div class="card-body">
-                    <canvas id="toursChart" height="100"></canvas>
-                </div>
+            </div>
+            <div class="card-body">
+                <canvas id="toursChart" height="200"></canvas>
             </div>
         </div>
     </div>
@@ -129,23 +140,20 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Recent Bookings -->
         <div class="lg:col-span-2">
-            <div class="card">
-                <div class="card-header">
-                    <div class="flex justify-between items-center">
-                        <h3 class="text-lg font-semibold text-gray-900">
-                            <i class="fas fa-calendar-check text-indigo-600 mr-2"></i>
-                            Đặt tour gần đây
-                        </h3>
-                        <a href="{{ route('admin.bookings') }}" class="btn btn-primary btn-sm">
-                            <i class="fas fa-eye mr-1"></i>
-                            Xem tất cả
-                        </a>
-                    </div>
+            <div class="recent-bookings">
+                <div class="table-header">
+                    <h3 class="table-title">
+                        <i class="fas fa-calendar-check"></i>
+                        Đặt tour gần đây
+                    </h3>
+                    <a href="{{ route('admin.bookings') }}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-eye mr-1"></i>
+                        Xem tất cả
+                    </a>
                 </div>
-                <div class="card-body p-0">
-                    @if($recent_bookings->count() > 0)
-                        <div class="overflow-x-auto">
-                            <table class="table">
+                @if($recent_bookings->count() > 0)
+                    <div class="overflow-x-auto">
+                        <table class="professional-table">
                                 <thead>
                                     <tr>
                                         <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Khách hàng</th>
@@ -282,44 +290,48 @@
             </div>
 
             <!-- Quick Actions -->
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="text-lg font-semibold text-gray-900">
-                        <i class="fas fa-bolt text-indigo-600 mr-2"></i>
-                        Thao tác nhanh
-                    </h3>
-                </div>
-                <div class="card-body">
-                    <div class="space-y-3">
-                        <a href="{{ route('admin.tours') }}" class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                            <i class="fas fa-plus text-indigo-600 mr-3"></i>
-                            <div class="text-left">
-                                <div class="font-medium text-gray-900">Thêm tour mới</div>
-                                <div class="text-sm text-gray-500">Tạo tour du lịch mới</div>
-                            </div>
-                        </a>
-                        <a href="{{ route('admin.bookings') }}" class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                            <i class="fas fa-list text-green-600 mr-3"></i>
-                            <div class="text-left">
-                                <div class="font-medium text-gray-900">Xem đặt tour</div>
-                                <div class="text-sm text-gray-500">Quản lý đặt tour</div>
-                            </div>
-                        </a>
-                        <a href="{{ route('admin.customers') }}" class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                            <i class="fas fa-users text-blue-600 mr-3"></i>
-                            <div class="text-left">
-                                <div class="font-medium text-gray-900">Quản lý khách hàng</div>
-                                <div class="text-sm text-gray-500">Danh sách khách hàng</div>
-                            </div>
-                        </a>
-                        <a href="{{ route('admin.settings') }}" class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                            <i class="fas fa-cog text-yellow-600 mr-3"></i>
-                            <div class="text-left">
-                                <div class="font-medium text-gray-900">Cài đặt hệ thống</div>
-                                <div class="text-sm text-gray-500">Cấu hình hệ thống</div>
-                            </div>
-                        </a>
-                    </div>
+            <div class="quick-actions">
+                <h3 class="quick-actions-title">
+                    <i class="fas fa-bolt"></i>
+                    Thao tác nhanh
+                </h3>
+                <div class="actions-grid">
+                    <a href="{{ route('admin.tours.index') }}" class="action-item">
+                        <div class="action-icon">
+                            <i class="fas fa-plus"></i>
+                        </div>
+                        <div class="action-text">
+                            <div class="action-title">Thêm tour mới</div>
+                            <div class="action-desc">Tạo tour du lịch mới</div>
+                        </div>
+                    </a>
+                    <a href="{{ route('admin.bookings') }}" class="action-item">
+                        <div class="action-icon">
+                            <i class="fas fa-list"></i>
+                        </div>
+                        <div class="action-text">
+                            <div class="action-title">Xem đặt tour</div>
+                            <div class="action-desc">Quản lý đặt tour</div>
+                        </div>
+                    </a>
+                    <a href="{{ route('admin.customers') }}" class="action-item">
+                        <div class="action-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="action-text">
+                            <div class="action-title">Quản lý khách hàng</div>
+                            <div class="action-desc">Danh sách khách hàng</div>
+                        </div>
+                    </a>
+                    <a href="{{ route('admin.settings') }}" class="action-item">
+                        <div class="action-icon">
+                            <i class="fas fa-cog"></i>
+                        </div>
+                        <div class="action-text">
+                            <div class="action-title">Cài đặt hệ thống</div>
+                            <div class="action-desc">Cấu hình hệ thống</div>
+                        </div>
+                    </a>
                 </div>
             </div>
         </div>
