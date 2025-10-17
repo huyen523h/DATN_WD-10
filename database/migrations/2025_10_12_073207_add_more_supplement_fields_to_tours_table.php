@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('tours', function (Blueprint $table) {
-            // Thời lượng (không đụng cột 'duration' đang có dạng text "3 ngày 2 đêm")
+            // Thời lượng (phần này an toàn vì 'duration' đã có từ trước)
             if (!Schema::hasColumn('tours', 'duration_days')) {
                 $table->integer('duration_days')->nullable()->after('duration');
             }
@@ -17,35 +17,39 @@ return new class extends Migration
                 $table->integer('nights')->nullable()->after('duration_days');
             }
 
-            // Tabs nội dung
+            // Tabs nội dung (SỬA LỖI TẠI ĐÂY)
+            // Chú thích: Xóa ->after('excludes') VÌ CÓ THỂ CỘT 'excludes' CHƯA TỒN TẠI.
+            // Laravel sẽ tự động thêm cột này vào cuối bảng, điều này an toàn 100%.
             if (!Schema::hasColumn('tours', 'surcharges')) {
-                $table->text('surcharges')->nullable()->after('excludes'); // Phụ thu
+                $table->text('surcharges')->nullable(); // Phụ thu
             }
+            
+            // Chú thích: Xóa ->after('cancellation_policy') VÌ LÝ DO TƯƠNG TỰ.
             if (!Schema::hasColumn('tours', 'visa_requirements')) {
-                $table->text('visa_requirements')->nullable()->after('cancellation_policy'); // Visa
+                $table->text('visa_requirements')->nullable(); // Visa
             }
 
-            // Giá khuyến mãi
+            // Giá khuyến mãi (SỬA LỖI TẠI ĐÂY)
+            // Chú thích: Xóa ->after('original_price') ĐỂ ĐẢM BẢO AN TOÀN TUYỆT ĐỐI.
             if (!Schema::hasColumn('tours', 'discount_price')) {
-                $table->decimal('discount_price', 12, 2)->nullable()->after('original_price');
+                $table->decimal('discount_price', 12, 2)->nullable();
             }
-
-            // Nếu thiếu 3 mức giá tổng quát của tour (ảnh của bạn đang có rồi) thì mở comment:
-            // if (!Schema::hasColumn('tours', 'price_adult'))  $table->decimal('price_adult',12,2)->nullable()->after('discount_price');
-            // if (!Schema::hasColumn('tours', 'price_child'))  $table->decimal('price_child',12,2)->nullable()->after('price_adult');
-            // if (!Schema::hasColumn('tours', 'price_infant')) $table->decimal('price_infant',12,2)->nullable()->after('price_child');
         });
     }
 
     public function down(): void
     {
         Schema::table('tours', function (Blueprint $table) {
-            $cols = ['duration_days','nights','surcharges','visa_requirements','discount_price'];
+            $cols = ['duration_days', 'nights', 'surcharges', 'visa_requirements', 'discount_price'];
             $drop = [];
             foreach ($cols as $c) {
-                if (Schema::hasColumn('tours', $c)) $drop[] = $c;
+                if (Schema::hasColumn('tours', $c)) {
+                    $drop[] = $c;
+                }
             }
-            if ($drop) $table->dropColumn($drop);
+            if (!empty($drop)) {
+                $table->dropColumn($drop);
+            }
         });
     }
 };
