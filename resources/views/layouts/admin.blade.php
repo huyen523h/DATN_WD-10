@@ -21,6 +21,8 @@
     
     <!-- CSS -->
     <link href="{{ asset('css/admin.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/admin-modern.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/dashboard-professional.css') }}" rel="stylesheet">
     <style>
         :root {
             /* Primary Colors */
@@ -107,12 +109,12 @@
             left: 0;
             width: var(--sidebar-width);
             height: 100vh;
-            background: linear-gradient(180deg, var(--primary-600) 0%, var(--primary-700) 100%);
-            color: white;
+            background: white;
+            color: #374151;
             z-index: 1000;
             transition: all 0.3s ease;
             overflow-y: auto;
-            box-shadow: var(--shadow-xl);
+            box-shadow: 0 0 0 1px #e5e7eb;
         }
         
         .sidebar.collapsed {
@@ -120,35 +122,70 @@
         }
         
         .sidebar-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        
-        .sidebar-logo {
-            width: 40px;
-            height: 40px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: var(--radius-lg);
+            padding: 1rem;
+            border-bottom: 1px solid #e5e7eb;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.25rem;
-            color: white;
-            flex-shrink: 0;
         }
         
-        .sidebar-brand {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: white;
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
             text-decoration: none;
-            transition: opacity 0.3s ease;
+            transition: var(--transition);
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin: 0.5rem;
         }
-        
-        .sidebar.collapsed .sidebar-brand {
+
+        .sidebar-logo:hover {
+            background: #f8fafc;
+            transform: scale(1.02);
+        }
+
+        .logo-icon {
+            width: 3rem;
+            height: 3rem;
+            background: white;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #3b82f6;
+            font-size: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: var(--transition);
+        }
+
+        .sidebar-logo:hover .logo-icon {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+            gap: 0.125rem;
+        }
+
+        .logo-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            line-height: 1;
+        }
+
+        .logo-subtitle {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .sidebar.collapsed .logo-text {
             opacity: 0;
             width: 0;
             overflow: hidden;
@@ -168,7 +205,7 @@
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            color: rgba(255, 255, 255, 0.6);
+            color: #9ca3af;
             transition: opacity 0.3s ease;
         }
         
@@ -188,21 +225,24 @@
             align-items: center;
             gap: 0.75rem;
             padding: 0.75rem 1.5rem;
-            color: rgba(255, 255, 255, 0.8);
+            color: #6b7280;
             text-decoration: none;
             transition: all 0.3s ease;
             position: relative;
             font-weight: 500;
+            border-radius: 0.5rem;
+            margin: 0.25rem 1rem;
         }
         
         .nav-link:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
+            background: #f3f4f6;
+            color: #374151;
+            transform: translateX(4px);
         }
         
         .nav-link.active {
-            background: rgba(255, 255, 255, 0.15);
-            color: white;
+            background: #eff6ff;
+            color: #3b82f6;
             font-weight: 600;
         }
         
@@ -212,8 +252,8 @@
             left: 0;
             top: 0;
             bottom: 0;
-            width: 4px;
-            background: white;
+            width: 3px;
+            background: #3b82f6;
             border-radius: 0 2px 2px 0;
         }
         
@@ -827,11 +867,14 @@
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <div class="sidebar-logo">
-                <i class="fas fa-plane"></i>
-            </div>
-            <a href="{{ route('admin.dashboard') }}" class="sidebar-brand">
-                Tour365 Admin
+            <a href="{{ route('admin.dashboard') }}" class="sidebar-logo">
+                <div class="logo-icon">
+                    <i class="fas fa-plane"></i>
+                </div>
+                <div class="logo-text">
+                    <span class="logo-title">Tour365</span>
+                    <span class="logo-subtitle">Admin</span>
+                </div>
             </a>
         </div>
         
@@ -853,7 +896,7 @@
             <div class="nav-section">
                 <div class="nav-section-title">Quản lý Tour</div>
                 <div class="nav-item">
-                    <a href="{{ route('admin.tours') }}" class="nav-link {{ request()->routeIs('admin.tours*') ? 'active' : '' }}">
+                    <a href="{{ route('admin.tours.index') }}" class="nav-link {{ request()->routeIs('admin.tours*') ? 'active' : '' }}">
                         <div class="nav-icon">
                             <i class="fas fa-map-marked-alt"></i>
                         </div>

@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\WishlistsController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\Admin\EmployeeController;
+use App\Http\Controllers\Admin\TourController as AdminTourController;
 use App\Http\Controllers\EmployeeAuthController;
 
 
@@ -18,6 +19,7 @@ use App\Http\Controllers\EmployeeAuthController;
 Route::get('/', function () {
     return view('welcome');
 });
+
 
 // Public routes
 Route::get('/tours', [TourController::class, 'index'])->name('tours.index');
@@ -54,8 +56,8 @@ Route::post('/register', [AuthController::class, 'register'])->middleware('guest
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 Route::get('/logout', [AuthController::class, 'logout'])->name('logout.get')->middleware('auth');
 
-// Customer routes
-Route::middleware('auth')->group(function () {
+// Customer routes - Truy cập tự do
+Route::group([], function () {
     Route::get('/profile', function () {
         return view('profile.index');
     })->name('profile.index');
@@ -81,18 +83,13 @@ Route::middleware('auth')->group(function () {
 
 });
 
-// Admin routes
-Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
+// Admin routes - Truy cập tự do
+Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
 
     // Tours management
-    Route::get('/tours', [AdminController::class, 'tours'])->name('tours');
-    Route::get('/tours/create', [AdminController::class, 'createTour'])->name('tours.create');
-    Route::post('/tours', [AdminController::class, 'storeTour'])->name('tours.store');
-    Route::get('/tours/{tour}', [AdminController::class, 'showTour'])->name('tours.show');
-    Route::get('/tours/{tour}/edit', [AdminController::class, 'editTour'])->name('tours.edit');
-    Route::put('/tours/{tour}', [AdminController::class, 'updateTour'])->name('tours.update');
-    Route::delete('/tours/{tour}', [AdminController::class, 'deleteTour'])->name('tours.destroy');
+    Route::resource('tours', AdminTourController::class);
+    Route::delete('/tours/{tour}/images/{image}', [AdminTourController::class, 'deleteImage'])->name('tours.images.delete');
 
     // Bookings management
     Route::get('/bookings', [AdminController::class, 'bookings'])->name('bookings');
@@ -176,7 +173,7 @@ Route::prefix('employee')->name('employee.')->group(function () {
     Route::post('/login', [EmployeeAuthController::class, 'login']);
     Route::post('/logout', [EmployeeAuthController::class, 'logout'])->name('logout');
     
-    Route::middleware(['auth', 'employee'])->group(function () {
+    Route::group([], function () {
         Route::get('/dashboard', [EmployeeAuthController::class, 'dashboard'])->name('dashboard');
         Route::get('/profile', [EmployeeAuthController::class, 'profile'])->name('profile');
         Route::post('/profile', [EmployeeAuthController::class, 'updateProfile'])->name('profile.update');

@@ -20,7 +20,7 @@ class Tour extends Model
         'location',
         'duration',       // dạng text "3 ngày 2 đêm"
         'duration_days',  // số ngày (mới)
-        'nights',         // số đêm (mới)
+        'duration_nights', // số đêm (mới)
 
         'price',
         'original_price',
@@ -39,6 +39,7 @@ class Tour extends Model
 
         'available_seats',
         'availability_status', // available|contact|sold_out (tổng thể)
+        'status',             // active|inactive|draft
         'image',
         'departure_date', // nếu bạn đang dùng ở chỗ khác
     ];
