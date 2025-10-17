@@ -13,11 +13,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Để trống, không làm gì cả
+
     }
 
     public function down(): void
     {
-        // Để trống, không làm gì cả
+
     }
 };

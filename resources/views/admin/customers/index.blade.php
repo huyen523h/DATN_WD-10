@@ -284,11 +284,11 @@
                                         <td class="py-4 px-4">
                                             <small class="text-muted">
                                                 <i class="fas fa-calendar me-1"></i>
-                                                {{ $customer->created_at->format('d/m/Y') }}
+                                                {{ \Carbon\Carbon::parse($customer->created_at)->format('d/m/Y') }}
                                             </small>
                                             <br>
                                             <small class="text-muted">
-                                                {{ $customer->created_at->diffForHumans() }}
+                                                {{ \Carbon\Carbon::parse($customer->created_at)->diffForHumans() }}
                                             </small>
                                         </td>
                                         <td class="py-4 px-4 text-center">
