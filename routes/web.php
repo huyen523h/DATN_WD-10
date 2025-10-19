@@ -179,16 +179,3 @@ Route::prefix('employee')->name('employee.')->group(function () {
         Route::post('/profile', [EmployeeAuthController::class, 'updateProfile'])->name('profile.update');
     });
 });
-
-// Staff routes
-Route::prefix('staff')->name('staff.')->group(function () {
-    Route::get('/login', [\App\Http\Controllers\StaffController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [\App\Http\Controllers\StaffController::class, 'login']);
-    Route::post('/logout', [\App\Http\Controllers\StaffController::class, 'logout'])->name('logout');
-    
-    Route::group([], function () {
-        Route::get('/dashboard', [\App\Http\Controllers\StaffController::class, 'dashboard'])->name('dashboard');
-        Route::get('/profile', [\App\Http\Controllers\StaffController::class, 'profile'])->name('profile');
-        Route::post('/profile', [\App\Http\Controllers\StaffController::class, 'updateProfile'])->name('profile.update');
-    });
-});
