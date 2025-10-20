@@ -89,7 +89,7 @@ class AuthController extends Controller
                 ], 401);
             }
 
-            $user = User::where('email', $request->email)->firstOrFail();
+            $user = User::with('roles')->where('email', $request->email)->firstOrFail();
             $token = $user->createToken('auth_token')->plainTextToken;
 
             return response()->json([
@@ -139,7 +139,7 @@ class AuthController extends Controller
     public function profile(Request $request)
     {
         try {
-            $user = $request->user();
+            $user = $request->user()->load('roles');
 
             return response()->json([
                 'success' => true,
@@ -250,7 +250,7 @@ class AuthController extends Controller
     public function getAllUsers(Request $request)
     {
         try {
-            if ($request->user()->role !== 'admin') {
+            if (!$request->user()->isAdmin()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized. Admin access required.'
@@ -258,8 +258,8 @@ class AuthController extends Controller
             }
 
             $users = User::select('id', 'name', 'email', 'phone', 'role', 'created_at')
-                        ->orderBy('created_at', 'desc')
-                        ->paginate(10);
+                ->orderBy('created_at', 'desc')
+                ->paginate(10);
 
             return response()->json([
                 'success' => true,
@@ -281,7 +281,7 @@ class AuthController extends Controller
     public function deleteUser(Request $request, $id)
     {
         try {
-            if ($request->user()->role !== 'admin') {
+            if (!$request->user()->isAdmin()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized. Admin access required.'
@@ -289,7 +289,7 @@ class AuthController extends Controller
             }
 
             $user = User::findOrFail($id);
-            
+
             if ($user->id === $request->user()->id) {
                 return response()->json([
                     'success' => false,
