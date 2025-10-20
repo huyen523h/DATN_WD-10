@@ -35,7 +35,9 @@
                                                 <h5 class="card-title">{{ $booking->tour->title }}</h5>
                                                 <p class="text-muted mb-2">
                                                     <i class="fas fa-calendar"></i>
-                                                    {{ \Carbon\Carbon::parse($booking->departure->departure_date)->format('d/m/Y') }}
+                                                    {{ $booking->departure?->departure_date
+                                                        ? \Carbon\Carbon::parse($booking->departure->departure_date)->format('d/m/Y')
+                                                        : 'Chưa có ngày khởi hành' }}
                                                 </p>
                                                 <p class="text-muted mb-2">
                                                     <i class="fas fa-users"></i>

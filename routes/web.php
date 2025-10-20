@@ -8,7 +8,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\TourController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\Api\WishlistsController;
-
+use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\StaffController;
@@ -159,13 +159,17 @@ Route::middleware('auth')->group(function () {
 
     Route::delete('/bookings/{booking}', [BookingController::class, 'destroy'])->name('bookings.destroy');
 
-    // Thanh toán MoMo & VNPAY
-    Route::get('/payment/{bookingId}', [PaymentController::class, 'processPayment'])->name('payment.process');
-    Route::get('/payment/momo/return', [PaymentController::class, 'momoReturn'])->name('payment.momo.return');
-    Route::post('/payment/momo/notify', [PaymentController::class, 'momoNotify'])->name('payment.momo.notify');
+    // Thanh toán MOMO
+    Route::get('/checkout', function () {
+        return view('checkout'); // form thanh toán
+    });
 
-    Route::get('/payment/vnpay/callback', [PaymentController::class, 'vnpayCallback'])->name('payment.vnpay.callback');
+    Route::post('/momo_payment/{id}', [CheckoutController::class, 'momo_payment'])->name('momo_payment');
+    // MoMo redirect user về sau khi thanh toán (hiển thị kết quả)
+    Route::get('/payment/momo_return', [CheckoutController::class, 'momo_return'])->name('momo.return');
 
+    // MoMo gửi IPN server → server xác nhận đơn hàng
+    Route::post('/payment/momo_ipn', [CheckoutController::class, 'momo_ipn'])->name('momo.ipn');
 });
 
 // Admin routes
@@ -263,7 +267,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     //Route::post('/employees/{employee}/create-account', [EmployeeController::class, 'createUserAccount'])->name('employees.create-account');
 
 
-    
+
     // Users management
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
@@ -272,29 +276,26 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
-    
 });
 
 // Staff routes
 Route::middleware(['auth', 'staff'])->prefix('staff')->name('staff.')->group(function () {
     Route::get('/', [StaffController::class, 'dashboard'])->name('dashboard');
-    
+
     // Tours management (read-only for staff)
     Route::get('/tours', [StaffController::class, 'tours'])->name('tours');
     Route::get('/tours/{tour}', [StaffController::class, 'showTour'])->name('tours.show');
-    
+
     // Bookings management
     Route::get('/bookings', [StaffController::class, 'bookings'])->name('bookings');
     Route::get('/bookings/{booking}', [StaffController::class, 'showBooking'])->name('bookings.show');
     Route::put('/bookings/{booking}', [StaffController::class, 'updateBooking'])->name('bookings.update');
-    
+
     // Customers management
     Route::get('/customers', [StaffController::class, 'customers'])->name('customers');
     Route::get('/customers/{user}', [StaffController::class, 'showCustomer'])->name('customers.show');
-    
+
     // Profile
     Route::get('/profile', [StaffController::class, 'profile'])->name('profile');
     Route::post('/profile', [StaffController::class, 'updateProfile'])->name('profile.update');
 });
-
-
