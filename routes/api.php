@@ -24,6 +24,14 @@ Route::prefix('tours')->group(function () {
     Route::get('/{id}', [TourController::class, 'show']); // GET /api/tours/1
 });
 
+
+// Public Banner API routes (no authentication required)
+Route::prefix('banners')->group(function () {
+    Route::get('/active', [BannerController::class, 'getActive']); // GET /api/banners/active
+    Route::post('/{banner}/track-view', [BannerController::class, 'trackView']); // POST /api/banners/1/track-view
+    Route::post('/{banner}/track-click', [BannerController::class, 'trackClick']); // POST /api/banners/1/track-click
+});
+
 // CHÚ THÍCH: Đã gộp và giữ lại route của cả hai bên
 
 // --- API Public cho chức năng ĐÁNH GIÁ ---
@@ -43,6 +51,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/profile', [AuthController::class, 'profile']);
     Route::put('/profile', [AuthController::class, 'updateProfile']);
     Route::post('/change-password', [AuthController::class, 'changePassword']);
+
 
     // --- API Protected cho người dùng (Đánh giá) ---
     Route::post('/tours/{tour}/reviews', [ReviewController::class, 'store']);
@@ -70,6 +79,27 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // --- API Protected cho Admin (Đánh giá) ---
         Route::apiResource('reviews', AdminReviewController::class)->only(['index', 'update', 'destroy']);
+    });
+
+    // API User Management
+    Route::prefix('users')->group(function () {
+        Route::get('/', [UserController::class, 'apiIndex']);
+        Route::post('/', [UserController::class, 'apiStore']);
+        Route::get('/{user}', [UserController::class, 'apiShow']);
+        Route::put('/{user}', [UserController::class, 'apiUpdate']);
+        Route::delete('/{user}', [UserController::class, 'apiDestroy']);
+    });
+
+    // API Banner Management (Admin only)
+    Route::middleware('admin')->prefix('banners')->group(function () {
+        Route::get('/', [BannerController::class, 'index']); // GET /api/banners
+        Route::post('/', [BannerController::class, 'store']); // POST /api/banners
+        Route::get('/stats', [BannerController::class, 'getStats']); // GET /api/banners/stats
+        Route::post('/bulk-update-status', [BannerController::class, 'bulkUpdateStatus']); // POST /api/banners/bulk-update-status
+        Route::post('/reorder', [BannerController::class, 'reorder']); // POST /api/banners/reorder
+        Route::get('/{banner}', [BannerController::class, 'show']); // GET /api/banners/1
+        Route::put('/{banner}', [BannerController::class, 'update']); // PUT /api/banners/1
+        Route::delete('/{banner}', [BannerController::class, 'destroy']); // DELETE /api/banners/1
     });
 });
 

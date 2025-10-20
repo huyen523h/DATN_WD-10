@@ -893,62 +893,87 @@
             </div>
             
             <!-- Tours Management -->
-            <div class="nav-section">
-                <div class="nav-section-title">Quản lý Tour</div>
-                <div class="nav-item">
-                    <a href="{{ route('admin.tours.index') }}" class="nav-link {{ request()->routeIs('admin.tours*') ? 'active' : '' }}">
-                        <div class="nav-icon">
-                            <i class="fas fa-map-marked-alt"></i>
-                        </div>
-                        <span class="nav-text">Tours</span>
-                    </a>
-                </div>
-                <div class="nav-item">
-                    <a href="{{ route('admin.categories') }}" class="nav-link {{ request()->routeIs('admin.categories*') ? 'active' : '' }}">
-                        <div class="nav-icon">
-                            <i class="fas fa-tags"></i>
-                        </div>
-                        <span class="nav-text">Danh mục</span>
-                    </a>
-                </div>
-                <div class="nav-item">
-                    <a href="{{ route('admin.promotions') }}" class="nav-link {{ request()->routeIs('admin.promotions*') ? 'active' : '' }}">
-                        <div class="nav-icon">
-                            <i class="fas fa-gift"></i>
-                        </div>
-                        <span class="nav-text">Mã giảm giá</span>
-                    </a>
-                </div>
-            </div>
-            
+
+            <div class="nav-item">
+                <a href="{{ route('admin.tours') }}" class="nav-link {{ request()->routeIs('admin.tours*') ? 'active' : '' }}">
+                    <i class="fas fa-map-marked-alt"></i>
+                    <span class="nav-text">Quản lý Tours</span>
+                </a>
+                    </div>
+
             <!-- Bookings Management -->
-            <div class="nav-section">
-                <div class="nav-section-title">Đặt tour</div>
-                <div class="nav-item">
-                    <a href="{{ route('admin.bookings') }}" class="nav-link {{ request()->routeIs('admin.bookings*') ? 'active' : '' }}">
-                        <div class="nav-icon">
-                            <i class="fas fa-calendar-check"></i>
-                        </div>
-                        <span class="nav-text">Đặt tour</span>
-                        <span class="nav-badge">{{ \App\Models\Booking::where('status', 'pending')->count() }}</span>
-                    </a>
-                </div>
-                <div class="nav-item">
-                    <a href="{{ route('admin.customers') }}" class="nav-link {{ request()->routeIs('admin.customers*') ? 'active' : '' }}">
-                        <div class="nav-icon">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <span class="nav-text">Khách hàng</span>
-                    </a>
-                </div>
-                <div class="nav-item">
-                    <a href="{{ route('admin.payments') }}" class="nav-link {{ request()->routeIs('admin.payments*') ? 'active' : '' }}">
-                        <div class="nav-icon">
-                            <i class="fas fa-credit-card"></i>
-                        </div>
-                        <span class="nav-text">Thanh toán</span>
-                    </a>
-                </div>
+            <div class="nav-item">
+                <a href="{{ route('admin.bookings') }}" class="nav-link {{ request()->routeIs('admin.bookings*') ? 'active' : '' }}">
+                    <i class="fas fa-calendar-check"></i>
+                    <span class="nav-text">Quản lý Đặt tour</span>
+                </a>
+            </div>
+
+        <!-- Users Management -->
+        <div class="nav-item">
+            <a href="{{ route('admin.users.index') }}" class="nav-link {{ request()->routeIs('admin.users*') ? 'active' : '' }}">
+                <i class="fas fa-users"></i>
+                <span class="nav-text">Quản lý Người dùng</span>
+            </a>
+        </div>
+
+            <!-- Categories Management -->
+            <div class="nav-item">
+                <a href="{{ route('admin.categories') }}" class="nav-link {{ request()->routeIs('admin.categories*') ? 'active' : '' }}">
+                    <i class="fas fa-tags"></i>
+                    <span class="nav-text">Quản lý Danh mục</span>
+                </a>
+            </div>
+
+            <!-- Reviews Management -->
+            <div class="nav-item">
+                <a href="{{ route('admin.reviews') }}" class="nav-link {{ request()->routeIs('admin.reviews*') ? 'active' : '' }}">
+                    <i class="fas fa-star"></i>
+                    <span class="nav-text">Quản lý Đánh giá</span>
+                </a>
+    </div>
+
+            <!-- Payments Management -->
+            <div class="nav-item">
+                <a href="{{ route('admin.payments') }}" class="nav-link {{ request()->routeIs('admin.payments*') ? 'active' : '' }}">
+                    <i class="fas fa-credit-card"></i>
+                    <span class="nav-text">Quản lý Thanh toán</span>
+                </a>
+            </div>
+
+            <!-- Reports -->
+            <div class="nav-item">
+                <a href="{{ route('admin.reports') }}" class="nav-link {{ request()->routeIs('admin.reports*') ? 'active' : '' }}">
+                    <i class="fas fa-chart-bar"></i>
+                    <span class="nav-text">Báo cáo & Thống kê</span>
+                </a>
+        </div>
+
+            <!-- Notifications -->
+            <div class="nav-item">
+                <a href="{{ route('admin.notifications') }}" class="nav-link {{ request()->routeIs('admin.notifications*') ? 'active' : '' }}">
+                    <i class="fas fa-bell"></i>
+                    <span class="nav-text">Thông báo</span>
+                    <span class="badge badge-admin bg-danger ms-auto">3</span>
+                </a>
+            </div>
+
+            <!-- Support Tickets -->
+            <div class="nav-item">
+                <a href="{{ route('admin.support') }}" class="nav-link {{ request()->routeIs('admin.support*') ? 'active' : '' }}">
+                    <i class="fas fa-headset"></i>
+                    <span class="nav-text">Hỗ trợ khách hàng</span>
+                    <span class="badge badge-admin bg-warning ms-auto">5</span>
+                </a>
+            </div>
+
+            <!-- Settings -->
+            <div class="nav-item">
+                <a href="{{ route('admin.settings') }}" class="nav-link {{ request()->routeIs('admin.settings*') ? 'active' : '' }}">
+                    <i class="fas fa-cog"></i>
+                    <span class="nav-text">Cài đặt hệ thống</span>
+                </a>
+
             </div>
             
             <!-- Reviews & Support -->
@@ -1010,10 +1035,13 @@
             <div class="header-left">
                 <button class="sidebar-toggle" id="sidebarToggle">
                     <i class="fas fa-bars"></i>
-                </button>
-                <nav class="breadcrumb">
-                    @yield('breadcrumb')
-                </nav>
+                </button>h
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Admin</a></li>
+                        @yield('breadcrumb')
+                    </ol>
+        </nav>
             </div>
             
             <div class="header-right">
@@ -1047,24 +1075,29 @@
         <!-- Content -->
         <main class="content">
             @yield('content')
-        </main>
-    </div>
+
+    </main>
+</div>
+
+    <!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Scripts -->
-    <script>
-        // Sidebar Toggle
-        const sidebar = document.getElementById('sidebar');
-        const sidebarToggle = document.getElementById('sidebarToggle');
-        const mainContent = document.querySelector('.main-content');
-        
-        sidebarToggle.addEventListener('click', () => {
-            sidebar.classList.toggle('collapsed');
-        });
-        
-        // Mobile sidebar toggle
-        if (window.innerWidth <= 1024) {
-            sidebarToggle.addEventListener('click', () => {
-                sidebar.classList.toggle('open');
+    <!-- Custom Admin JS -->
+<script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Sidebar toggle
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebar = document.getElementById('adminSidebar');
+            const main = document.getElementById('adminMain');
+
+            sidebarToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('collapsed');
+                main.classList.toggle('sidebar-collapsed');
+                
+                // Save state to localStorage
+                const isCollapsed = sidebar.classList.contains('collapsed');
+                localStorage.setItem('adminSidebarCollapsed', isCollapsed);
+
             });
             
             // Close sidebar when clicking outside
@@ -1080,31 +1113,8 @@
             // Implement user menu dropdown
             console.log('Toggle user menu');
         }
-        
-        // Search functionality
-        const searchInput = document.querySelector('.search-input');
-        searchInput.addEventListener('input', (e) => {
-            // Implement search functionality
-            console.log('Search:', e.target.value);
-        });
-        
-        // Auto-hide alerts
-        const alerts = document.querySelectorAll('.alert');
-        alerts.forEach(alert => {
-            setTimeout(() => {
-                alert.style.opacity = '0';
-                alert.style.transform = 'translateY(-10px)';
-                setTimeout(() => {
-                    alert.remove();
-                }, 300);
-            }, 5000);
-        });
-        
-        // Initialize tooltips
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize any tooltips or other interactive elements
-        });
-    </script>
+
+</script>
     
     @yield('scripts')
 </body>

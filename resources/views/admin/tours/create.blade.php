@@ -42,6 +42,7 @@
                 <h5 class="mb-0"><i class="fas fa-info-circle"></i> Thông tin cơ bản</h5>
             </div>
             <div class="card-body">
+
                 <form method="POST" action="{{ route('admin.tours.store') }}" enctype="multipart/form-data" id="tourForm">
                     @csrf
 
@@ -76,72 +77,86 @@
                         </div>
                     </div>
 
-                    <div class="form-group mb-3">
-                        <label class="form-label">
-                            <i class="fas fa-align-left text-primary"></i> Mô tả tour 
-                            <span class="text-danger">*</span>
-                        </label>
-                        <textarea class="form-control" name="description" rows="4" 
-                                  placeholder="Mô tả chi tiết về tour..." required>{{ old('description') }}</textarea>
-                        <div class="form-text">Mô tả chi tiết sẽ giúp khách hàng hiểu rõ hơn về tour</div>
-                    </div>
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label for="title" class="form-label">Tên tour <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control @error('title') is-invalid @enderror"
+                                           id="title" name="title" value="{{ old('title') }}" required>
+                                    @error('title')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="category_id" class="form-label">Danh mục <span class="text-danger">*</span></label>
+                                    <select class="form-select @error('category_id') is-invalid @enderror"
+                                            id="category_id" name="category_id" required>
+                                        <option value="">-- Chọn danh mục --</option>
+                                        @foreach($categories as $category)
+                                            <option value="{{ $category->id }}"
+                                                    {{ old('category_id') == $category->id ? 'selected' : '' }}>
+                                                {{ $category->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('category_id')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
 
-                    <!-- Thời gian và Giá -->
-                    <div class="row g-3">
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label class="form-label">
-                                    <i class="fas fa-clock text-primary"></i> Thời lượng
-                                </label>
-                                <input class="form-control" name="duration" value="{{ old('duration') }}" 
-                                       placeholder="VD: 3 ngày 2 đêm">
-                                <div class="form-text">Mô tả thời gian tour</div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="duration_days" class="form-label">Số ngày <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control @error('duration_days') is-invalid @enderror"
+                                           id="duration_days" name="duration_days" value="{{ old('duration_days') }}"
+                                           min="1" max="30" required>
+                                    @error('duration_days')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="price" class="form-label">Giá tour (VNĐ) <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control @error('price') is-invalid @enderror"
+                                           id="price" name="price" value="{{ old('price') }}"
+                                           min="0" step="1000" required>
+                                    @error('price')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-2">
-                            <div class="form-group">
-                                <label class="form-label">
-                                    <i class="fas fa-calendar-day text-primary"></i> Số ngày
-                                </label>
-                                <input type="number" min="1" class="form-control" name="duration_days" 
-                                       value="{{ old('duration_days') }}" placeholder="3">
-                            </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Mô tả tour <span class="text-danger">*</span></label>
+                            <textarea class="form-control @error('description') is-invalid @enderror"
+                                      id="description" name="description" rows="5" required>{{ old('description') }}</textarea>
+                            @error('description')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
-                        <div class="col-md-2">
-                            <div class="form-group">
-                                <label class="form-label">
-                                    <i class="fas fa-moon text-primary"></i> Số đêm
-                                </label>
-                                <input type="number" min="0" class="form-control" name="nights" 
-                                       value="{{ old('nights') }}" placeholder="2">
-                            </div>
-                        </div>
-                        <div class="col-md-2">
-                            <div class="form-group">
-                                <label class="form-label">
-                                    <i class="fas fa-money-bill-wave text-primary"></i> Giá (VNĐ) 
-                                    <span class="text-danger">*</span>
-                                </label>
-                                <input type="number" min="0" step="1000" class="form-control" name="price" 
-                                       value="{{ old('price') }}" placeholder="2000000" required>
-                            </div>
-                        </div>
-                        <div class="col-md-1">
-                            <div class="form-group">
-                                <label class="form-label">
-                                    <i class="fas fa-tag text-primary"></i> Giá gốc
-                                </label>
-                                <input type="number" min="0" step="1000" class="form-control" name="original_price" 
-                                       value="{{ old('original_price') }}" placeholder="2500000">
-                            </div>
-                        </div>
-                        <div class="col-md-2">
-                            <div class="form-group">
-                                <label class="form-label">
-                                    <i class="fas fa-percentage text-primary"></i> Giá KM
-                                </label>
-                                <input type="number" min="0" step="1000" class="form-control" name="discount_price" 
-                                       value="{{ old('discount_price') }}" placeholder="1800000">
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="status" class="form-label">Trạng thái</label>
+                                    <select class="form-select @error('status') is-invalid @enderror"
+                                            id="status" name="status">
+                                        <option value="active" {{ old('status') == 'active' ? 'selected' : '' }}>Hoạt động</option>
+                                        <option value="inactive" {{ old('status') == 'inactive' ? 'selected' : '' }}>Tạm dừng</option>
+                                        <option value="draft" {{ old('status') == 'draft' ? 'selected' : '' }}>Bản nháp</option>
+                                    </select>
+                                    @error('status')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
                             </div>
                         </div>
                     </div>
@@ -191,6 +206,7 @@
             </div>
         </div>
 
+
         <!-- Trạng thái và thông tin bổ sung -->
         <div class="card mt-4">
             <div class="card-header">
@@ -231,8 +247,36 @@
                     </div>
                 </div>
 
-            </div>
-        </div>
+
+                        <div id="schedule-container">
+                            <div class="schedule-item mb-3 p-3 border rounded">
+                                <div class="row">
+                                    <div class="col-md-2">
+                                        <label class="form-label">Ngày</label>
+                                        <input type="number" class="form-control" name="schedule_day[]"
+                                               value="1" min="1" max="30">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Tiêu đề</label>
+                                        <input type="text" class="form-control" name="schedule_title[]"
+                                               placeholder="VD: Khởi hành từ Hà Nội">
+                                    </div>
+                                    <div class="col-md-5">
+                                        <label class="form-label">Mô tả</label>
+                                        <textarea class="form-control" name="schedule_description[]"
+                                                  rows="2" placeholder="Mô tả chi tiết hoạt động"></textarea>
+                                    </div>
+                                    <div class="col-md-1">
+                                        <label class="form-label">&nbsp;</label>
+                                        <button type="button" class="btn btn-outline-danger btn-sm d-block"
+                                                onclick="removeSchedule(this)">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
 
         <!-- Chi tiết tour -->
         <div class="card mt-4">
@@ -326,32 +370,32 @@
             </div>
         </div>
 
-        <!-- Lịch trình tour -->
-        <div class="card mt-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="fas fa-calendar-alt text-primary"></i> Lịch trình tour</h5>
-                <button type="button" class="btn btn-primary btn-sm" onclick="addSchedule()">
-                    <i class="fas fa-plus"></i> Thêm ngày
-                </button>
-            </div>
-            <div class="card-body">
-                <div id="schedule-container">
-                    <div class="schedule-item mb-3 p-3 border rounded bg-light">
-                        <div class="row g-2">
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        <i class="fas fa-calendar-day text-primary"></i> Ngày
-                                    </label>
-                                    <input type="number" class="form-control" name="schedule_day_number[]" value="1" min="1" max="60">
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        <i class="fas fa-heading text-primary"></i> Tiêu đề
-                                    </label>
-                                    <input class="form-control" name="schedule_title[]" placeholder="VD: Khởi hành từ Hà Nội">
+
+                        <div id="departure-container">
+                            <div class="departure-item mb-3 p-3 border rounded">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Ngày khởi hành</label>
+                                        <input type="date" class="form-control" name="departure_date[]"
+                                               value="{{ date('Y-m-d', strtotime('+7 days')) }}">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Tổng số chỗ</label>
+                                        <input type="number" class="form-control" name="seats_total[]"
+                                               value="20" min="1" max="100">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Chỗ còn lại</label>
+                                        <input type="number" class="form-control" name="seats_available[]"
+                                               value="20" min="0" max="100">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">&nbsp;</label>
+                                        <button type="button" class="btn btn-outline-danger btn-sm d-block"
+                                                onclick="removeDeparture(this)">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-md-5">
@@ -970,30 +1014,30 @@ function addSchedule(){
     newItem.style.transform = 'translateX(-20px)';
     
     newItem.innerHTML = `
-      <div class="row g-2">
-        <div class="col-md-2">
-          <div class="form-group">
-            <label class="form-label">
-              <i class="fas fa-calendar-day text-primary"></i> Ngày
-            </label>
-            <input type="number" class="form-control" name="schedule_day_number[]" value="${i}" min="1" max="60">
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="form-group">
-            <label class="form-label">
-              <i class="fas fa-heading text-primary"></i> Tiêu đề
-            </label>
-            <input class="form-control" name="schedule_title[]" placeholder="VD: Tham quan ...">
-          </div>
-        </div>
-        <div class="col-md-5">
-          <div class="form-group">
-            <label class="form-label">
-              <i class="fas fa-align-left text-primary"></i> Mô tả
-            </label>
-            <textarea class="form-control" name="schedule_description[]" rows="2" placeholder="Mô tả chi tiết hoạt động trong ngày..."></textarea>
-          </div>
+
+        <div class="row">
+            <div class="col-md-2">
+                <label class="form-label">Ngày</label>
+                <input type="number" class="form-control" name="schedule_day[]"
+                       value="${container.children.length + 1}" min="1" max="30">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Tiêu đề</label>
+                <input type="text" class="form-control" name="schedule_title[]"
+                       placeholder="VD: Khởi hành từ Hà Nội">
+            </div>
+            <div class="col-md-5">
+                <label class="form-label">Mô tả</label>
+                <textarea class="form-control" name="schedule_description[]"
+                          rows="2" placeholder="Mô tả chi tiết hoạt động"></textarea>
+            </div>
+            <div class="col-md-1">
+                <label class="form-label">&nbsp;</label>
+                <button type="button" class="btn btn-outline-danger btn-sm d-block"
+                        onclick="removeSchedule(this)">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
         </div>
         <div class="col-md-1 d-flex align-items-end">
           <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeScheduleItem(this)">
@@ -1026,22 +1070,30 @@ function addDeparture(){
     newItem.style.transform = 'translateX(-20px)';
     
     newItem.innerHTML = `
-      <div class="row g-2">
-        <div class="col-md-2">
-          <div class="form-group">
-            <label class="form-label">
-              <i class="fas fa-calendar text-primary"></i> Ngày khởi hành
-            </label>
-            <input type="date" class="form-control" name="departure_date[]" value="{{ date('Y-m-d', strtotime('+7 days')) }}">
-          </div>
-        </div>
-        <div class="col-md-2">
-          <div class="form-group">
-            <label class="form-label">
-              <i class="fas fa-users text-primary"></i> Tổng chỗ
-            </label>
-            <input type="number" class="form-control" name="seats_total[]" value="20" min="1" max="100">
-          </div>
+
+        <div class="row">
+            <div class="col-md-4">
+                <label class="form-label">Ngày khởi hành</label>
+                <input type="date" class="form-control" name="departure_date[]"
+                       value="{{ date('Y-m-d', strtotime('+7 days')) }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Tổng số chỗ</label>
+                <input type="number" class="form-control" name="seats_total[]"
+                       value="20" min="1" max="100">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Chỗ còn lại</label>
+                <input type="number" class="form-control" name="seats_available[]"
+                       value="20" min="0" max="100">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <button type="button" class="btn btn-outline-danger btn-sm d-block"
+                        onclick="removeDeparture(this)">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
         </div>
         <div class="col-md-2">
           <div class="form-group">
