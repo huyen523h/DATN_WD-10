@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\DepartureController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\AdminController;
@@ -33,7 +34,7 @@ Route::get('/debug-simple', function () {
             'tour_id' => $tour->id,
             'tour_title' => $tour->title,
             'departures_count' => $departures->count(),
-            'departures' => $departures->map(function($dep) {
+            'departures' => $departures->map(function ($dep) {
                 return [
                     'id' => $dep->id,
                     'date' => $dep->departure_date,
@@ -53,14 +54,14 @@ Route::get('/debug-simple', function () {
 Route::get('/debug-test-booking', function () {
     $tour = App\Models\Tour::first();
     $departures = App\Models\TourDeparture::where('tour_id', $tour->id)
-                                         ->orderBy('departure_date', 'asc')
-                                         ->get();
+        ->orderBy('departure_date', 'asc')
+        ->get();
 
     return response()->json([
         'tour_id' => $tour->id,
         'tour_title' => $tour->title,
         'departures_count' => $departures->count(),
-        'departures' => $departures->map(function($dep) {
+        'departures' => $departures->map(function ($dep) {
             return [
                 'id' => $dep->id,
                 'date' => $dep->departure_date,
@@ -98,7 +99,7 @@ Route::get('/debug-departures', function () {
     $output .= "Tour Title: " . $tour->title . "\n";
     $output .= "Departures count: " . $departures->count() . "\n\n";
 
-    foreach($departures as $dep) {
+    foreach ($departures as $dep) {
         $output .= "Departure ID: " . $dep->id . "\n";
         $output .= "Date: " . $dep->departure_date . "\n";
         $output .= "Seats: " . $dep->seats_available . "/" . $dep->seats_total . "\n";
@@ -195,12 +196,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
 
     // Tours management
-    Route::get('/tours', [AdminController::class, 'tours'])->name('tours');
+    Route::get('/tours', [AdminController::class, 'tours'])->name('tours.index');
     Route::get('/tours/create', [AdminController::class, 'createTour'])->name('tours.create');
     Route::post('/tours', [AdminController::class, 'storeTour'])->name('tours.store');
+    Route::get('/tours/{tour}', [AdminController::class, 'showTour'])->name('tours.show');
     Route::get('/tours/{tour}/edit', [AdminController::class, 'editTour'])->name('tours.edit');
     Route::put('/tours/{tour}', [AdminController::class, 'updateTour'])->name('tours.update');
     Route::delete('/tours/{tour}', [AdminController::class, 'deleteTour'])->name('tours.destroy');
+    // Xóa ảnh của tour
+    Route::delete('/tours/{tour}/images/{image}', [AdminController::class, 'deleteTourImage'])
+        ->name('tours.images.delete');
 
 
     // Bookings management
@@ -260,23 +265,28 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('/support', [AdminController::class, 'storeSupportTicket'])->name('support.store');
     Route::put('/support/{ticket}', [AdminController::class, 'updateTicket'])->name('support.update');
     Route::delete('/support/{ticket}', [AdminController::class, 'deleteTicket'])->name('support.destroy');
+    // Admin quản lý khởi hành tour
+
+    Route::resource('departures', DepartureController::class);
 
     // Settings
     Route::get('/settings', [AdminController::class, 'settings'])->name('settings');
     Route::put('/settings', [AdminController::class, 'updateSettings'])->name('settings.update');
 
-    // Users management
-    Route::get('/users', [UserController::class, 'index'])->name('users.index');
-    Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
-    Route::post('/users', [UserController::class, 'store'])->name('users.store');
-    Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
-    Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
-    Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
-    Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+    // // Users management
+    // Route::get('/users', [UserController::class, 'index'])->name('users.index');
+    // Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
+    // Route::post('/users', [UserController::class, 'store'])->name('users.store');
+    // Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
+    // Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+    // Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+    // Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
 
     // Employees management
-    Route::resource('employees', EmployeeController::class);
-    Route::post('/employees/{employee}/create-account', [EmployeeController::class, 'createUserAccount'])->name('employees.create-account');
+    //Route::resource('employees', EmployeeController::class);
+    //Route::post('/employees/{employee}/create-account', [EmployeeController::class, 'createUserAccount'])->name('employees.create-account');
+
+
 });
 
 // Employee routes

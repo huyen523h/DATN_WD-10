@@ -1,24 +1,26 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Admin Dashboard - Tour365')</title>
     <meta name="description" content="Admin Dashboard - Tour365">
     <meta name="theme-color" content="#6366F1">
-    
+
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
     <!-- Icons -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/feather-icons@4.29.0/dist/feather.min.css" rel="stylesheet">
-    
+
     <!-- CSS -->
     <link href="{{ asset('css/admin.css') }}" rel="stylesheet">
     <link href="{{ asset('css/admin-modern.css') }}" rel="stylesheet">
@@ -36,7 +38,7 @@
             --primary-700: #4338CA;
             --primary-800: #3730A3;
             --primary-900: #312E81;
-            
+
             /* Gray Colors */
             --gray-50: #F9FAFB;
             --gray-100: #F3F4F6;
@@ -48,52 +50,52 @@
             --gray-700: #374151;
             --gray-800: #1F2937;
             --gray-900: #111827;
-            
+
             /* Success Colors */
             --success-50: #ECFDF5;
             --success-500: #10B981;
             --success-600: #059669;
-            
+
             /* Warning Colors */
             --warning-50: #FFFBEB;
             --warning-500: #F59E0B;
             --warning-600: #D97706;
-            
+
             /* Error Colors */
             --error-50: #FEF2F2;
             --error-500: #EF4444;
             --error-600: #DC2626;
-            
+
             /* Info Colors */
             --info-50: #EFF6FF;
             --info-500: #3B82F6;
             --info-600: #2563EB;
-            
+
             /* Shadows */
             --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
             --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
             --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
             --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
             --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-            
+
             /* Border Radius */
             --radius-sm: 0.375rem;
             --radius: 0.5rem;
             --radius-md: 0.75rem;
             --radius-lg: 1rem;
             --radius-xl: 1.5rem;
-            
+
             /* Spacing */
             --sidebar-width: 280px;
             --header-height: 70px;
         }
-        
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background-color: var(--gray-50);
@@ -101,7 +103,7 @@
             line-height: 1.6;
             font-size: 14px;
         }
-        
+
         /* Sidebar */
         .sidebar {
             position: fixed;
@@ -116,11 +118,11 @@
             overflow-y: auto;
             box-shadow: 0 0 0 1px #e5e7eb;
         }
-        
+
         .sidebar.collapsed {
             width: 80px;
         }
-        
+
         .sidebar-header {
             padding: 1rem;
             border-bottom: 1px solid #e5e7eb;
@@ -128,7 +130,7 @@
             align-items: center;
             justify-content: center;
         }
-        
+
         .sidebar-logo {
             display: flex;
             align-items: center;
@@ -190,15 +192,15 @@
             width: 0;
             overflow: hidden;
         }
-        
+
         .sidebar-nav {
             padding: 1rem 0;
         }
-        
+
         .nav-section {
             margin-bottom: 2rem;
         }
-        
+
         .nav-section-title {
             padding: 0 1.5rem 0.5rem;
             font-size: 0.75rem;
@@ -208,18 +210,18 @@
             color: #9ca3af;
             transition: opacity 0.3s ease;
         }
-        
+
         .sidebar.collapsed .nav-section-title {
             opacity: 0;
             height: 0;
             padding: 0;
             margin: 0;
         }
-        
+
         .nav-item {
             margin: 0.25rem 0;
         }
-        
+
         .nav-link {
             display: flex;
             align-items: center;
@@ -233,19 +235,19 @@
             border-radius: 0.5rem;
             margin: 0.25rem 1rem;
         }
-        
+
         .nav-link:hover {
             background: #f3f4f6;
             color: #374151;
             transform: translateX(4px);
         }
-        
+
         .nav-link.active {
             background: #eff6ff;
             color: #3b82f6;
             font-weight: 600;
         }
-        
+
         .nav-link.active::before {
             content: '';
             position: absolute;
@@ -256,7 +258,7 @@
             background: #3b82f6;
             border-radius: 0 2px 2px 0;
         }
-        
+
         .nav-icon {
             width: 20px;
             height: 20px;
@@ -265,17 +267,17 @@
             justify-content: center;
             flex-shrink: 0;
         }
-        
+
         .nav-text {
             transition: opacity 0.3s ease;
         }
-        
+
         .sidebar.collapsed .nav-text {
             opacity: 0;
             width: 0;
             overflow: hidden;
         }
-        
+
         .nav-badge {
             background: rgba(255, 255, 255, 0.2);
             color: white;
@@ -285,25 +287,25 @@
             margin-left: auto;
             transition: opacity 0.3s ease;
         }
-        
+
         .sidebar.collapsed .nav-badge {
             opacity: 0;
             width: 0;
             padding: 0;
             margin: 0;
         }
-        
+
         /* Main Content */
         .main-content {
             margin-left: var(--sidebar-width);
             min-height: 100vh;
             transition: margin-left 0.3s ease;
         }
-        
-        .sidebar.collapsed + .main-content {
+
+        .sidebar.collapsed+.main-content {
             margin-left: 80px;
         }
-        
+
         /* Header */
         .header {
             height: var(--header-height);
@@ -318,13 +320,13 @@
             z-index: 100;
             box-shadow: var(--shadow-sm);
         }
-        
+
         .header-left {
             display: flex;
             align-items: center;
             gap: 1rem;
         }
-        
+
         .sidebar-toggle {
             background: none;
             border: none;
@@ -335,12 +337,12 @@
             border-radius: var(--radius);
             transition: all 0.3s ease;
         }
-        
+
         .sidebar-toggle:hover {
             background: var(--gray-100);
             color: var(--gray-900);
         }
-        
+
         .breadcrumb {
             display: flex;
             align-items: center;
@@ -348,34 +350,34 @@
             font-size: 0.875rem;
             color: var(--gray-600);
         }
-        
+
         .breadcrumb-item {
             display: flex;
             align-items: center;
             gap: 0.5rem;
         }
-        
+
         .breadcrumb-item:not(:last-child)::after {
             content: '/';
             color: var(--gray-400);
         }
-        
+
         .breadcrumb-item.active {
             color: var(--gray-900);
             font-weight: 500;
         }
-        
+
         .header-right {
             display: flex;
             align-items: center;
             gap: 1rem;
         }
-        
+
         .search-box {
             position: relative;
             width: 300px;
         }
-        
+
         .search-input {
             width: 100%;
             padding: 0.5rem 1rem 0.5rem 2.5rem;
@@ -385,14 +387,14 @@
             background: var(--gray-50);
             transition: all 0.3s ease;
         }
-        
+
         .search-input:focus {
             outline: none;
             border-color: var(--primary-500);
             background: white;
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
         }
-        
+
         .search-icon {
             position: absolute;
             left: 0.75rem;
@@ -401,13 +403,13 @@
             color: var(--gray-400);
             font-size: 0.875rem;
         }
-        
+
         .header-actions {
             display: flex;
             align-items: center;
             gap: 0.5rem;
         }
-        
+
         .header-btn {
             background: none;
             border: none;
@@ -419,12 +421,12 @@
             transition: all 0.3s ease;
             position: relative;
         }
-        
+
         .header-btn:hover {
             background: var(--gray-100);
             color: var(--gray-900);
         }
-        
+
         .notification-badge {
             position: absolute;
             top: 0.25rem;
@@ -440,11 +442,11 @@
             align-items: center;
             justify-content: center;
         }
-        
+
         .user-menu {
             position: relative;
         }
-        
+
         .user-avatar {
             width: 40px;
             height: 40px;
@@ -458,17 +460,17 @@
             cursor: pointer;
             transition: all 0.3s ease;
         }
-        
+
         .user-avatar:hover {
             background: var(--primary-600);
             transform: scale(1.05);
         }
-        
+
         /* Content Area */
         .content {
             padding: 2rem;
         }
-        
+
         /* Cards */
         .card {
             background: white;
@@ -478,27 +480,27 @@
             overflow: hidden;
             transition: all 0.3s ease;
         }
-        
+
         .card:hover {
             box-shadow: var(--shadow-md);
         }
-        
+
         .card-header {
             padding: 1.5rem;
             border-bottom: 1px solid var(--gray-200);
             background: var(--gray-50);
         }
-        
+
         .card-body {
             padding: 1.5rem;
         }
-        
+
         .card-footer {
             padding: 1rem 1.5rem;
             border-top: 1px solid var(--gray-200);
             background: var(--gray-50);
         }
-        
+
         /* Buttons */
         .btn {
             display: inline-flex;
@@ -514,99 +516,99 @@
             transition: all 0.3s ease;
             white-space: nowrap;
         }
-        
+
         .btn-primary {
             background: var(--primary-500);
             color: white;
         }
-        
+
         .btn-primary:hover {
             background: var(--primary-600);
             transform: translateY(-1px);
             box-shadow: var(--shadow-md);
         }
-        
+
         .btn-secondary {
             background: var(--gray-100);
             color: var(--gray-700);
         }
-        
+
         .btn-secondary:hover {
             background: var(--gray-200);
         }
-        
+
         .btn-success {
             background: var(--success-500);
             color: white;
         }
-        
+
         .btn-success:hover {
             background: var(--success-600);
         }
-        
+
         .btn-warning {
             background: var(--warning-500);
             color: white;
         }
-        
+
         .btn-warning:hover {
             background: var(--warning-600);
         }
-        
+
         .btn-danger {
             background: var(--error-500);
             color: white;
         }
-        
+
         .btn-danger:hover {
             background: var(--error-600);
         }
-        
+
         .btn-outline-primary {
             background: transparent;
             color: var(--primary-500);
             border: 1px solid var(--primary-500);
         }
-        
+
         .btn-outline-primary:hover {
             background: var(--primary-500);
             color: white;
         }
-        
+
         .btn-sm {
             padding: 0.375rem 0.75rem;
             font-size: 0.75rem;
         }
-        
+
         .btn-lg {
             padding: 0.75rem 1.5rem;
             font-size: 1rem;
         }
-        
+
         /* Tables */
         .table {
             width: 100%;
             border-collapse: collapse;
         }
-        
+
         .table th,
         .table td {
             padding: 1rem;
             text-align: left;
             border-bottom: 1px solid var(--gray-200);
         }
-        
+
         .table th {
             background: var(--gray-50);
             font-weight: 600;
             color: var(--gray-700);
             font-size: 0.875rem;
         }
-        
+
         .table tbody tr:hover {
             background: var(--gray-50);
         }
-        
+
         /* Badges */
         .badge {
             display: inline-flex;
@@ -617,44 +619,44 @@
             font-size: 0.75rem;
             font-weight: 500;
         }
-        
+
         .badge-success {
             background: var(--success-50);
             color: var(--success-600);
         }
-        
+
         .badge-warning {
             background: var(--warning-50);
             color: var(--warning-600);
         }
-        
+
         .badge-danger {
             background: var(--error-50);
             color: var(--error-600);
         }
-        
+
         .badge-info {
             background: var(--info-50);
             color: var(--info-600);
         }
-        
+
         .badge-primary {
             background: var(--primary-50);
             color: var(--primary-600);
         }
-        
+
         /* Forms */
         .form-group {
             margin-bottom: 1rem;
         }
-        
+
         .form-label {
             display: block;
             margin-bottom: 0.5rem;
             font-weight: 500;
             color: var(--gray-700);
         }
-        
+
         .form-control {
             width: 100%;
             padding: 0.5rem 0.75rem;
@@ -663,13 +665,13 @@
             font-size: 0.875rem;
             transition: all 0.3s ease;
         }
-        
+
         .form-control:focus {
             outline: none;
             border-color: var(--primary-500);
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
         }
-        
+
         .form-select {
             background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
             background-position: right 0.5rem center;
@@ -677,7 +679,7 @@
             background-size: 1.5em 1.5em;
             padding-right: 2.5rem;
         }
-        
+
         /* Alerts */
         .alert {
             padding: 1rem;
@@ -687,31 +689,31 @@
             align-items: center;
             gap: 0.75rem;
         }
-        
+
         .alert-success {
             background: var(--success-50);
             color: var(--success-600);
             border: 1px solid var(--success-200);
         }
-        
+
         .alert-warning {
             background: var(--warning-50);
             color: var(--warning-600);
             border: 1px solid var(--warning-200);
         }
-        
+
         .alert-danger {
             background: var(--error-50);
             color: var(--error-600);
             border: 1px solid var(--error-200);
         }
-        
+
         .alert-info {
             background: var(--info-50);
             color: var(--info-600);
             border: 1px solid var(--info-200);
         }
-        
+
         /* Stats Cards */
         .stats-grid {
             display: grid;
@@ -719,7 +721,7 @@
             gap: 1.5rem;
             margin-bottom: 2rem;
         }
-        
+
         .stat-card {
             background: white;
             border-radius: var(--radius-lg);
@@ -728,12 +730,12 @@
             border: 1px solid var(--gray-200);
             transition: all 0.3s ease;
         }
-        
+
         .stat-card:hover {
             transform: translateY(-2px);
             box-shadow: var(--shadow-lg);
         }
-        
+
         .stat-icon {
             width: 48px;
             height: 48px;
@@ -744,40 +746,40 @@
             font-size: 1.5rem;
             margin-bottom: 1rem;
         }
-        
+
         .stat-icon-primary {
             background: var(--primary-50);
             color: var(--primary-500);
         }
-        
+
         .stat-icon-success {
             background: var(--success-50);
             color: var(--success-500);
         }
-        
+
         .stat-icon-warning {
             background: var(--warning-50);
             color: var(--warning-500);
         }
-        
+
         .stat-icon-info {
             background: var(--info-50);
             color: var(--info-500);
         }
-        
+
         .stat-value {
             font-size: 2rem;
             font-weight: 700;
             color: var(--gray-900);
             margin-bottom: 0.25rem;
         }
-        
+
         .stat-label {
             color: var(--gray-600);
             font-size: 0.875rem;
             font-weight: 500;
         }
-        
+
         .stat-change {
             display: flex;
             align-items: center;
@@ -786,83 +788,91 @@
             font-size: 0.75rem;
             font-weight: 500;
         }
-        
+
         .stat-change.positive {
             color: var(--success-600);
         }
-        
+
         .stat-change.negative {
             color: var(--error-600);
         }
-        
+
         /* Responsive */
         @media (max-width: 1024px) {
             .sidebar {
                 transform: translateX(-100%);
             }
-            
+
             .sidebar.open {
                 transform: translateX(0);
             }
-            
+
             .main-content {
                 margin-left: 0;
             }
-            
+
             .search-box {
                 width: 200px;
             }
         }
-        
+
         @media (max-width: 768px) {
             .header {
                 padding: 0 1rem;
             }
-            
+
             .content {
                 padding: 1rem;
             }
-            
+
             .search-box {
                 display: none;
             }
-            
+
             .stats-grid {
                 grid-template-columns: 1fr;
             }
         }
-        
+
         /* Animations */
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
-        
+
         .fade-in {
             animation: fadeIn 0.3s ease-out;
         }
-        
+
         /* Custom Scrollbar */
         .sidebar::-webkit-scrollbar {
             width: 4px;
         }
-        
+
         .sidebar::-webkit-scrollbar-track {
             background: rgba(255, 255, 255, 0.1);
         }
-        
+
         .sidebar::-webkit-scrollbar-thumb {
             background: rgba(255, 255, 255, 0.3);
             border-radius: 2px;
         }
-        
+
         .sidebar::-webkit-scrollbar-thumb:hover {
             background: rgba(255, 255, 255, 0.5);
         }
     </style>
-    
+
     @yield('styles')
 </head>
+
 <body>
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
@@ -877,13 +887,14 @@
                 </div>
             </a>
         </div>
-        
+
         <nav class="sidebar-nav">
             <!-- Dashboard -->
             <div class="nav-section">
                 <div class="nav-section-title">Tổng quan</div>
                 <div class="nav-item">
-                    <a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+                    <a href="{{ route('admin.dashboard') }}"
+                        class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
                         <div class="nav-icon">
                             <i class="fas fa-tachometer-alt"></i>
                         </div>
@@ -891,35 +902,39 @@
                     </a>
                 </div>
             </div>
-            
+
             <!-- Tours Management -->
 
             <div class="nav-item">
-                <a href="{{ route('admin.tours') }}" class="nav-link {{ request()->routeIs('admin.tours*') ? 'active' : '' }}">
+                <a href="{{ route('admin.tours.index') }}"
+                    class="nav-link {{ request()->routeIs('admin.tours*') ? 'active' : '' }}">
                     <i class="fas fa-map-marked-alt"></i>
                     <span class="nav-text">Quản lý Tours</span>
                 </a>
-                    </div>
+            </div>
 
             <!-- Bookings Management -->
             <div class="nav-item">
-                <a href="{{ route('admin.bookings') }}" class="nav-link {{ request()->routeIs('admin.bookings*') ? 'active' : '' }}">
+                <a href="{{ route('admin.bookings') }}"
+                    class="nav-link {{ request()->routeIs('admin.bookings*') ? 'active' : '' }}">
                     <i class="fas fa-calendar-check"></i>
                     <span class="nav-text">Quản lý Đặt tour</span>
                 </a>
             </div>
 
-        <!-- Users Management -->
-        <div class="nav-item">
-            <a href="{{ route('admin.users.index') }}" class="nav-link {{ request()->routeIs('admin.users*') ? 'active' : '' }}">
-                <i class="fas fa-users"></i>
-                <span class="nav-text">Quản lý Người dùng</span>
-            </a>
-        </div>
+            <!-- Users Management -->
+            <div class="nav-item">
+                <a href="{{ route('admin.users.index') }}"
+                    class="nav-link {{ request()->routeIs('admin.users*') ? 'active' : '' }}">
+                    <i class="fas fa-users"></i>
+                    <span class="nav-text">Quản lý Người dùng</span>
+                </a>
+            </div>
 
             <!-- Categories Management -->
             <div class="nav-item">
-                <a href="{{ route('admin.categories') }}" class="nav-link {{ request()->routeIs('admin.categories*') ? 'active' : '' }}">
+                <a href="{{ route('admin.categories') }}"
+                    class="nav-link {{ request()->routeIs('admin.categories*') ? 'active' : '' }}">
                     <i class="fas fa-tags"></i>
                     <span class="nav-text">Quản lý Danh mục</span>
                 </a>
@@ -927,31 +942,43 @@
 
             <!-- Reviews Management -->
             <div class="nav-item">
-                <a href="{{ route('admin.reviews') }}" class="nav-link {{ request()->routeIs('admin.reviews*') ? 'active' : '' }}">
+                <a href="{{ route('admin.reviews') }}"
+                    class="nav-link {{ request()->routeIs('admin.reviews*') ? 'active' : '' }}">
                     <i class="fas fa-star"></i>
                     <span class="nav-text">Quản lý Đánh giá</span>
                 </a>
-    </div>
+            </div>
 
             <!-- Payments Management -->
             <div class="nav-item">
-                <a href="{{ route('admin.payments') }}" class="nav-link {{ request()->routeIs('admin.payments*') ? 'active' : '' }}">
+                <a href="{{ route('admin.payments') }}"
+                    class="nav-link {{ request()->routeIs('admin.payments*') ? 'active' : '' }}">
                     <i class="fas fa-credit-card"></i>
                     <span class="nav-text">Quản lý Thanh toán</span>
+                </a>
+            </div>
+            <!-- Quản lý khởi hành -->
+            <div class="nav-item">
+                <a href="{{ route('admin.departures.index') }}"
+                    class="nav-link {{ request()->routeIs('admin.departures.*') ? 'active' : '' }}">
+                    <i class="fas fa-credit-card"></i>
+                    <span class="nav-text">Quản lý khởi hành</span>
                 </a>
             </div>
 
             <!-- Reports -->
             <div class="nav-item">
-                <a href="{{ route('admin.reports') }}" class="nav-link {{ request()->routeIs('admin.reports*') ? 'active' : '' }}">
+                <a href="{{ route('admin.reports') }}"
+                    class="nav-link {{ request()->routeIs('admin.reports*') ? 'active' : '' }}">
                     <i class="fas fa-chart-bar"></i>
                     <span class="nav-text">Báo cáo & Thống kê</span>
                 </a>
-        </div>
+            </div>
 
             <!-- Notifications -->
             <div class="nav-item">
-                <a href="{{ route('admin.notifications') }}" class="nav-link {{ request()->routeIs('admin.notifications*') ? 'active' : '' }}">
+                <a href="{{ route('admin.notifications') }}"
+                    class="nav-link {{ request()->routeIs('admin.notifications*') ? 'active' : '' }}">
                     <i class="fas fa-bell"></i>
                     <span class="nav-text">Thông báo</span>
                     <span class="badge badge-admin bg-danger ms-auto">3</span>
@@ -960,7 +987,8 @@
 
             <!-- Support Tickets -->
             <div class="nav-item">
-                <a href="{{ route('admin.support') }}" class="nav-link {{ request()->routeIs('admin.support*') ? 'active' : '' }}">
+                <a href="{{ route('admin.support') }}"
+                    class="nav-link {{ request()->routeIs('admin.support*') ? 'active' : '' }}">
                     <i class="fas fa-headset"></i>
                     <span class="nav-text">Hỗ trợ khách hàng</span>
                     <span class="badge badge-admin bg-warning ms-auto">5</span>
@@ -969,18 +997,20 @@
 
             <!-- Settings -->
             <div class="nav-item">
-                <a href="{{ route('admin.settings') }}" class="nav-link {{ request()->routeIs('admin.settings*') ? 'active' : '' }}">
+                <a href="{{ route('admin.settings') }}"
+                    class="nav-link {{ request()->routeIs('admin.settings*') ? 'active' : '' }}">
                     <i class="fas fa-cog"></i>
                     <span class="nav-text">Cài đặt hệ thống</span>
                 </a>
 
             </div>
-            
+
             <!-- Reviews & Support -->
             <div class="nav-section">
                 <div class="nav-section-title">Hỗ trợ</div>
                 <div class="nav-item">
-                    <a href="{{ route('admin.reviews') }}" class="nav-link {{ request()->routeIs('admin.reviews*') ? 'active' : '' }}">
+                    <a href="{{ route('admin.reviews') }}"
+                        class="nav-link {{ request()->routeIs('admin.reviews*') ? 'active' : '' }}">
                         <div class="nav-icon">
                             <i class="fas fa-star"></i>
                         </div>
@@ -988,7 +1018,8 @@
                     </a>
                 </div>
                 <div class="nav-item">
-                    <a href="{{ route('admin.support') }}" class="nav-link {{ request()->routeIs('admin.support*') ? 'active' : '' }}">
+                    <a href="{{ route('admin.support') }}"
+                        class="nav-link {{ request()->routeIs('admin.support*') ? 'active' : '' }}">
                         <div class="nav-icon">
                             <i class="fas fa-headset"></i>
                         </div>
@@ -996,7 +1027,8 @@
                     </a>
                 </div>
                 <div class="nav-item">
-                    <a href="{{ route('admin.notifications') }}" class="nav-link {{ request()->routeIs('admin.notifications*') ? 'active' : '' }}">
+                    <a href="{{ route('admin.notifications') }}"
+                        class="nav-link {{ request()->routeIs('admin.notifications*') ? 'active' : '' }}">
                         <div class="nav-icon">
                             <i class="fas fa-bell"></i>
                         </div>
@@ -1004,12 +1036,13 @@
                     </a>
                 </div>
             </div>
-            
+
             <!-- Reports & Settings -->
             <div class="nav-section">
                 <div class="nav-section-title">Hệ thống</div>
                 <div class="nav-item">
-                    <a href="{{ route('admin.reports') }}" class="nav-link {{ request()->routeIs('admin.reports*') ? 'active' : '' }}">
+                    <a href="{{ route('admin.reports') }}"
+                        class="nav-link {{ request()->routeIs('admin.reports*') ? 'active' : '' }}">
                         <div class="nav-icon">
                             <i class="fas fa-chart-bar"></i>
                         </div>
@@ -1017,7 +1050,8 @@
                     </a>
                 </div>
                 <div class="nav-item">
-                    <a href="{{ route('admin.settings') }}" class="nav-link {{ request()->routeIs('admin.settings*') ? 'active' : '' }}">
+                    <a href="{{ route('admin.settings') }}"
+                        class="nav-link {{ request()->routeIs('admin.settings*') ? 'active' : '' }}">
                         <div class="nav-icon">
                             <i class="fas fa-cog"></i>
                         </div>
@@ -1027,7 +1061,7 @@
             </div>
         </nav>
     </aside>
-    
+
     <!-- Main Content -->
     <div class="main-content">
         <!-- Header -->
@@ -1041,15 +1075,15 @@
                         <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Admin</a></li>
                         @yield('breadcrumb')
                     </ol>
-        </nav>
+                </nav>
             </div>
-            
+
             <div class="header-right">
                 <div class="search-box">
                     <i class="fas fa-search search-icon"></i>
                     <input type="text" class="search-input" placeholder="Tìm kiếm...">
                 </div>
-                
+
                 <div class="header-actions">
                     <button class="header-btn" title="Thông báo">
                         <i class="fas fa-bell"></i>
@@ -1063,7 +1097,7 @@
                         <i class="fas fa-cog"></i>
                     </button>
                 </div>
-                
+
                 <div class="user-menu">
                     <div class="user-avatar" onclick="toggleUserMenu()">
                         {{ substr(Auth::user()->name, 0, 1) }}
@@ -1071,51 +1105,51 @@
                 </div>
             </div>
         </header>
-        
+
         <!-- Content -->
         <main class="content">
             @yield('content')
 
-    </main>
-</div>
+        </main>
+    </div>
 
     <!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
     <!-- Custom Admin JS -->
-<script>
+    <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Sidebar toggle
-            const sidebarToggle = document.getElementById('sidebarToggle');
-            const sidebar = document.getElementById('adminSidebar');
-            const main = document.getElementById('adminMain');
+                    // Sidebar toggle
+                    const sidebarToggle = document.getElementById('sidebarToggle');
+                    const sidebar = document.getElementById('adminSidebar');
+                    const main = document.getElementById('adminMain');
 
-            sidebarToggle.addEventListener('click', function() {
-                sidebar.classList.toggle('collapsed');
-                main.classList.toggle('sidebar-collapsed');
-                
-                // Save state to localStorage
-                const isCollapsed = sidebar.classList.contains('collapsed');
-                localStorage.setItem('adminSidebarCollapsed', isCollapsed);
+                    sidebarToggle.addEventListener('click', function() {
+                        sidebar.classList.toggle('collapsed');
+                        main.classList.toggle('sidebar-collapsed');
 
-            });
-            
-            // Close sidebar when clicking outside
-            document.addEventListener('click', (e) => {
-                if (!sidebar.contains(e.target) && !sidebarToggle.contains(e.target)) {
-                    sidebar.classList.remove('open');
+                        // Save state to localStorage
+                        const isCollapsed = sidebar.classList.contains('collapsed');
+                        localStorage.setItem('adminSidebarCollapsed', isCollapsed);
+
+                    });
+
+                    // Close sidebar when clicking outside
+                    document.addEventListener('click', (e) => {
+                        if (!sidebar.contains(e.target) && !sidebarToggle.contains(e.target)) {
+                            sidebar.classList.remove('open');
+                        }
+                    });
                 }
-            });
-        }
-        
-        // User menu toggle
-        function toggleUserMenu() {
-            // Implement user menu dropdown
-            console.log('Toggle user menu');
-        }
 
-</script>
-    
+                // User menu toggle
+                function toggleUserMenu() {
+                    // Implement user menu dropdown
+                    console.log('Toggle user menu');
+                }
+    </script>
+
     @yield('scripts')
 </body>
+
 </html>

@@ -86,7 +86,7 @@ class Tour extends Model
      */
     public function departures(): HasMany
     {
-        return $this->hasMany(TourDeparture::class);
+        return $this->hasMany(TourDeparture::class, 'tour_id');
     }
 
     /**

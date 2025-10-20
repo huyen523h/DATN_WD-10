@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Support\Facades\DB; 
+use Illuminate\Support\Facades\DB;
 use App\Models\Tour;
 use App\Models\Booking;
 use App\Models\User;
@@ -23,7 +23,7 @@ class AdminController extends Controller
         $stats = [
             'total_tours' => Tour::count(),
             'total_bookings' => Booking::count(),
-            'total_customers' => User::whereHas('roles', function($query) {
+            'total_customers' => User::whereHas('roles', function ($query) {
                 $query->where('name', 'customer');
             })->count(),
             'pending_bookings' => Booking::where('status', 'pending')->count(),
@@ -39,42 +39,44 @@ class AdminController extends Controller
 
     public function tours(Request $request)
     {
-       $query = Tour::with(['category', 'images', 'bookings']);
+        $query = Tour::with(['category', 'images', 'bookings']);
 
-    // Tìm kiếm theo tiêu đề/mô tả/danh mục
-    if ($request->filled('search')) {
-        $search = $request->string('search')->toString();
-        $query->where(function ($q) use ($search) {
-            $q->where('title', 'like', "%{$search}%")
-              ->orWhere('description', 'like', "%{$search}%")
-              ->orWhereHas('category', fn ($cq) =>
-                    $cq->where('name', 'like', "%{$search}%")
-              );
-        });
-    }
+        // Tìm kiếm theo tiêu đề/mô tả/danh mục
+        if ($request->filled('search')) {
+            $search = $request->string('search')->toString();
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhereHas(
+                        'category',
+                        fn($cq) =>
+                        $cq->where('name', 'like', "%{$search}%")
+                    );
+            });
+        }
 
-    // Lọc theo danh mục
-    if ($request->filled('category_id')) {
-        $query->where('category_id', $request->integer('category_id'));
-    }
+        // Lọc theo danh mục
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->integer('category_id'));
+        }
 
 
-    // Lọc theo TÌNH TRẠNG CHỖ (tour-level)
-    $av = $request->get('availability_status'); // lấy từ query string
-    if (in_array($av, ['available', 'contact', 'sold_out'], true)) {
-        $query->where('availability_status', $av);
-    }
+        // Lọc theo TÌNH TRẠNG CHỖ (tour-level)
+        $av = $request->get('availability_status'); // lấy từ query string
+        if (in_array($av, ['available', 'contact', 'sold_out'], true)) {
+            $query->where('availability_status', $av);
+        }
 
-    $tours = $query->orderByDesc('created_at')->paginate(10)
-                   ->appends($request->only(['search','category_id','availability_status']));
-    $categories = Category::orderBy('name')->get();
+        $tours = $query->orderByDesc('created_at')->paginate(10)
+            ->appends($request->only(['search', 'category_id', 'availability_status']));
+        $categories = Category::orderBy('name')->get();
 
-    // Trả kèm giá trị filter hiện tại để giữ selected trong view
-    return view('admin.tours', [
-        'tours'               => $tours,
-        'categories'          => $categories,
-        'availabilityCurrent' => $av,
-    ]);
+        // Trả kèm giá trị filter hiện tại để giữ selected trong view
+        return view('admin.tours.index', [
+            'tours'               => $tours,
+            'categories'          => $categories,
+            'availabilityCurrent' => $av,
+        ]);
     }
 
     public function createTour(): View
@@ -85,159 +87,42 @@ class AdminController extends Controller
 
     public function storeTour(Request $request): RedirectResponse
     {
-         $validated = $request->validate([
-        'title'          => 'required|string|max:255',
-        'description'    => 'required|string',
-        'category_id'    => 'required|exists:categories,id',
-        'duration'       => 'nullable|string|max:50',
-        'duration_days'  => 'nullable|integer|min:1|max:60',
-        'nights'         => 'nullable|integer|min:0|max:59',
-        'price'          => 'required|numeric|min:0',
-        'original_price' => 'nullable|numeric|min:0',
-        'discount_price' => 'nullable|numeric|min:0',
-        'price_adult'    => 'nullable|numeric|min:0',
-        'price_child'    => 'nullable|numeric|min:0',
-        'price_infant'   => 'nullable|numeric|min:0',
-        'includes'            => 'nullable|string',
-        'excludes'            => 'nullable|string',
-        'surcharges'          => 'nullable|string',
-        'notes'               => 'nullable|string',
-        'cancellation_policy' => 'nullable|string',
-        'visa_requirements'   => 'nullable|string',
-        // CHỈ CÒN availability_status
-        'availability_status' => 'nullable|in:available,contact,sold_out',
+        $validated = $request->validate([
+            'title'          => 'required|string|max:255',
+            'description'    => 'required|string',
+            'category_id'    => 'required|exists:categories,id',
+            'duration'       => 'nullable|string|max:50',
+            'duration_days'  => 'nullable|integer|min:1|max:60',
+            'nights'         => 'nullable|integer|min:0|max:59',
+            'price'          => 'required|numeric|min:0',
+            'original_price' => 'nullable|numeric|min:0',
+            'discount_price' => 'nullable|numeric|min:0',
+            'price_adult'    => 'nullable|numeric|min:0',
+            'price_child'    => 'nullable|numeric|min:0',
+            'price_infant'   => 'nullable|numeric|min:0',
+            'includes'            => 'nullable|string',
+            'excludes'            => 'nullable|string',
+            'surcharges'          => 'nullable|string',
+            'notes'               => 'nullable|string',
+            'cancellation_policy' => 'nullable|string',
+            'visa_requirements'   => 'nullable|string',
+            // CHỈ CÒN availability_status
+            'availability_status' => 'nullable|in:available,contact,sold_out',
 
-        'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        'schedule_day_number.*'  => 'nullable|integer|min:1|max:60',
-        'schedule_title.*'       => 'nullable|string|max:255',
-        'schedule_description.*' => 'nullable|string',
-        'departure_date.*'  => 'nullable|date|after:today',
-        'seats_total.*'     => 'nullable|integer|min:1|max:100',
-        'seats_available.*' => 'nullable|integer|min:0|max:100',
-        'price_dep.*'       => 'nullable|numeric|min:0',
-        'child_price.*'     => 'nullable|numeric|min:0',
-        'infant_price.*'    => 'nullable|numeric|min:0',
-        'status_dep.*'      => 'nullable|in:available,contact,sold_out',
-    ]);
+            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'schedule_day_number.*'  => 'nullable|integer|min:1|max:60',
+            'schedule_title.*'       => 'nullable|string|max:255',
+            'schedule_description.*' => 'nullable|string',
+            'departure_date.*'  => 'nullable|date|after:today',
+            'seats_total.*'     => 'nullable|integer|min:1|max:100',
+            'seats_available.*' => 'nullable|integer|min:0|max:100',
+            'price_dep.*'       => 'nullable|numeric|min:0',
+            'child_price.*'     => 'nullable|numeric|min:0',
+            'infant_price.*'    => 'nullable|numeric|min:0',
+            'status_dep.*'      => 'nullable|in:available,contact,sold_out',
+        ]);
 
-    $tour = \App\Models\Tour::create([
-        'title'               => $validated['title'],
-        'description'         => $validated['description'],
-        'category_id'         => $validated['category_id'],
-        'duration'            => $validated['duration'] ?? null,
-        'duration_days'       => $validated['duration_days'] ?? null,
-        'nights'              => $validated['nights'] ?? null,
-        'price'               => $validated['price'],
-        'original_price'      => $validated['original_price'] ?? null,
-        'discount_price'      => $validated['discount_price'] ?? null,
-        'price_adult'         => $validated['price_adult'] ?? null,
-        'price_child'         => $validated['price_child'] ?? null,
-        'price_infant'        => $validated['price_infant'] ?? null,
-        'includes'            => $validated['includes'] ?? null,
-        'excludes'            => $validated['excludes'] ?? null,
-        'surcharges'          => $validated['surcharges'] ?? null,
-        'notes'               => $validated['notes'] ?? null,
-        'cancellation_policy' => $validated['cancellation_policy'] ?? null,
-        'visa_requirements'   => $validated['visa_requirements'] ?? null,
-        'availability_status' => $validated['availability_status'] ?? 'available',
-    ]);
-
-    if ($request->hasFile('images')) {
-        foreach ($request->file('images') as $i => $image) {
-            $path = $image->store('tours', 'public');
-            \App\Models\TourImage::create([
-                'tour_id'    => $tour->id,
-                'image_url'  => \Illuminate\Support\Facades\Storage::url($path),
-                'is_cover'   => $i === 0,
-                'sort_order' => $i + 1,
-            ]);
-        }
-    }
-
-    if ($request->has('schedule_day_number')) {
-        foreach ($request->schedule_day_number as $i => $dayNum) {
-            if (!empty($request->schedule_title[$i])) {
-                \App\Models\TourSchedule::create([
-                    'tour_id'     => $tour->id,
-                    'day_number'  => $dayNum,
-                    'title'       => $request->schedule_title[$i],
-                    'description' => $request->schedule_description[$i] ?? '',
-                ]);
-            }
-        }
-    }
-
-    if ($request->has('departure_date')) {
-        foreach ($request->departure_date as $i => $date) {
-            if (!empty($date)) {
-                \App\Models\TourDeparture::create([
-                    'tour_id'         => $tour->id,
-                    'departure_date'  => $date,
-                    'seats_total'     => $request->seats_total[$i] ?? 20,
-                    'seats_available' => $request->seats_available[$i] ?? 20,
-                    'price'           => $request->price_dep[$i] ?? ($validated['price_adult'] ?? $validated['price']),
-                    'child_price'     => $request->child_price[$i]  ?? ($validated['price_child']  ?? null),
-                    'infant_price'    => $request->infant_price[$i] ?? ($validated['price_infant'] ?? null),
-                    'status'          => $request->status_dep[$i] ?? 'available',
-                ]);
-            }
-        }
-    }
-
-    return redirect()->route('admin.tours')->with('success', 'Tour đã được tạo thành công!');
-    }
-
-    public function editTour(Tour $tour): View
-    {
-        $tour->load(['category', 'images', 'schedules', 'departures']);
-        $categories = Category::all();
-        return view('admin.tours.edit', compact('tour', 'categories'));
-    }
-
-    public function updateTour(Request $request, Tour $tour): RedirectResponse
-    {
-         $validated = $request->validate([
-        'title'          => 'required|string|max:255',
-        'description'    => 'required|string',
-        'category_id'    => 'required|exists:categories,id',
-        'duration'       => 'nullable|string|max:50',
-        'duration_days'  => 'nullable|integer|min:1|max:60',
-        'nights'         => 'nullable|integer|min:0|max:59',
-        'price'          => 'required|numeric|min:0',
-        'original_price' => 'nullable|numeric|min:0',
-        'discount_price' => 'nullable|numeric|min:0',
-        'price_adult'    => 'nullable|numeric|min:0',
-        'price_child'    => 'nullable|numeric|min:0',
-        'price_infant'   => 'nullable|numeric|min:0',
-        'includes'            => 'nullable|string',
-        'excludes'            => 'nullable|string',
-        'surcharges'          => 'nullable|string',
-        'notes'               => 'nullable|string',
-        'cancellation_policy' => 'nullable|string',
-        'visa_requirements'   => 'nullable|string',
-        'availability_status' => 'nullable|in:available,contact,sold_out',
-
-        // CHỈ cần upload khi muốn thay ảnh; nếu không upload thì giữ ảnh cũ
-        'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
-
-        // schedules
-        'schedule_day_number.*'  => 'nullable|integer|min:1|max:60',
-        'schedule_title.*'       => 'nullable|string|max:255',
-        'schedule_description.*' => 'nullable|string',
-        // departures
-        'departure_date.*'  => 'nullable|date|after:today',
-        'seats_total.*'     => 'nullable|integer|min:1|max:100',
-        'seats_available.*' => 'nullable|integer|min:0|max:100',
-        'price_dep.*'       => 'nullable|numeric|min:0',
-        'child_price.*'     => 'nullable|numeric|min:0',
-        'infant_price.*'    => 'nullable|numeric|min:0',
-        'status_dep.*'      => 'nullable|in:available,contact,sold_out',
-    ]);
-
-    DB::transaction(function () use ($request, $tour, $validated) {
-
-        // 1) Update các trường cơ bản
-        $tour->update([
+        $tour = \App\Models\Tour::create([
             'title'               => $validated['title'],
             'description'         => $validated['description'],
             'category_id'         => $validated['category_id'],
@@ -259,31 +144,18 @@ class AdminController extends Controller
             'availability_status' => $validated['availability_status'] ?? 'available',
         ]);
 
-        // 2) Nếu có upload ảnh mới => XOÁ toàn bộ ảnh cũ rồi lưu ảnh mới
         if ($request->hasFile('images')) {
-            // xoá file + record cũ
-            foreach ($tour->images as $old) {
-                $path = str_replace('/storage/', '', $old->image_url);   // '/storage/...' -> '...'
-                Storage::disk('public')->delete($path);
-                $old->delete();
-            }
-
-            // thêm ảnh mới (ảnh đầu tiên là cover)
-            $order = 1;
-            foreach ($request->file('images') as $idx => $image) {
-                if (!$image) continue;
+            foreach ($request->file('images') as $i => $image) {
                 $path = $image->store('tours', 'public');
-                TourImage::create([
+                \App\Models\TourImage::create([
                     'tour_id'    => $tour->id,
-                    'image_url'  => Storage::url($path), // /storage/...
-                    'is_cover'   => $idx === 0,          // ảnh đầu tiên làm cover
-                    'sort_order' => $order++,
+                    'image_url'  => \Illuminate\Support\Facades\Storage::url($path),
+                    'is_cover'   => $i === 0,
+                    'sort_order' => $i + 1,
                 ]);
             }
         }
 
-        // 3) schedules: clear & tạo lại
-        $tour->schedules()->delete();
         if ($request->has('schedule_day_number')) {
             foreach ($request->schedule_day_number as $i => $dayNum) {
                 if (!empty($request->schedule_title[$i])) {
@@ -297,8 +169,6 @@ class AdminController extends Controller
             }
         }
 
-        // 4) departures: clear & tạo lại với fallback giá
-        $tour->departures()->delete();
         if ($request->has('departure_date')) {
             foreach ($request->departure_date as $i => $date) {
                 if (!empty($date)) {
@@ -315,11 +185,143 @@ class AdminController extends Controller
                 }
             }
         }
-    });
 
-    return redirect()
-        ->route('admin.tours')
-        ->with('success', 'Tour đã được cập nhật thành công!');
+        return redirect()->route('admin.tours')->with('success', 'Tour đã được tạo thành công!');
+    }
+
+    public function editTour(Tour $tour): View
+    {
+        $tour->load(['category', 'images', 'schedules', 'departures']);
+        $categories = Category::all();
+        return view('admin.tours.edit', compact('tour', 'categories'));
+    }
+
+    public function updateTour(Request $request, Tour $tour): RedirectResponse
+    {
+        $validated = $request->validate([
+            'title'          => 'required|string|max:255',
+            'description'    => 'required|string',
+            'category_id'    => 'required|exists:categories,id',
+            'duration'       => 'nullable|string|max:50',
+            'duration_days'  => 'nullable|integer|min:1|max:60',
+            'nights'         => 'nullable|integer|min:0|max:59',
+            'price'          => 'required|numeric|min:0',
+            'original_price' => 'nullable|numeric|min:0',
+            'discount_price' => 'nullable|numeric|min:0',
+            'price_adult'    => 'nullable|numeric|min:0',
+            'price_child'    => 'nullable|numeric|min:0',
+            'price_infant'   => 'nullable|numeric|min:0',
+            'includes'            => 'nullable|string',
+            'excludes'            => 'nullable|string',
+            'surcharges'          => 'nullable|string',
+            'notes'               => 'nullable|string',
+            'cancellation_policy' => 'nullable|string',
+            'visa_requirements'   => 'nullable|string',
+            'availability_status' => 'nullable|in:available,contact,sold_out',
+
+            // CHỈ cần upload khi muốn thay ảnh; nếu không upload thì giữ ảnh cũ
+            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
+
+            // schedules
+            'schedule_day_number.*'  => 'nullable|integer|min:1|max:60',
+            'schedule_title.*'       => 'nullable|string|max:255',
+            'schedule_description.*' => 'nullable|string',
+            // departures
+            'departure_date.*'  => 'nullable|date|after:today',
+            'seats_total.*'     => 'nullable|integer|min:1|max:100',
+            'seats_available.*' => 'nullable|integer|min:0|max:100',
+            'price_dep.*'       => 'nullable|numeric|min:0',
+            'child_price.*'     => 'nullable|numeric|min:0',
+            'infant_price.*'    => 'nullable|numeric|min:0',
+            'status_dep.*'      => 'nullable|in:available,contact,sold_out',
+        ]);
+
+        DB::transaction(function () use ($request, $tour, $validated) {
+
+            // 1) Update các trường cơ bản
+            $tour->update([
+                'title'               => $validated['title'],
+                'description'         => $validated['description'],
+                'category_id'         => $validated['category_id'],
+                'duration'            => $validated['duration'] ?? null,
+                'duration_days'       => $validated['duration_days'] ?? null,
+                'nights'              => $validated['nights'] ?? null,
+                'price'               => $validated['price'],
+                'original_price'      => $validated['original_price'] ?? null,
+                'discount_price'      => $validated['discount_price'] ?? null,
+                'price_adult'         => $validated['price_adult'] ?? null,
+                'price_child'         => $validated['price_child'] ?? null,
+                'price_infant'        => $validated['price_infant'] ?? null,
+                'includes'            => $validated['includes'] ?? null,
+                'excludes'            => $validated['excludes'] ?? null,
+                'surcharges'          => $validated['surcharges'] ?? null,
+                'notes'               => $validated['notes'] ?? null,
+                'cancellation_policy' => $validated['cancellation_policy'] ?? null,
+                'visa_requirements'   => $validated['visa_requirements'] ?? null,
+                'availability_status' => $validated['availability_status'] ?? 'available',
+            ]);
+
+            // 2) Nếu có upload ảnh mới => XOÁ toàn bộ ảnh cũ rồi lưu ảnh mới
+            if ($request->hasFile('images')) {
+                // xoá file + record cũ
+                foreach ($tour->images as $old) {
+                    $path = str_replace('/storage/', '', $old->image_url);   // '/storage/...' -> '...'
+                    Storage::disk('public')->delete($path);
+                    $old->delete();
+                }
+
+                // thêm ảnh mới (ảnh đầu tiên là cover)
+                $order = 1;
+                foreach ($request->file('images') as $idx => $image) {
+                    if (!$image) continue;
+                    $path = $image->store('tours', 'public');
+                    TourImage::create([
+                        'tour_id'    => $tour->id,
+                        'image_url'  => Storage::url($path), // /storage/...
+                        'is_cover'   => $idx === 0,          // ảnh đầu tiên làm cover
+                        'sort_order' => $order++,
+                    ]);
+                }
+            }
+
+            // 3) schedules: clear & tạo lại
+            $tour->schedules()->delete();
+            if ($request->has('schedule_day_number')) {
+                foreach ($request->schedule_day_number as $i => $dayNum) {
+                    if (!empty($request->schedule_title[$i])) {
+                        \App\Models\TourSchedule::create([
+                            'tour_id'     => $tour->id,
+                            'day_number'  => $dayNum,
+                            'title'       => $request->schedule_title[$i],
+                            'description' => $request->schedule_description[$i] ?? '',
+                        ]);
+                    }
+                }
+            }
+
+            // 4) departures: clear & tạo lại với fallback giá
+            $tour->departures()->delete();
+            if ($request->has('departure_date')) {
+                foreach ($request->departure_date as $i => $date) {
+                    if (!empty($date)) {
+                        \App\Models\TourDeparture::create([
+                            'tour_id'         => $tour->id,
+                            'departure_date'  => $date,
+                            'seats_total'     => $request->seats_total[$i] ?? 20,
+                            'seats_available' => $request->seats_available[$i] ?? 20,
+                            'price'           => $request->price_dep[$i] ?? ($validated['price_adult'] ?? $validated['price']),
+                            'child_price'     => $request->child_price[$i]  ?? ($validated['price_child']  ?? null),
+                            'infant_price'    => $request->infant_price[$i] ?? ($validated['price_infant'] ?? null),
+                            'status'          => $request->status_dep[$i] ?? 'available',
+                        ]);
+                    }
+                }
+            }
+        });
+
+        return redirect()
+            ->route('admin.tours')
+            ->with('success', 'Tour đã được cập nhật thành công!');
     }
 
     public function showTour(Tour $tour): View
@@ -333,6 +335,25 @@ class AdminController extends Controller
         $tour->delete();
         return redirect()->route('admin.tours')->with('success', 'Tour đã được xóa thành công!');
     }
+    public function deleteTourImage($tourId, $imageId): RedirectResponse
+    {
+        $image = TourImage::where('tour_id', $tourId)->findOrFail($imageId);
+
+        // Xóa file vật lý nếu tồn tại
+        if ($image->image_url) {
+            $path = str_replace('/storage/', '', $image->image_url);
+            if (Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->delete($path);
+            }
+        }
+
+        // Xóa bản ghi trong DB
+        $image->delete();
+
+        return back()->with('success', 'Ảnh đã được xóa thành công!');
+    }
+
+   
 
     public function bookings()
     {
@@ -340,7 +361,7 @@ class AdminController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
-        
+
         return view('admin.bookings.index', compact('bookings'));
     }
 
@@ -352,13 +373,13 @@ class AdminController extends Controller
 
     public function customers()
     {
-        $customers = User::whereHas('roles', function($query) {
+        $customers = User::whereHas('roles', function ($query) {
             $query->where('name', 'customer');
         })->with(['bookings'])
-        ->orderBy('created_at', 'desc')
-        ->paginate(10);
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
 
-        
+
         return view('admin.customers.index', compact('customers'));
     }
 
@@ -729,5 +750,3 @@ class AdminController extends Controller
         return redirect()->route('admin.settings')->with('success', 'Cài đặt đã được cập nhật thành công!');
     }
 }
-
-
