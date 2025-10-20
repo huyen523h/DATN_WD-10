@@ -3,15 +3,16 @@
 @section('title', 'Chi tiết đặt tour - Tour365')
 
 @section('content')
-<div class="container py-5">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2><i class="fas fa-calendar-check"></i> Chi tiết đặt tour</h2>
-                <a href="{{ route('bookings.index') }}" class="btn btn-outline-secondary">
-                    <i class="fas fa-arrow-left"></i> Quay lại
-                </a>
-            </div>
+    <div class="container py-5">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="fas fa-calendar-check"></i> Chi tiết đặt tour</h2>
+                    <a href="{{ route('bookings.index') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Quay lại
+                    </a>
+                </div>
+
 
             <div class="row">
                 <!-- Booking Details -->
@@ -53,7 +54,7 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
+
 
                     <!-- Tour Information -->
                     <div class="card mb-4 border-0 shadow-sm">
@@ -85,30 +86,44 @@
                                                 <i class="fas fa-calendar"></i>
                                                 {{ \Carbon\Carbon::parse($booking->departure->departure_date)->format('d/m/Y') }}
                                             </small>
+
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Passenger Information -->
-                    <div class="card mb-4 border-0 shadow-sm">
-                        <div class="card-header">
-                            <h5><i class="fas fa-users"></i> Thông tin khách hàng</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h6>Số lượng khách</h6>
-                                    <ul class="list-unstyled">
-                                        <li><i class="fas fa-user"></i> {{ $booking->adults }} người lớn</li>
-                                        @if($booking->children > 0)
-                                            <li><i class="fas fa-child"></i> {{ $booking->children }} trẻ em</li>
+                        <!-- Customer Info -->
+                        <div class="card mb-4 border-0 shadow-sm">
+                            <div class="card-header">
+                                <h5><i class="fas fa-users"></i> Thông tin khách hàng</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>Số lượng khách</h6>
+                                        <ul class="list-unstyled">
+                                            <li><i class="fas fa-user"></i> {{ $booking->adults }} người lớn</li>
+                                            @if ($booking->children > 0)
+                                                <li><i class="fas fa-child"></i> {{ $booking->children }} trẻ em</li>
+                                            @endif
+                                            @if ($booking->infants > 0)
+                                                <li><i class="fas fa-baby"></i> {{ $booking->infants }} em bé</li>
+                                            @endif
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        @if ($booking->promotion_code)
+                                            <h6>Mã giảm giá</h6>
+                                            <p class="text-success"><i class="fas fa-tag"></i>
+                                                {{ $booking->promotion_code }}</p>
                                         @endif
-                                        @if($booking->infants > 0)
-                                            <li><i class="fas fa-baby"></i> {{ $booking->infants }} em bé</li>
+
+                                        @if ($booking->note)
+                                            <h6>Ghi chú</h6>
+                                            <p class="text-muted">{{ $booking->note }}</p>
                                         @endif
+
                                     </ul>
                                 </div>
                                 <div class="col-md-6">
@@ -126,15 +141,46 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Payment Info -->
+                        @if ($booking->payments->count() > 0)
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-credit-card"></i> Thông tin thanh toán</h5>
+                                </div>
+                                <div class="card-body">
+                                    @foreach ($booking->payments as $payment)
+                                        <div class="row border-bottom pb-3 mb-3">
+                                            <div class="col-md-6">
+                                                <h6>Phương thức thanh toán</h6>
+                                                <p class="text-muted">{{ strtoupper($payment->payment_method) }}</p>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h6>Trạng thái</h6>
+                                                <span
+                                                    class="badge 
+                                                @if ($payment->status === 'pending') bg-warning
+                                                @elseif($payment->status === 'completed') bg-success
+                                                @elseif($payment->status === 'failed') bg-danger
+                                                @else bg-secondary @endif">
+                                                    {{ ucfirst($payment->status) }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
                     </div>
 
-                    <!-- Payment Information -->
-                    @if($booking->payments->count() > 0)
+                    <!-- Sidebar Actions -->
+                    <div class="col-lg-4">
                         <div class="card border-0 shadow-sm">
                             <div class="card-header">
-                                <h5><i class="fas fa-credit-card"></i> Thông tin thanh toán</h5>
+                                <h5><i class="fas fa-cogs"></i> Thao tác</h5>
                             </div>
                             <div class="card-body">
+
                                 @foreach($booking->payments as $payment)
                                     <div class="row border-bottom pb-3 mb-3">
                                         <div class="col-md-6">
@@ -167,13 +213,29 @@
                                                     @default {{ $payment->status }} @break
                                                 @endswitch
                                             </span>
-                                        </div>
+                      </div>
+
+                                        <button id="payNowBtn" class="btn btn-primary">
+                                            <i class="fas fa-credit-card"></i> Thanh toán ngay
+                                        </button>
+
+                                        <form action="{{ route('bookings.destroy', $booking->id) }}" method="POST">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-outline-danger">
+                                                <i class="fas fa-times"></i> Hủy đặt tour
+                                            </button>
+                                        </form>
                                     </div>
-                                @endforeach
-                            </div>
-                        </div>
-                    @endif
-                </div>
+                                @elseif($booking->status === 'completed')
+                                    <div class="alert alert-success">
+                                        <i class="fas fa-check-circle"></i> Tour đã hoàn thành
+                                    </div>
+                                @elseif($booking->status === 'cancelled')
+                                    <div class="alert alert-danger">
+                                        <i class="fas fa-exclamation-triangle"></i> Đặt tour đã bị hủy
+                                    </div>
+                                @endif
 
                 <!-- Actions Sidebar -->
                 <div class="col-lg-4">
@@ -233,5 +295,26 @@
             </div>
         </div>
     </div>
-</div>
+
+    {{-- JS xử lý thanh toán --}}
+    @section('scripts')
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const payBtn = document.getElementById('payNowBtn');
+                const select = document.getElementById('paymentMethod');
+
+                if (payBtn) {
+                    payBtn.addEventListener('click', function() {
+                        const method = select.value;
+                        const bookingId = {{ $booking->id }};
+                        const url = "{{ url('/payment') }}/" + bookingId + "?method=" + method;
+                        console.log('Redirecting to:', url);
+                        window.location.href = url;
+                    });
+                } else {
+                    console.warn('Không tìm thấy nút thanh toán!');
+                }
+            });
+        </script>
+    @endsection
 @endsection

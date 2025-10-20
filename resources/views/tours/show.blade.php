@@ -4,7 +4,6 @@
 @section('description', Str::limit($tour->description, 160))
 
 @section('content')
-<!-- Breadcrumb -->
 <nav aria-label="breadcrumb" class="bg-light py-3">
     <div class="container">
         <ol class="breadcrumb mb-0">
@@ -14,11 +13,9 @@
     </div>
 </nav>
 
-<!-- Tour Details -->
 <section class="py-5">
     <div class="container">
         <div class="row">
-            <!-- Tour Images -->
             <div class="col-lg-6 mb-4">
                 @if($tour->images->count() > 0)
                     <div id="tourCarousel" class="carousel slide" data-bs-ride="carousel">
@@ -46,7 +43,6 @@
                 @endif
             </div>
 
-            <!-- Tour Info -->
             <div class="col-lg-6">
                 <div class="mb-3">
                     @if($tour->category)
@@ -112,7 +108,6 @@
             </div>
         </div>
 
-        <!-- Tour Details Tabs -->
         <div class="row mt-5">
             <div class="col-12">
                 <ul class="nav nav-tabs" id="tourTabs" role="tablist">
@@ -137,7 +132,6 @@
                 </ul>
 
                 <div class="tab-content" id="tourTabsContent">
-                    <!-- Schedule Tab -->
                     <div class="tab-pane fade show active" id="schedule" role="tabpanel">
                         <div class="p-4">
                             @if($tour->schedules->count() > 0)
@@ -168,7 +162,6 @@
                         </div>
                     </div>
 
-                    <!-- Departures Tab -->
                     <div class="tab-pane fade" id="departures" role="tabpanel">
                         <div class="p-4">
                             @if($tour->departures->count() > 0)
@@ -206,34 +199,46 @@
                         </div>
                     </div>
 
-                    <!-- Reviews Tab -->
                     <div class="tab-pane fade" id="reviews" role="tabpanel">
                         <div class="p-4">
-                            @if($tour->reviews->count() > 0)
-                                @foreach($tour->reviews as $review)
-                                    <div class="review-item border-bottom pb-3 mb-3">
-                                        <div class="d-flex justify-content-between align-items-start">
-                                            <div>
-                                                <h6 class="mb-1">{{ $review->user->name }}</h6>
-                                                <div class="rating mb-2">
-                                                    @for($i = 1; $i <= 5; $i++)
-                                                        <i class="fas fa-star {{ $i <= $review->rating ? 'text-warning' : 'text-muted' }}"></i>
-                                                    @endfor
-                                                </div>
-                                            </div>
-                                            <small class="text-muted">{{ $review->created_at->format('d/m/Y') }}</small>
-                                        </div>
-                                        @if($review->comment)
-                                            <p class="text-muted">{{ $review->comment }}</p>
-                                        @endif
-                                    </div>
-                                @endforeach
-                            @else
+                            <div id="review-list">
                                 <div class="text-center py-4">
-                                    <i class="fas fa-star fa-3x text-muted mb-3"></i>
-                                    <p class="text-muted">Chưa có đánh giá nào</p>
+                                    <p class="text-muted">Đang tải đánh giá...</p>
                                 </div>
-                            @endif
+                            </div>
+
+                            <hr class="my-4">
+
+                            <div>
+                                <h4 class="mb-3">Viết đánh giá của bạn</h4>
+                                @auth
+                                    <form id="reviewForm">
+                                        <div id="reviewErrors" class="alert alert-danger d-none"></div>
+                                        <div id="reviewSuccess" class="alert alert-success d-none"></div>
+                                        <div class="mb-3">
+                                            <label for="rating" class="form-label">Bạn đánh giá bao nhiêu sao?</label>
+                                            <select name="rating" id="rating" required class="form-select">
+                                                <option value="5">5 sao ★★★★★</option>
+                                                <option value="4">4 sao ★★★★☆</option>
+                                                <option value="3">3 sao ★★★☆☆</option>
+                                                <option value="2">2 sao ★★☆☆☆</option>
+                                                <option value="1">1 sao ★☆☆☆☆</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="comment" class="form-label">Bình luận</label>
+                                            <textarea id="comment" name="comment" rows="4" class="form-control" placeholder="Chia sẻ cảm nhận của bạn về chuyến đi..."></textarea>
+                                        </div>
+                                        <button type="submit" id="submitReviewBtn" class="btn btn-primary">
+                                            <i class="fas fa-paper-plane"></i> Gửi đánh giá
+                                        </button>
+                                    </form>
+                                @else
+                                    <div class="alert alert-info">
+                                        Vui lòng <a href="{{ route('login') }}" class="alert-link">đăng nhập</a> để gửi đánh giá của bạn.
+                                    </div>
+                                @endauth
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -267,4 +272,124 @@
         border-radius: 10px;
     }
 </style>
+@endsection
+
+@section('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const tourId = {{ $tour->id }};
+    const reviewList = document.getElementById('review-list');
+    
+    let authToken = null;
+    @auth
+        authToken = '{{ auth()->user()->createToken('temporary-review-token')->plainTextToken }}';
+    @endauth
+
+    function fetchReviews() {
+        fetch(`/api/tours/${tourId}/reviews`)
+            .then(response => response.json())
+            .then(data => {
+                reviewList.innerHTML = '';
+                if (data.data && data.data.length > 0) {
+                    data.data.forEach(review => {
+                        let stars = '';
+                        for (let i = 1; i <= 5; i++) {
+                            stars += `<i class="fas fa-star ${i <= review.rating ? 'text-warning' : 'text-muted'}"></i>`;
+                        }
+                        const reviewHtml = `
+                            <div class="review-item border-bottom pb-3 mb-3">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="mb-1">${review.user.name}</h6>
+                                        <div class="rating mb-2">${stars}</div>
+                                    </div>
+                                    <small class="text-muted">${review.created_at_human}</small>
+                                </div>
+                                ${review.comment ? `<p class="text-muted mb-0">${review.comment}</p>` : ''}
+                            </div>
+                        `;
+                        reviewList.innerHTML += reviewHtml;
+                    });
+                } else {
+                    reviewList.innerHTML = `
+                        <div class="text-center py-4">
+                            <i class="fas fa-star fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">Chưa có đánh giá nào. Hãy là người đầu tiên đánh giá tour này!</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Lỗi khi tải đánh giá:', error);
+                reviewList.innerHTML = '<p class="text-danger">Không thể tải được danh sách đánh giá.</p>';
+            });
+    }
+    fetchReviews();
+
+    const reviewForm = document.getElementById('reviewForm');
+    if (reviewForm) {
+        reviewForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const submitBtn = document.getElementById('submitReviewBtn');
+            const reviewErrors = document.getElementById('reviewErrors');
+            const reviewSuccess = document.getElementById('reviewSuccess');
+
+            if (!authToken) {
+                reviewErrors.classList.remove('d-none');
+                reviewErrors.innerText = 'Lỗi xác thực. Vui lòng đăng nhập lại.';
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang gửi...';
+            reviewErrors.classList.add('d-none');
+            reviewSuccess.classList.add('d-none');
+
+            const formData = {
+                rating: document.getElementById('rating').value,
+                comment: document.getElementById('comment').value
+            };
+
+            fetch(`/api/tours/${tourId}/reviews`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json().then(data => ({ status: response.status, body: data })))
+            .then(({ status, body }) => {
+                if (status === 201) {
+                    reviewSuccess.classList.remove('d-none');
+                    reviewSuccess.innerText = body.message;
+                    reviewForm.reset();
+                } else {
+                    reviewErrors.classList.remove('d-none');
+                    if (body.errors) {
+                        let errorText = '';
+                        for (const key in body.errors) {
+                            errorText += body.errors[key][0] + '\n';
+                        }
+                        reviewErrors.innerText = errorText;
+                    } else {
+                        reviewErrors.innerText = body.message || 'Đã có lỗi xảy ra.';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Lỗi khi gửi đánh giá:', error);
+                reviewErrors.classList.remove('d-none');
+                reviewErrors.innerText = 'Lỗi kết nối. Vui lòng thử lại.';
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Gửi đánh giá';
+            });
+        });
+    }
+});
+</script>
 @endsection

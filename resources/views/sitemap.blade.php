@@ -98,7 +98,7 @@
                                 </a>
                             </li>
                             <li class="mb-2">
-                                <a href="{{ route('admin.tours') }}" class="text-decoration-none">
+                                <a href="{{ route('admin.tours.index') }}" class="text-decoration-none">
                                     <i class="fas fa-arrow-right text-primary me-2"></i>Quản lý Tours
                                 </a>
                             </li>

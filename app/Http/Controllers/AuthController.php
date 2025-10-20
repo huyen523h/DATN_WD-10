@@ -7,6 +7,7 @@ use App\Models\Role;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
@@ -62,15 +63,18 @@ class AuthController extends Controller
             'address' => $validated['address'] ?? null,
         ]);
 
-        // Gán role customer cho user mới
-        $customerRole = Role::where('name', 'customer')->first();
-        if ($customerRole) {
-            $user->roles()->attach($customerRole->id);
+        // Gán role customer cho user mới (không dùng timestamps)
+        $customerRoleId = DB::table('roles')->where('name', 'customer')->value('id');
+        if ($customerRoleId) {
+            DB::table('user_roles')->insert([
+                'user_id' => $user->id,
+                'role_id' => $customerRoleId,
+                'assigned_at' => now()
+            ]);
         }
 
-        Auth::login($user);
-
-        return redirect()->intended('/tours');
+        // Không tự động đăng nhập, redirect về trang chủ với thông báo
+        return redirect('/')->with('success', 'Đăng ký thành công! Vui lòng đăng nhập.');
     }
 
     public function logout(Request $request)

@@ -16,10 +16,17 @@ class TourDeparture extends Model
         'departure_date',
         'seats_total',
         'seats_available',
+        'price',
+        'child_price',
+        'infant_price',
+        'status', // string: available|contact|sold_out
     ];
 
     protected $casts = [
         'departure_date' => 'date',
+        'price'         => 'decimal:2',
+        'child_price'   => 'decimal:2',
+        'infant_price'  => 'decimal:2',
     ];
 
     /**
