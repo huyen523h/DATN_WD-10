@@ -32,6 +32,8 @@ class AuthController extends Controller
             // Redirect based on user role
             if (Auth::user()->isAdmin()) {
                 return redirect()->intended(route('admin.dashboard'));
+            } elseif (Auth::user()->isStaff()) {
+                return redirect()->intended(route('staff.dashboard'));
             } else {
                 return redirect()->intended('/tours');
             }
