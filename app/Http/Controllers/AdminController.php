@@ -58,6 +58,7 @@ class AdminController extends Controller
         $query->where('category_id', $request->integer('category_id'));
     }
 
+
     // Lọc theo TÌNH TRẠNG CHỖ (tour-level)
     $av = $request->get('availability_status'); // lấy từ query string
     if (in_array($av, ['available', 'contact', 'sold_out'], true)) {
@@ -338,6 +339,7 @@ class AdminController extends Controller
         $bookings = Booking::with(['tour', 'user', 'departure'])
             ->orderBy('created_at', 'desc')
             ->paginate(10);
+
         
         return view('admin.bookings.index', compact('bookings'));
     }
@@ -355,6 +357,7 @@ class AdminController extends Controller
         })->with(['bookings'])
         ->orderBy('created_at', 'desc')
         ->paginate(10);
+
         
         return view('admin.customers.index', compact('customers'));
     }
@@ -482,7 +485,7 @@ class AdminController extends Controller
             'total_bookings' => Booking::count(),
             'completed_bookings' => Booking::where('status', 'completed')->count(),
         ];
-        
+
         return view('admin.reports', compact('stats'));
     }
 
