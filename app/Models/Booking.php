@@ -50,7 +50,7 @@ class Booking extends Model
      */
     public function departure(): BelongsTo
     {
-        return $this->belongsTo(TourDeparture::class);
+        return $this->belongsTo(TourDeparture::class, 'departure_id');
     }
 
     /**

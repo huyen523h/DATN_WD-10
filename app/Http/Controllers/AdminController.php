@@ -367,7 +367,7 @@ class AdminController extends Controller
 
     public function showBooking(Booking $booking): View
     {
-        $booking->load(['tour', 'user', 'departure', 'payments', 'documents', 'chat.messages.sender']);
+        $booking->load(['tour', 'user', 'departure', 'payment', 'documents', 'chat.messages.sender']);
         return view('admin.bookings.show', compact('booking'));
     }
 

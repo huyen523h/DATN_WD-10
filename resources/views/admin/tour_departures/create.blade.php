@@ -5,7 +5,7 @@
 <div class="container-fluid">
     <h4 class="mb-4">Thêm ngày khởi hành mới</h4>
 
-    <form action="{{ route('admin.tour_departures.store') }}" method="POST">
+    <form action="{{ route('admin.departures.store') }}" method="POST">
         @csrf
         <div class="row mb-3">
             <div class="col-md-6">
@@ -63,7 +63,7 @@
         </div>
 
         <button class="btn btn-primary"><i class="fas fa-save"></i> Lưu lại</button>
-        <a href="{{ route('admin.tour_departures.index') }}" class="btn btn-secondary">Hủy</a>
+        <a href="{{ route('admin.departures.index') }}" class="btn btn-secondary">Hủy</a>
     </form>
 </div>
 @endsection
