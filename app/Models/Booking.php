@@ -72,9 +72,9 @@ class Booking extends Model
     /**
      * Get the payments for the booking.
      */
-    public function payments(): HasMany
+    public function payment()
     {
-        return $this->hasMany(Payment::class);
+        return $this->hasMany(Payment::class, 'booking_id', 'id');
     }
 
     /**

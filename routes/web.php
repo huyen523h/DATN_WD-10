@@ -12,6 +12,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\TourController as AdminTourController;
+use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\EmployeeAuthController;
 
 
@@ -74,13 +75,18 @@ Route::group([], function () {
 
     Route::delete('/bookings/{booking}', [BookingController::class, 'destroy'])->name('bookings.destroy');
 
-    // Thanh toán MoMo & VNPAY
-    Route::get('/payment/{bookingId}', [PaymentController::class, 'processPayment'])->name('payment.process');
-    Route::get('/payment/momo/return', [PaymentController::class, 'momoReturn'])->name('payment.momo.return');
-    Route::post('/payment/momo/notify', [PaymentController::class, 'momoNotify'])->name('payment.momo.notify');
+    // Thanh toán MOMO
+    Route::get('/checkout', function () {
+        return view('checkout'); // form thanh toán
+    });
 
-    Route::get('/payment/vnpay/callback', [PaymentController::class, 'vnpayCallback'])->name('payment.vnpay.callback');
+    Route::post('/momo_payment/{id}', [CheckoutController::class, 'momo_payment'])->name('momo_payment');
 
+    // MoMo redirect user về sau khi thanh toán (hiển thị kết quả)
+    Route::get('/payment/momo_return', [CheckoutController::class, 'momo_return'])->name('momo.return');
+
+    // MoMo gửi IPN server → server xác nhận đơn hàng
+    Route::post('/payment/momo_ipn', [CheckoutController::class, 'momo_ipn'])->name('momo.ipn');
 });
 
 // Admin routes - Truy cập tự do
@@ -152,7 +158,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     // Settings
     Route::get('/settings', [AdminController::class, 'settings'])->name('settings');
     Route::put('/settings', [AdminController::class, 'updateSettings'])->name('settings.update');
-    
+
     // Users management
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
@@ -161,8 +167,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
-    
-     // Employees management
+
+    // Employees management
     Route::resource('employees', EmployeeController::class);
     Route::post('/employees/{employee}/create-account', [EmployeeController::class, 'createUserAccount'])->name('employees.create-account');
 });
@@ -172,7 +178,7 @@ Route::prefix('employee')->name('employee.')->group(function () {
     Route::get('/login', [EmployeeAuthController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [EmployeeAuthController::class, 'login']);
     Route::post('/logout', [EmployeeAuthController::class, 'logout'])->name('logout');
-    
+
     Route::group([], function () {
         Route::get('/dashboard', [EmployeeAuthController::class, 'dashboard'])->name('dashboard');
         Route::get('/profile', [EmployeeAuthController::class, 'profile'])->name('profile');

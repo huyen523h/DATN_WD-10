@@ -141,13 +141,13 @@
                         </div>
 
                         <!-- Payment Info -->
-                        @if ($booking->payments->count() > 0)
+                        @if ($booking->payment->count() > 0)
                             <div class="card border-0 shadow-sm">
                                 <div class="card-header">
                                     <h5><i class="fas fa-credit-card"></i> Thông tin thanh toán</h5>
                                 </div>
                                 <div class="card-body">
-                                    @foreach ($booking->payments as $payment)
+                                    @foreach ($booking->payment as $payment)
                                         <div class="row border-bottom pb-3 mb-3">
                                             <div class="col-md-6">
                                                 <h6>Phương thức thanh toán</h6>
@@ -184,16 +184,19 @@
                                     </div>
                                 @elseif($booking->status === 'confirmed')
                                     <div class="d-grid gap-2">
-                                        <div class="mb-2">
-                                            <select id="paymentMethod" class="form-select">
-                                                <option value="momo">Thanh toán MoMo</option>
-                                                <option value="vnpay">Thanh toán VNPAY</option>
-                                            </select>
-                                        </div>
+                                        <form action="{{ route('momo_payment', $booking->id) }}" method="POST">
+                                            @csrf
+                                            {{-- Gửi tổng tiền từ bảng payment --}}
+                                            <input type="hidden" name="total_momo"
+                                                value="{{ optional($booking->payment->first())->amount ?? $booking->total_amount }}">
+                                            <button type="submit" class="btn btn-danger">
+                                                <i class="fas fa-credit-card"></i> Thanh toán qua MOMO
+                                            </button>
+                                        </form>
 
-                                        <button id="payNowBtn" class="btn btn-primary">
+                                        {{-- <button id="payNowBtn" class="btn btn-primary">
                                             <i class="fas fa-credit-card"></i> Thanh toán ngay
-                                        </button>
+                                        </button> --}}
 
                                         <form action="{{ route('bookings.destroy', $booking->id) }}" method="POST">
                                             @csrf

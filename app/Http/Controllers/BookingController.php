@@ -103,7 +103,7 @@ class BookingController extends Controller
      */
     public function show(Booking $booking): View
     {
-        $booking->load(['tour.images', 'departure', 'payments']);
+        $booking->load(['tour.images', 'departure', 'payment']);
 
         return view('bookings.show', compact('booking'));
     }
