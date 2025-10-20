@@ -67,14 +67,6 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the employee record for the user.
-     */
-    public function employee(): HasOne
-    {
-        return $this->hasOne(Employee::class);
-    }
-
-    /**
      * Get the bookings for the user.
      */
     public function bookings(): HasMany

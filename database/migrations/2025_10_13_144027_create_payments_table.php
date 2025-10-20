@@ -11,17 +11,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('payments', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('booking_id')->constrained('bookings')->onDelete('cascade');
-            $table->string('payment_method'); // momo | vnpay
-            $table->decimal('amount', 15, 2);
-            $table->string('status')->default('pending'); // pending | success | failed
-            $table->string('transaction_code')->nullable();
-            $table->json('raw_response')->nullable();
-            $table->timestamp('payment_date')->nullable();
-            $table->timestamps();
-        });
+        // Kiểm tra nếu bảng chưa tồn tại mới tạo
+        if (!Schema::hasTable('payments')) {
+            Schema::create('payments', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('booking_id')->constrained('bookings')->onDelete('cascade');
+                $table->string('payment_method'); // momo | vnpay
+                $table->decimal('amount', 15, 2);
+                $table->string('status')->default('pending'); // pending | success | failed
+                $table->string('transaction_code')->nullable();
+                $table->json('raw_response')->nullable();
+                $table->timestamp('payment_date')->nullable();
+                $table->timestamps();
+            });
+        }
     }
 
     /**

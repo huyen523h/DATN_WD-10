@@ -33,14 +33,6 @@ class Role extends Model
     }
 
     /**
-     * The employees that belong to the role.
-     */
-    public function employees(): HasMany
-    {
-        return $this->hasMany(Employee::class);
-    }
-
-    /**
      * The permissions that belong to the role.
      */
     public function permissions(): BelongsToMany
