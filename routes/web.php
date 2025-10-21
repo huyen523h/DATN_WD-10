@@ -13,12 +13,13 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\StaffController;
 
-
-
 Route::get('/', function () {
     return view('welcome');
 })->name('welcome');
 
+// ============================================
+// DEBUG ROUTES - Test & Development
+// ============================================
 
 // Simple debug route
 Route::get('/debug-simple', function () {
@@ -106,7 +107,201 @@ Route::get('/debug-departures', function () {
     return response($output, 200, ['Content-Type' => 'text/plain']);
 });
 
-// Public routes
+// ============================================
+// INVOICE DEBUG & TEST ROUTES
+// ============================================
+
+// Test Invoice API
+Route::get('/test-invoice', function () {
+    return view('test-invoice');
+});
+
+// Debug API endpoint
+Route::get('/debug-invoice/{bookingId}', function ($bookingId) {
+    try {
+        $booking = \App\Models\Booking::with(['user', 'tour'])->find($bookingId);
+        
+        if (!$booking) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Booking not found',
+                'booking_id' => $bookingId
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Booking found',
+            'data' => [
+                'booking_id' => $booking->id,
+                'user_name' => $booking->user->name,
+                'tour_title' => $booking->tour->title,
+                'total_amount' => $booking->total_amount,
+                'has_invoice' => $booking->invoice ? true : false
+            ]
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Error: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// Test route to check if we have any bookings
+Route::get('/test-bookings', function () {
+    try {
+        $bookings = \App\Models\Booking::with(['user', 'tour'])->take(5)->get();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Bookings found',
+            'count' => $bookings->count(),
+            'data' => $bookings->map(function($booking) {
+                return [
+                    'id' => $booking->id,
+                    'user_name' => $booking->user->name ?? 'No user',
+                    'tour_title' => $booking->tour->title ?? 'No tour',
+                    'total_amount' => $booking->total_amount ?? 0,
+                    'status' => $booking->status ?? 'unknown'
+                ];
+            })
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Error: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// Simple test route
+Route::get('/simple-test', function () {
+    return response()->json([
+        'success' => true,
+        'message' => 'Simple test route working!',
+        'timestamp' => now()
+    ]);
+});
+
+// Debug invoice route (simple version)
+Route::get('/debug-invoice-simple/{bookingId}', function ($bookingId) {
+    try {
+        $booking = \App\Models\Booking::with(['user', 'tour'])->find($bookingId);
+        
+        if (!$booking) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Booking not found'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Booking found',
+            'data' => [
+                'booking_id' => $booking->id,
+                'user_name' => $booking->user->name ?? 'No user',
+                'tour_title' => $booking->tour->title ?? 'No tour',
+                'total_amount' => $booking->total_amount ?? 0
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Error: ' . $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+});
+
+// ============================================
+// INVOICE GENERATION ROUTE (Web Interface)
+// ============================================
+
+// Web invoice routes (no authentication required for admin interface)
+Route::get('/web/invoices/booking/{bookingId}/pdf', function ($bookingId) {
+    try {
+        $booking = \App\Models\Booking::with(['user', 'tour', 'departure'])->find($bookingId);
+        
+        if (!$booking) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Booking not found'
+            ], 404);
+        }
+
+        // Create invoice if not exists
+        if (!$booking->invoice) {
+            $invoice = \App\Models\Invoice::create([
+                'booking_id' => $booking->id,
+                'invoice_number' => \App\Models\Invoice::generateInvoiceNumber(),
+                'issue_date' => now(),
+                'amount' => $booking->total_amount,
+                'status' => 'issued',
+            ]);
+        } else {
+            $invoice = $booking->invoice;
+        }
+
+        // Company information
+        $company = [
+            'name' => 'Tour365 - Công ty Du lịch',
+            'address' => '123 Đường ABC, Quận 1, TP.HCM',
+            'phone' => '0123 456 789',
+            'email' => 'info@tour365.com',
+            'website' => 'www.tour365.com',
+            'tax_code' => '0123456789'
+        ];
+
+        // For now, return HTML view instead of PDF
+        $html = view('invoices.pdf', [
+            'invoice' => $invoice,
+            'booking' => $booking,
+            'tour' => $booking->tour,
+            'user' => $booking->user,
+            'departure' => $booking->departure,
+            'company' => $company,
+            'promotion' => $booking->promotion ?? null,
+        ])->render();
+
+        // Save HTML to public directory for direct access
+        $fileName = 'invoice_' . $bookingId . '_' . time() . '.html';
+        $publicPath = public_path('invoices/' . $fileName);
+        
+        // Create invoices directory if not exists
+        if (!file_exists(public_path('invoices'))) {
+            mkdir(public_path('invoices'), 0755, true);
+        }
+        
+        file_put_contents($publicPath, $html);
+
+        $downloadUrl = url('invoices/' . $fileName);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Invoice generated successfully (HTML format)',
+            'data' => [
+                'download_url' => $downloadUrl,
+                'file_name' => $fileName,
+                'invoice_number' => $invoice->invoice_number,
+                'format' => 'html'
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Error generating invoice: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// ============================================
+// PUBLIC ROUTES
+// ============================================
+
 Route::get('/tours', [TourController::class, 'index'])->name('tours.index');
 Route::get('/tours/{tour}', [TourController::class, 'show'])->name('tours.show');
 Route::get('/about', function () {
@@ -133,7 +328,10 @@ Route::get('/promotions', function () {
     return view('promotions.index');
 })->name('promotions.index');
 
-// Authentication routes
+// ============================================
+// AUTHENTICATION ROUTES
+// ============================================
+
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login')->middleware('guest');
 Route::post('/login', [AuthController::class, 'login'])->middleware('guest');
 Route::get('/register', [AuthController::class, 'showRegister'])->name('register')->middleware('guest');
@@ -141,49 +339,58 @@ Route::post('/register', [AuthController::class, 'register'])->middleware('guest
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 Route::get('/logout', [AuthController::class, 'logout'])->name('logout.get')->middleware('auth');
 
-// Customer routes
+// ============================================
+// CUSTOMER ROUTES (Authenticated Users)
+// ============================================
+
 Route::middleware('auth')->group(function () {
     Route::get('/profile', function () {
         return view('profile.index');
     })->name('profile.index');
+    
+    // Bookings
     Route::get('/bookings', [BookingController::class, 'index'])->name('bookings.index');
     Route::get('/bookings/create', [BookingController::class, 'create'])->name('bookings.create');
     Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
     Route::get('/bookings/{booking}', [BookingController::class, 'show'])->name('bookings.show');
-
+    Route::delete('/bookings/{booking}', [BookingController::class, 'destroy'])->name('bookings.destroy');
 
     // Wishlist routes
     Route::get('/wishlists', [WishlistsController::class, 'index'])->name('wishlists.index');
     Route::post('/wishlists', [WishlistsController::class, 'store'])->name('wishlists.store');
     Route::delete('/wishlists/{id}', [WishlistsController::class, 'destroy'])->name('wishlists.destroy');
 
-    Route::delete('/bookings/{booking}', [BookingController::class, 'destroy'])->name('bookings.destroy');
-
-    // Thanh toán MOMO
+    // Payment routes - MoMo & VNPay
+    Route::get('/payment/{bookingId}', [PaymentController::class, 'processPayment'])->name('payment.process');
+    Route::get('/payment/momo/return', [PaymentController::class, 'momoReturn'])->name('payment.momo.return');
+    Route::post('/payment/momo/notify', [PaymentController::class, 'momoNotify'])->name('payment.momo.notify');
+    Route::get('/payment/vnpay/callback', [PaymentController::class, 'vnpayCallback'])->name('payment.vnpay.callback');
+    
+    // Legacy MoMo routes (for backward compatibility)
     Route::get('/checkout', function () {
         return view('checkout'); // form thanh toán
     });
-
     Route::post('/momo_payment/{id}', [CheckoutController::class, 'momo_payment'])->name('momo_payment');
-    // MoMo redirect user về sau khi thanh toán (hiển thị kết quả)
     Route::get('/payment/momo_return', [CheckoutController::class, 'momo_return'])->name('momo.return');
-
-    // MoMo gửi IPN server → server xác nhận đơn hàng
     Route::post('/payment/momo_ipn', [CheckoutController::class, 'momo_ipn'])->name('momo.ipn');
 });
 
-// Admin routes
+// ============================================
+// ADMIN ROUTES
+// ============================================
+
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
 
     // Tours management
-    Route::get('/tours', [AdminController::class, 'tours'])->name('tours.index');
+    Route::get('/tours', [AdminController::class, 'tours'])->name('tours');
     Route::get('/tours/create', [AdminController::class, 'createTour'])->name('tours.create');
     Route::post('/tours', [AdminController::class, 'storeTour'])->name('tours.store');
     Route::get('/tours/{tour}', [AdminController::class, 'showTour'])->name('tours.show');
     Route::get('/tours/{tour}/edit', [AdminController::class, 'editTour'])->name('tours.edit');
     Route::put('/tours/{tour}', [AdminController::class, 'updateTour'])->name('tours.update');
     Route::delete('/tours/{tour}', [AdminController::class, 'deleteTour'])->name('tours.destroy');
+    
     // Xóa ảnh của tour
     Route::delete('/tours/{tour}/images/{image}', [AdminController::class, 'deleteTourImage'])
         ->name('tours.images.delete');
@@ -219,7 +426,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::put('/payments/{payment}', [AdminController::class, 'updatePayment'])->name('payments.update');
     Route::delete('/payments/{payment}', [AdminController::class, 'deletePayment'])->name('payments.destroy');
 
-
     // Promotions management
     Route::get('/promotions', [AdminController::class, 'promotions'])->name('promotions');
     Route::get('/promotions/create', [AdminController::class, 'createPromotion'])->name('promotions.create');
@@ -245,28 +451,13 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/support', [AdminController::class, 'storeSupportTicket'])->name('support.store');
     Route::put('/support/{ticket}', [AdminController::class, 'updateTicket'])->name('support.update');
     Route::delete('/support/{ticket}', [AdminController::class, 'deleteTicket'])->name('support.destroy');
-    // Admin quản lý khởi hành tour
-
+    
+    // Admin quản lý khởi hành tour (Departures)
     Route::resource('departures', DepartureController::class);
 
     // Settings
     Route::get('/settings', [AdminController::class, 'settings'])->name('settings');
     Route::put('/settings', [AdminController::class, 'updateSettings'])->name('settings.update');
-
-    // // Users management
-    // Route::get('/users', [UserController::class, 'index'])->name('users.index');
-    // Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
-    // Route::post('/users', [UserController::class, 'store'])->name('users.store');
-    // Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
-    // Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
-    // Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
-    // Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
-
-    // Employees management
-    //Route::resource('employees', EmployeeController::class);
-    //Route::post('/employees/{employee}/create-account', [EmployeeController::class, 'createUserAccount'])->name('employees.create-account');
-
-
 
     // Users management
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
@@ -276,9 +467,23 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+    
+    // ============================================
+    // INVOICE MANAGEMENT (Admin Only)
+    // ============================================
+    Route::get('/invoices', function () {
+        return view('admin.invoices.index');
+    })->name('invoices');
+    
+    Route::post('/invoices', [App\Http\Controllers\InvoiceWebController::class, 'createInvoice']);
+    Route::put('/invoices/{invoice}/status', [App\Http\Controllers\InvoiceWebController::class, 'updateStatus']);
+    Route::get('/invoices/{invoice}', [App\Http\Controllers\InvoiceWebController::class, 'show']);
 });
 
-// Staff routes
+// ============================================
+// STAFF ROUTES
+// ============================================
+
 Route::middleware(['auth', 'staff'])->prefix('staff')->name('staff.')->group(function () {
     Route::get('/', [StaffController::class, 'dashboard'])->name('dashboard');
 
