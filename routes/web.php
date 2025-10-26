@@ -395,6 +395,14 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::delete('/tours/{tour}/images/{image}', [AdminController::class, 'deleteTourImage'])
         ->name('tours.images.delete');
 
+    // Invoices management
+    Route::resource('invoices', \App\Http\Controllers\InvoiceController::class);
+    Route::get('/invoices/{invoice}/pdf', [\App\Http\Controllers\InvoiceController::class, 'generatePdf'])->name('invoices.pdf');
+    Route::get('/invoices/{invoice}/download', [\App\Http\Controllers\InvoiceController::class, 'downloadPdf'])->name('invoices.download');
+    Route::post('/invoices/{invoice}/save-pdf', [\App\Http\Controllers\InvoiceController::class, 'savePdf'])->name('invoices.save-pdf');
+    Route::post('/invoices/{invoice}/send-email', [\App\Http\Controllers\InvoiceController::class, 'sendEmail'])->name('invoices.send-email');
+    Route::post('/invoices/{invoice}/mark-paid', [\App\Http\Controllers\InvoiceController::class, 'markAsPaid'])->name('invoices.mark-paid');
+
     // Bookings management
     Route::get('/bookings', [AdminController::class, 'bookings'])->name('bookings');
     Route::get('/bookings/{booking}', [AdminController::class, 'showBooking'])->name('bookings.show');

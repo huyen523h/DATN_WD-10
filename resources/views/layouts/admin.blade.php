@@ -25,6 +25,7 @@
     <link href="{{ asset('css/admin.css') }}" rel="stylesheet">
     <link href="{{ asset('css/admin-modern.css') }}" rel="stylesheet">
     <link href="{{ asset('css/dashboard-professional.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/admin-tables.css') }}" rel="stylesheet">
     <style>
         :root {
             /* Primary Colors */

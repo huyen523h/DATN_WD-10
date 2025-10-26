@@ -3,60 +3,323 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hóa đơn {{ $invoice->invoice_number }}</title>
+    <title>Hóa đơn #{{ $invoice->invoice_number }}</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: 'DejaVu Sans', sans-serif;
             font-size: 12px;
             line-height: 1.4;
             color: #333;
+            background: white;
         }
-        
-        .container {
+
+        .invoice-container {
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
         }
-        
-        .header {
-            text-align: center;
+
+        /* Header */
+        .invoice-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
             margin-bottom: 30px;
-            border-bottom: 2px solid #0EA5E9;
             padding-bottom: 20px;
+            border-bottom: 2px solid #e5e7eb;
         }
-        
-        .company-name {
+
+        .company-info {
+            flex: 1;
+        }
+
+        .company-logo {
             font-size: 24px;
             font-weight: bold;
-            color: #0EA5E9;
+            color: #3b82f6;
             margin-bottom: 10px;
         }
-        
-        .company-info {
-            font-size: 11px;
-            color: #666;
-            line-height: 1.3;
+
+        .company-details {
+            color: #6b7280;
         }
-        
+
         .invoice-title {
-            font-size: 20px;
-            font-weight: bold;
-            text-align: center;
-            margin: 30px 0;
-            color: #333;
+            text-align: right;
+            flex: 1;
         }
-        
-        .invoice-info {
+
+        .invoice-title h1 {
+            font-size: 28px;
+            color: #1f2937;
+            margin-bottom: 10px;
+        }
+
+        .invoice-number {
+            font-size: 16px;
+            color: #6b7280;
+            font-weight: 600;
+        }
+
+        /* Invoice Details */
+        .invoice-details {
             display: flex;
             justify-content: space-between;
             margin-bottom: 30px;
         }
+
+        .bill-to, .invoice-info {
+            flex: 1;
+            padding: 0 10px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .customer-info, .invoice-meta {
+            color: #6b7280;
+        }
+
+        .invoice-meta .meta-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .meta-label {
+            font-weight: 600;
+        }
+
+        /* Tour Information */
+        .tour-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+
+        .tour-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 15px;
+        }
+
+        .tour-details {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .tour-detail {
+            flex: 1;
+            min-width: 200px;
+            margin-bottom: 10px;
+        }
+
+        .tour-detail-label {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .tour-detail-value {
+            color: #6b7280;
+        }
+
+        /* Items Table */
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+
+        .items-table th,
+        .items-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .items-table th {
+            background: #f9fafb;
+            font-weight: bold;
+            color: #374151;
+            font-size: 13px;
+        }
+
+        .items-table td {
+            color: #6b7280;
+        }
+
+        .items-table .text-right {
+            text-align: right;
+        }
+
+        .items-table .text-center {
+            text-align: center;
+        }
+
+        .guest-type {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .price {
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        /* Totals */
+        .totals {
+            width: 100%;
+            max-width: 300px;
+            margin-left: auto;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .total-row.final {
+            border-top: 2px solid #1f2937;
+            border-bottom: 2px solid #1f2937;
+            font-weight: bold;
+            font-size: 14px;
+            color: #1f2937;
+            margin-top: 10px;
+            padding-top: 15px;
+        }
+
+        .total-label {
+            color: #6b7280;
+        }
+
+        .total-value {
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        /* Payment Information */
+        .payment-info {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f0f9ff;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .payment-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 15px;
+        }
+
+        .payment-methods {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .payment-method {
+            flex: 1;
+            min-width: 200px;
+            margin-bottom: 15px;
+        }
+
+        .payment-method-title {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 5px;
+        }
+
+        .payment-method-details {
+            color: #6b7280;
+            font-size: 11px;
+        }
+
+        /* Status Badge */
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-paid {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-cancelled {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        /* Footer */
+        .invoice-footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            text-align: center;
+            color: #6b7280;
+            font-size: 11px;
+        }
+
+        .notes {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 6px;
+            border-left: 3px solid #6b7280;
+        }
+
+        .notes-title {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .notes-content {
+            color: #6b7280;
+            line-height: 1.5;
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                font-size: 11px;
+            }
+            
+            .invoice-container {
+                padding: 0;
+            }
+            
+            .payment-info {
+                break-inside: avoid;
+            }
         
         .invoice-details, .customer-details {
             width: 48%;

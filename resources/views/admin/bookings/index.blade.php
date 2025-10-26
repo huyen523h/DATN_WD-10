@@ -175,194 +175,94 @@
     </div>
 </div>
 
-<!-- Bookings Table -->
-<div class="row">
-    <div class="col-12">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white border-0 py-4">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold text-dark">
-                        <i class="fas fa-list text-primary me-2"></i>
-                        Danh sách đặt tour ({{ $bookings->total() }} đặt tour)
-                    </h5>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-outline-primary btn-sm">
-                            <i class="fas fa-download me-1"></i>
-                            Xuất báo cáo
-                        </button>
-                        <button class="btn btn-outline-secondary btn-sm">
-                            <i class="fas fa-print me-1"></i>
-                            In danh sách
-                        </button>
-                    </div>
+<!-- Modern Bookings Table -->
+<x-admin.table 
+    :headers="[
+        ['key' => 'id', 'label' => 'Mã đặt tour', 'sortable' => true, 'component' => 'admin.table.booking-id'],
+        ['key' => 'customer', 'label' => 'Khách hàng', 'sortable' => true, 'component' => 'admin.table.avatar'],
+        ['key' => 'tour', 'label' => 'Tour', 'sortable' => true],
+        ['key' => 'departure_date', 'label' => 'Ngày khởi hành', 'sortable' => true, 'component' => 'admin.table.date'],
+        ['key' => 'guests', 'label' => 'Số khách', 'sortable' => true, 'component' => 'admin.table.guests'],
+        ['key' => 'total_amount', 'label' => 'Tổng tiền', 'sortable' => true, 'component' => 'admin.table.price'],
+        ['key' => 'status', 'label' => 'Trạng thái', 'sortable' => true, 'component' => 'admin.table.status-badge'],
+        ['key' => 'created_at', 'label' => 'Ngày đặt', 'sortable' => true, 'component' => 'admin.table.date']
+    ]"
+    :data="$bookings->map(function($booking) {
+        return [
+            'id' => $booking->id,
+            'customer' => [
+                'name' => $booking->user->name,
+                'email' => $booking->user->email
+            ],
+            'tour' => $booking->tour->title,
+            'departure_date' => $booking->departure->departure_date ?? 'N/A',
+            'guests' => [
+                'adults' => $booking->adults,
+                'children' => $booking->children,
+                'infants' => $booking->infants
+            ],
+            'total_amount' => $booking->total_amount,
+            'status' => $booking->status,
+            'created_at' => $booking->created_at
+        ];
+    })"
+    :actions="[
+        ['action' => 'view', 'icon' => 'fas fa-eye', 'class' => 'btn-primary', 'title' => 'Xem chi tiết'],
+        ['action' => 'status', 'icon' => 'fas fa-edit', 'class' => 'btn-info', 'title' => 'Cập nhật trạng thái'],
+        ['action' => 'email', 'icon' => 'fas fa-envelope', 'class' => 'btn-warning', 'title' => 'Gửi email'],
+        ['action' => 'delete', 'icon' => 'fas fa-trash', 'class' => 'btn-danger', 'title' => 'Xóa']
+    ]"
+    :searchable="true"
+    :sortable="true"
+    :filterable="true"
+    :pagination="$bookings"
+    empty-message="Chưa có đặt tour nào"
+    id="bookings-table"
+>
+    <!-- Custom Filters -->
+    <x-slot name="filters">
+        <div class="filter-grid">
+            <div class="filter-group">
+                <label class="filter-label">Trạng thái</label>
+                <select name="status" class="filter-select">
+                    <option value="">Tất cả trạng thái</option>
+                    <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Chờ xác nhận</option>
+                    <option value="confirmed" {{ request('status') == 'confirmed' ? 'selected' : '' }}>Đã xác nhận</option>
+                    <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Đã hủy</option>
+                    <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Hoàn thành</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">Từ ngày</label>
+                <input type="date" name="date_from" class="filter-input" value="{{ request('date_from') }}">
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">Đến ngày</label>
+                <input type="date" name="date_to" class="filter-input" value="{{ request('date_to') }}">
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">Khoảng tiền</label>
+                <div class="price-range">
+                    <input type="number" name="min_amount" class="filter-input" placeholder="Từ" value="{{ request('min_amount') }}">
+                    <span class="range-separator">-</span>
+                    <input type="number" name="max_amount" class="filter-input" placeholder="Đến" value="{{ request('max_amount') }}">
                 </div>
             </div>
-            <div class="card-body p-0">
-                @if($bookings->count() > 0)
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="bg-light">
-                                <tr>
-                                    <th class="border-0 py-3 px-4 fw-semibold text-muted">Mã đặt tour</th>
-                                    <th class="border-0 py-3 px-4 fw-semibold text-muted">Khách hàng</th>
-                                    <th class="border-0 py-3 px-4 fw-semibold text-muted">Tour</th>
-                                    <th class="border-0 py-3 px-4 fw-semibold text-muted">Ngày khởi hành</th>
-                                    <th class="border-0 py-3 px-4 fw-semibold text-muted">Số khách</th>
-                                    <th class="border-0 py-3 px-4 fw-semibold text-muted">Tổng tiền</th>
-                                    <th class="border-0 py-3 px-4 fw-semibold text-muted">Trạng thái</th>
-                                    <th class="border-0 py-3 px-4 fw-semibold text-muted">Ngày đặt</th>
-                                    <th class="border-0 py-3 px-4 fw-semibold text-muted text-center">Thao tác</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($bookings as $booking)
-                                    <tr class="border-bottom">
-                                        <td class="py-4 px-4">
-                                            <div class="d-flex align-items-center">
-                                                <div class="bg-primary bg-opacity-10 rounded p-2 me-3">
-                                                    <i class="fas fa-receipt text-primary"></i>
-                                                </div>
-                                                <div>
-                                                    <h6 class="mb-0 fw-bold text-dark">#{{ $booking->id }}</h6>
-                                                    <small class="text-muted">Mã đặt tour</small>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="py-4 px-4">
-                                            <div class="d-flex align-items-center">
-                                                <div class="bg-info bg-opacity-10 rounded-circle p-2 me-3">
-                                                    <i class="fas fa-user text-info"></i>
-                                                </div>
-                                                <div>
-                                                    <h6 class="mb-0 fw-bold text-dark">{{ $booking->user->name }}</h6>
-                                                    <small class="text-muted">{{ $booking->user->email }}</small>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="py-4 px-4">
-                                            <h6 class="mb-0 fw-bold text-dark">{{ $booking->tour->title }}</h6>
-                                            <small class="text-muted">
-                                                <i class="fas fa-clock me-1"></i>
-                                                {{ $booking->tour->duration_days }} ngày
-                                            </small>
-                                        </td>
-                                        <td class="py-4 px-4">
-                                            <small class="text-muted">
-                                                <i class="fas fa-calendar-alt me-1"></i>
-                                                {{ $booking->departure->departure_date ?? 'N/A' }}
-                                            </small>
-                                        </td>
-                                        <td class="py-4 px-4">
-                                            <div class="d-flex flex-column">
-                                                <span class="fw-bold text-dark">{{ $booking->adults }} người lớn</span>
-                                                @if($booking->children > 0)
-                                                    <small class="text-muted">{{ $booking->children }} trẻ em</small>
-                                                @endif
-                                                @if($booking->infants > 0)
-                                                    <small class="text-muted">{{ $booking->infants }} em bé</small>
-                                                @endif
-                                            </div>
-                                        </td>
-                                        <td class="py-4 px-4">
-                                            <h6 class="mb-0 fw-bold text-success">
-                                                {{ number_format($booking->total_amount, 0, ',', '.') }}đ
-                                            </h6>
-                                        </td>
-                                        <td class="py-4 px-4">
-                                            <form action="{{ route('admin.bookings.update', $booking) }}" method="POST" class="d-inline">
-                                                @csrf
-                                                @method('PUT')
-                                                <select name="status" onchange="this.form.submit()" 
-                                                        class="form-select form-select-sm 
-                                                        @if($booking->status === 'pending') border-warning
-                                                        @elseif($booking->status === 'confirmed') border-success
-                                                        @elseif($booking->status === 'cancelled') border-danger
-                                                        @elseif($booking->status === 'completed') border-info
-                                                        @endif">
-                                                    <option value="pending" {{ $booking->status=='pending'?'selected':'' }}>Chờ xác nhận</option>
-                                                    <option value="confirmed" {{ $booking->status=='confirmed'?'selected':'' }}>Đã xác nhận</option>
-                                                    <option value="cancelled" {{ $booking->status=='cancelled'?'selected':'' }}>Đã hủy</option>
-                                                    <option value="completed" {{ $booking->status=='completed'?'selected':'' }}>Hoàn thành</option>
-                                                </select>
-                                            </form>
-                                        </td>
-                                        <td class="py-4 px-4">
-                                            <small class="text-muted">
-                                                <i class="fas fa-calendar me-1"></i>
-                                                {{ $booking->created_at->format('d/m/Y H:i') }}
-                                            </small>
-                                        </td>
-                                        <td class="py-4 px-4 text-center">
-                                            <div class="btn-group" role="group">
-                                                <a href="{{ route('admin.bookings.show', $booking) }}" 
-                                                   class="btn btn-outline-info btn-sm" 
-                                                   title="Xem chi tiết"
-                                                   data-bs-toggle="tooltip">
-                                                    <i class="fas fa-eye"></i>
-                                                </a>
-                                                <button class="btn btn-outline-success btn-sm" 
-                                                        title="In hóa đơn"
-                                                        data-bs-toggle="tooltip"
-                                                        onclick="generateInvoice({{ $booking->id }})">
-                                                    <i class="fas fa-file-invoice"></i>
-                                                </button>
-                                                <button class="btn btn-outline-primary btn-sm" 
-                                                        title="Tải PDF"
-                                                        data-bs-toggle="tooltip"
-                                                        onclick="downloadInvoice({{ $booking->id }})">
-                                                    <i class="fas fa-download"></i>
-                                                </button>
-                                                <button class="btn btn-outline-warning btn-sm" 
-                                                        title="Gửi email"
-                                                        data-bs-toggle="tooltip">
-                                                    <i class="fas fa-envelope"></i>
-                                                </button>
-                                                <form action="{{ route('admin.bookings.destroy', $booking) }}" 
-                                                      method="POST" class="d-inline">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button class="btn btn-outline-danger btn-sm" 
-                                                            onclick="return confirm('Bạn có chắc chắn muốn xóa đặt tour này?')" 
-                                                            title="Xóa"
-                                                            data-bs-toggle="tooltip">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Pagination -->
-                    <div class="d-flex justify-content-between align-items-center p-4 border-top">
-                        <div class="text-muted">
-                            Hiển thị {{ $bookings->firstItem() }} - {{ $bookings->lastItem() }} 
-                            trong tổng số {{ $bookings->total() }} đặt tour
-                        </div>
-                        <div>
-                            {{ $bookings->links() }}
-                        </div>
-                    </div>
-                @else
-                    <!-- Empty State -->
-                    <div class="text-center py-5">
-                        <div class="mb-4">
-                            <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center" 
-                                 style="width: 120px; height: 120px;">
-                                <i class="fas fa-calendar-times fa-3x text-muted"></i>
-                            </div>
-                        </div>
-                        <h4 class="fw-bold text-dark mb-3">Chưa có đặt tour nào</h4>
-                        <p class="text-muted mb-4">Các đặt tour mới sẽ hiển thị ở đây</p>
-                    </div>
-                @endif
-            </div>
         </div>
-    </div>
-</div>
+        
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search"></i> Áp dụng bộ lọc
+            </button>
+            <a href="{{ route('admin.bookings') }}" class="btn btn-secondary">
+                <i class="fas fa-times"></i> Xóa bộ lọc
+            </a>
+        </div>
+    </x-slot>
+</x-admin.table>
 @endsection
 
 @section('styles')
@@ -435,8 +335,228 @@
         border-color: #0EA5E9;
         box-shadow: 0 0 0 0.2rem rgba(14, 165, 233, 0.25);
     }
+    
+    /* Notification styles */
+    .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        z-index: 9999;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .notification.show {
+        transform: translateX(0);
+    }
+    
+    .notification-success {
+        background: linear-gradient(135deg, #10b981, #059669);
+    }
+    
+    .notification-error {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+    }
+    
+    .notification i {
+        margin-right: 8px;
+    }
 </style>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle booking actions
+    const actionButtons = document.querySelectorAll('[data-action]');
+    
+    actionButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const action = this.dataset.action;
+            const bookingId = this.dataset.id;
+            
+            switch(action) {
+                case 'view':
+                    window.location.href = `/admin/bookings/${bookingId}`;
+                    break;
+                    
+                case 'status':
+                    updateBookingStatus(bookingId);
+                    break;
+                    
+                case 'email':
+                    sendBookingEmail(bookingId);
+                    break;
+                    
+                case 'delete':
+                    if (confirm('Bạn có chắc chắn muốn xóa đặt tour này?')) {
+                        deleteBooking(bookingId);
+                    }
+                    break;
+            }
+        });
+    });
+    
+    function updateBookingStatus(bookingId) {
+        // Tạo modal để chọn trạng thái mới
+        const statusOptions = [
+            { value: 'pending', label: 'Chờ xử lý', class: 'warning' },
+            { value: 'confirmed', label: 'Đã xác nhận', class: 'success' },
+            { value: 'cancelled', label: 'Đã hủy', class: 'danger' },
+            { value: 'completed', label: 'Hoàn thành', class: 'info' }
+        ];
+        
+        let modalHtml = `
+            <div class="modal fade" id="statusModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Cập nhật trạng thái booking</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Chọn trạng thái mới cho booking #${bookingId}:</p>
+                            <div class="list-group">
+        `;
+        
+        statusOptions.forEach(option => {
+            modalHtml += `
+                <button type="button" class="list-group-item list-group-item-action" 
+                        onclick="confirmStatusUpdate(${bookingId}, '${option.value}')">
+                    <span class="badge bg-${option.class} me-2">${option.label}</span>
+                </button>
+            `;
+        });
+        
+        modalHtml += `
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Thêm modal vào body
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // Hiển thị modal
+        const modal = new bootstrap.Modal(document.getElementById('statusModal'));
+        modal.show();
+        
+        // Xóa modal khi đóng
+        document.getElementById('statusModal').addEventListener('hidden.bs.modal', function() {
+            this.remove();
+        });
+    }
+    
+    function confirmStatusUpdate(bookingId, newStatus) {
+        const statusLabels = {
+            'pending': 'Chờ xử lý',
+            'confirmed': 'Đã xác nhận', 
+            'cancelled': 'Đã hủy',
+            'completed': 'Hoàn thành'
+        };
+        
+        if (confirm(`Bạn có chắc chắn muốn cập nhật trạng thái thành "${statusLabels[newStatus]}"?`)) {
+            fetch(`/admin/bookings/${bookingId}`, {
+                method: 'PUT',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    status: newStatus
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    location.reload();
+                } else {
+                    showNotification(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showNotification('Có lỗi xảy ra khi cập nhật trạng thái!', 'error');
+            });
+        }
+        
+        // Đóng modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('statusModal'));
+        if (modal) modal.hide();
+    }
+    
+    function sendBookingEmail(bookingId) {
+        if (confirm('Bạn có chắc chắn muốn gửi email cho khách hàng?')) {
+            fetch(`/admin/bookings/${bookingId}/send-email`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                } else {
+                    showNotification(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showNotification('Có lỗi xảy ra khi gửi email!', 'error');
+            });
+        }
+    }
+    
+    function deleteBooking(bookingId) {
+        fetch(`/admin/bookings/${bookingId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification(data.message, 'success');
+                location.reload();
+            } else {
+                showNotification(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            showNotification('Có lỗi xảy ra khi xóa booking!', 'error');
+        });
+    }
+    
+    function showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.innerHTML = `
+            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+            <span>${message}</span>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => notification.classList.add('show'), 100);
+        
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
+});
+</script>
+@endpush
 
 @section('scripts')
 <script>
