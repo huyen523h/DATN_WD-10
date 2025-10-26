@@ -33,6 +33,7 @@ class BookingController extends Controller
     {
         $tour = Tour::with(['departures', 'images'])->findOrFail($request->tour_id);
         $departures = $tour->departures()->where('seats_available', '>', 0)->get();
+        // dd($departures);
         $promotions = Promotion::where('status', 'active')
             ->where('start_date', '<=', now())
             ->where('end_date', '>=', now())
@@ -64,9 +65,11 @@ class BookingController extends Controller
             return back()->withErrors(['seats' => 'Không đủ chỗ trống cho số lượng khách đã chọn.']);
         }
 
-        // Calculate total amount
-        $totalPassengers = $validated['adults'] + $validated['children'] + $validated['infants'];
-        $totalAmount = $tour->price * $totalPassengers;
+        
+        //Tính tổng tiền dựa theo giá của lịch khởi hành (TourDeparture)
+        $totalAmount = ($departure->price * $validated['adults']) +
+            ($departure->child_price * ($validated['children'] ?? 0)) +
+            ($departure->infant_price * ($validated['infants'] ?? 0));
 
         // Apply promotion if provided
         $promotion = null;
@@ -92,6 +95,7 @@ class BookingController extends Controller
         ]);
 
         // Update available seats
+        $totalPassengers = ($validated['adults'] ?? 0) + ($validated['children'] ?? 0) + ($validated['infants'] ?? 0);
         $departure->decrement('seats_available', $totalPassengers);
 
         return redirect()->route('bookings.show', $booking)
@@ -103,7 +107,7 @@ class BookingController extends Controller
      */
     public function show(Booking $booking): View
     {
-        $booking->load(['tour.images', 'departure', 'payments']);
+        $booking->load(['tour.images', 'departure', 'payment']);
 
         return view('bookings.show', compact('booking'));
     }

@@ -320,193 +320,323 @@
             .payment-info {
                 break-inside: avoid;
             }
+        
+        .invoice-details, .customer-details {
+            width: 48%;
+        }
+        
+        .section-title {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: #0EA5E9;
+            border-bottom: 1px solid #0EA5E9;
+            padding-bottom: 5px;
+        }
+        
+        .detail-row {
+            display: flex;
+            margin-bottom: 5px;
+        }
+        
+        .detail-label {
+            font-weight: bold;
+            width: 120px;
+        }
+        
+        .detail-value {
+            flex: 1;
+        }
+        
+        .tour-details {
+            margin: 30px 0;
+        }
+        
+        .tour-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        .tour-table th,
+        .tour-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        
+        .tour-table th {
+            background-color: #0EA5E9;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .tour-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        .amount-section {
+            margin-top: 30px;
+            text-align: right;
+        }
+        
+        .amount-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding: 5px 0;
+        }
+        
+        .amount-label {
+            font-weight: bold;
+        }
+        
+        .total-row {
+            border-top: 2px solid #0EA5E9;
+            padding-top: 10px;
+            margin-top: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #0EA5E9;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .status-issued {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        
+        .status-paid {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-cancelled {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .departure-info {
+            background-color: #f8fafc;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        
+        .promotion-info {
+            background-color: #f0f9ff;
+            padding: 10px;
+            border-left: 4px solid #0EA5E9;
+            margin: 10px 0;
         }
     </style>
 </head>
 <body>
-    <div class="invoice-container">
+    <div class="container">
         <!-- Header -->
-        <div class="invoice-header">
+        <div class="header">
+            <div class="company-name">{{ $company['name'] }}</div>
             <div class="company-info">
-                <div class="company-logo">{{ $invoice->company_name }}</div>
-                <div class="company-details">
-                    @if($invoice->company_address)
-                        <div>{{ $invoice->company_address }}</div>
-                    @endif
-                    @if($invoice->company_phone)
-                        <div>Điện thoại: {{ $invoice->company_phone }}</div>
-                    @endif
-                    @if($invoice->company_email)
-                        <div>Email: {{ $invoice->company_email }}</div>
-                    @endif
-                    @if($invoice->company_tax_code)
-                        <div>Mã số thuế: {{ $invoice->company_tax_code }}</div>
-                    @endif
-                </div>
-            </div>
-            <div class="invoice-title">
-                <h1>HÓA ĐƠN</h1>
-                <div class="invoice-number">#{{ $invoice->invoice_number }}</div>
+                {{ $company['address'] }}<br>
+                Điện thoại: {{ $company['phone'] }} | Email: {{ $company['email'] }}<br>
+                Website: {{ $company['website'] }} | MST: {{ $company['tax_code'] }}
             </div>
         </div>
 
-        <!-- Invoice Details -->
-        <div class="invoice-details">
-            <div class="bill-to">
-                <div class="section-title">Thông tin khách hàng</div>
-                <div class="customer-info">
-                    <div><strong>{{ $invoice->customer_name }}</strong></div>
-                    <div>{{ $invoice->customer_email }}</div>
-                    @if($invoice->customer_phone)
-                        <div>{{ $invoice->customer_phone }}</div>
-                    @endif
-                    @if($invoice->customer_address)
-                        <div>{{ $invoice->customer_address }}</div>
-                    @endif
-                </div>
-            </div>
-            <div class="invoice-info">
+        <!-- Invoice Title -->
+        <div class="invoice-title">HÓA ĐƠN DỊCH VỤ DU LỊCH</div>
+
+        <!-- Invoice Info -->
+        <div class="invoice-info">
+            <div class="invoice-details">
                 <div class="section-title">Thông tin hóa đơn</div>
-                <div class="invoice-meta">
-                    <div class="meta-row">
-                        <span class="meta-label">Ngày tạo:</span>
-                        <span>{{ $invoice->invoice_date->format('d/m/Y') }}</span>
-                    </div>
-                    <div class="meta-row">
-                        <span class="meta-label">Hạn thanh toán:</span>
-                        <span>{{ $invoice->due_date->format('d/m/Y') }}</span>
-                    </div>
-                    <div class="meta-row">
-                        <span class="meta-label">Trạng thái:</span>
-                        <span class="status-badge status-{{ $invoice->payment_status }}">
-                            @switch($invoice->payment_status)
-                                @case('pending') Chờ thanh toán @break
-                                @case('paid') Đã thanh toán @break
-                                @case('cancelled') Đã hủy @break
-                                @case('refunded') Đã hoàn tiền @break
-                            @endswitch
+                <div class="detail-row">
+                    <div class="detail-label">Số hóa đơn:</div>
+                    <div class="detail-value">{{ $invoice->invoice_number }}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Ngày phát hành:</div>
+                    <div class="detail-value">{{ $invoice->issue_date->format('d/m/Y') }}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Trạng thái:</div>
+                    <div class="detail-value">
+                        <span class="status-badge status-{{ $invoice->status }}">
+                            {{ ucfirst($invoice->status) }}
                         </span>
                     </div>
                 </div>
+                <div class="detail-row">
+                    <div class="detail-label">Mã đặt tour:</div>
+                    <div class="detail-value">#{{ $booking->id }}</div>
+                </div>
+            </div>
+
+            <div class="customer-details">
+                <div class="section-title">Thông tin khách hàng</div>
+                <div class="detail-row">
+                    <div class="detail-label">Họ tên:</div>
+                    <div class="detail-value">{{ $user->name }}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Email:</div>
+                    <div class="detail-value">{{ $user->email }}</div>
+                </div>
+                @if($user->phone)
+                <div class="detail-row">
+                    <div class="detail-label">Điện thoại:</div>
+                    <div class="detail-value">{{ $user->phone }}</div>
+                </div>
+                @endif
+                @if($user->address)
+                <div class="detail-row">
+                    <div class="detail-label">Địa chỉ:</div>
+                    <div class="detail-value">{{ $user->address }}</div>
+                </div>
+                @endif
             </div>
         </div>
 
-        <!-- Tour Information -->
-        <div class="tour-section">
-            <div class="tour-title">{{ $invoice->tour_title }}</div>
-            <div class="tour-details">
-                <div class="tour-detail">
-                    <div class="tour-detail-label">Ngày khởi hành:</div>
-                    <div class="tour-detail-value">{{ $invoice->departure_date->format('d/m/Y') }}</div>
-                </div>
-                <div class="tour-detail">
-                    <div class="tour-detail-label">Số khách:</div>
-                    <div class="tour-detail-value">
-                        {{ $invoice->adults }} người lớn
-                        @if($invoice->children > 0), {{ $invoice->children }} trẻ em @endif
-                        @if($invoice->infants > 0), {{ $invoice->infants }} em bé @endif
-                    </div>
-                </div>
-            </div>
-        </div>
+        <!-- Tour Details -->
+        <div class="tour-details">
+            <div class="section-title">Chi tiết tour</div>
+            
+            <table class="tour-table">
+                <thead>
+                    <tr>
+                        <th>Tên tour</th>
+                        <th>Địa điểm</th>
+                        <th>Thời gian</th>
+                        <th>Ngày khởi hành</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>{{ $tour->title }}</td>
+                        <td>{{ $tour->location }}</td>
+                        <td>{{ $tour->duration }}</td>
+                        <td>{{ $departure ? $departure->departure_date->format('d/m/Y') : 'N/A' }}</td>
+                    </tr>
+                </tbody>
+            </table>
 
-        <!-- Items Table -->
-        <table class="items-table">
-            <thead>
-                <tr>
-                    <th>Loại khách</th>
-                    <th class="text-center">Số lượng</th>
-                    <th class="text-right">Đơn giá</th>
-                    <th class="text-right">Thành tiền</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if($invoice->adults > 0)
-                <tr>
-                    <td class="guest-type">Người lớn</td>
-                    <td class="text-center">{{ $invoice->adults }}</td>
-                    <td class="text-right price">{{ number_format($invoice->adult_price, 0, ',', '.') }} VNĐ</td>
-                    <td class="text-right price">{{ number_format($invoice->adults * $invoice->adult_price, 0, ',', '.') }} VNĐ</td>
-                </tr>
+            @if($departure)
+            <div class="departure-info">
+                <strong>Thông tin khởi hành:</strong><br>
+                Ngày: {{ $departure->departure_date->format('d/m/Y') }}<br>
+                @if($departure->return_date)
+                Ngày về: {{ $departure->return_date->format('d/m/Y') }}<br>
                 @endif
-                @if($invoice->children > 0)
-                <tr>
-                    <td class="guest-type">Trẻ em</td>
-                    <td class="text-center">{{ $invoice->children }}</td>
-                    <td class="text-right price">{{ number_format($invoice->child_price, 0, ',', '.') }} VNĐ</td>
-                    <td class="text-right price">{{ number_format($invoice->children * $invoice->child_price, 0, ',', '.') }} VNĐ</td>
-                </tr>
+                @if($departure->meeting_point)
+                Điểm tập trung: {{ $departure->meeting_point }}<br>
                 @endif
-                @if($invoice->infants > 0)
-                <tr>
-                    <td class="guest-type">Em bé</td>
-                    <td class="text-center">{{ $invoice->infants }}</td>
-                    <td class="text-right price">{{ number_format($invoice->infant_price, 0, ',', '.') }} VNĐ</td>
-                    <td class="text-right price">{{ number_format($invoice->infants * $invoice->infant_price, 0, ',', '.') }} VNĐ</td>
-                </tr>
+                @if($departure->meeting_time)
+                Giờ tập trung: {{ $departure->meeting_time }}<br>
                 @endif
-            </tbody>
-        </table>
-
-        <!-- Totals -->
-        <div class="totals">
-            <div class="total-row">
-                <span class="total-label">Tạm tính:</span>
-                <span class="total-value">{{ number_format($invoice->subtotal, 0, ',', '.') }} VNĐ</span>
-            </div>
-            @if($invoice->discount_amount > 0)
-            <div class="total-row">
-                <span class="total-label">Giảm giá:</span>
-                <span class="total-value">-{{ number_format($invoice->discount_amount, 0, ',', '.') }} VNĐ</span>
             </div>
             @endif
-            <div class="total-row">
-                <span class="total-label">VAT ({{ $invoice->tax_rate }}%):</span>
-                <span class="total-value">{{ number_format($invoice->tax_amount, 0, ',', '.') }} VNĐ</span>
-            </div>
-            <div class="total-row final">
-                <span class="total-label">TỔNG CỘNG:</span>
-                <span class="total-value">{{ number_format($invoice->total_amount, 0, ',', '.') }} VNĐ</span>
-            </div>
         </div>
 
-        <!-- Payment Information -->
-        <div class="payment-info">
-            <div class="payment-title">Thông tin thanh toán</div>
-            <div class="payment-methods">
-                <div class="payment-method">
-                    <div class="payment-method-title">Chuyển khoản ngân hàng</div>
-                    <div class="payment-method-details">
-                        <div>Ngân hàng: Vietcombank</div>
-                        <div>Số tài khoản: 1234567890</div>
-                        <div>Chủ tài khoản: {{ $invoice->company_name }}</div>
-                        <div>Nội dung: {{ $invoice->invoice_number }}</div>
-                    </div>
-                </div>
-                <div class="payment-method">
-                    <div class="payment-method-title">Thanh toán trực tuyến</div>
-                    <div class="payment-method-details">
-                        <div>Visa, Mastercard</div>
-                        <div>Ví điện tử</div>
-                        <div>QR Code</div>
-                    </div>
-                </div>
-            </div>
+        <!-- Passenger Details -->
+        <div class="tour-details">
+            <div class="section-title">Thông tin hành khách</div>
+            
+            <table class="tour-table">
+                <thead>
+                    <tr>
+                        <th>Loại</th>
+                        <th>Số lượng</th>
+                        <th>Giá</th>
+                        <th>Thành tiền</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if($booking->adults > 0)
+                    <tr>
+                        <td>Người lớn</td>
+                        <td>{{ $booking->adults }}</td>
+                        <td>{{ number_format($tour->price_adult ?? $tour->price, 0, ',', '.') }} VNĐ</td>
+                        <td>{{ number_format(($tour->price_adult ?? $tour->price) * $booking->adults, 0, ',', '.') }} VNĐ</td>
+                    </tr>
+                    @endif
+                    
+                    @if($booking->children > 0)
+                    <tr>
+                        <td>Trẻ em</td>
+                        <td>{{ $booking->children }}</td>
+                        <td>{{ number_format($tour->price_child ?? ($tour->price * 0.7), 0, ',', '.') }} VNĐ</td>
+                        <td>{{ number_format(($tour->price_child ?? ($tour->price * 0.7)) * $booking->children, 0, ',', '.') }} VNĐ</td>
+                    </tr>
+                    @endif
+                    
+                    @if($booking->infants > 0)
+                    <tr>
+                        <td>Em bé</td>
+                        <td>{{ $booking->infants }}</td>
+                        <td>{{ number_format($tour->price_infant ?? ($tour->price * 0.3), 0, ',', '.') }} VNĐ</td>
+                        <td>{{ number_format(($tour->price_infant ?? ($tour->price * 0.3)) * $booking->infants, 0, ',', '.') }} VNĐ</td>
+                    </tr>
+                    @endif
+                </tbody>
+            </table>
         </div>
 
-        <!-- Notes -->
-        @if($invoice->notes)
-        <div class="notes">
-            <div class="notes-title">Ghi chú:</div>
-            <div class="notes-content">{{ $invoice->notes }}</div>
+        <!-- Promotion Info -->
+        @if($promotion)
+        <div class="promotion-info">
+            <strong>Mã giảm giá đã áp dụng:</strong> {{ $promotion->code }}<br>
+            <strong>Mô tả:</strong> {{ $promotion->description }}<br>
+            <strong>Giảm giá:</strong> {{ $promotion->discount_type === 'percentage' ? $promotion->discount_value . '%' : number_format($promotion->discount_value, 0, ',', '.') . ' VNĐ' }}
         </div>
         @endif
 
+        <!-- Amount Section -->
+        <div class="amount-section">
+            <div class="amount-row">
+                <div class="amount-label">Tổng tiền tour:</div>
+                <div>{{ number_format($booking->total_amount, 0, ',', '.') }} VNĐ</div>
+            </div>
+            
+            @if($promotion)
+            @php
+                $discountAmount = $promotion->discount_type === 'percentage' 
+                    ? ($booking->total_amount * $promotion->discount_value / 100)
+                    : $promotion->discount_value;
+            @endphp
+            <div class="amount-row">
+                <div class="amount-label">Giảm giá:</div>
+                <div>-{{ number_format($discountAmount, 0, ',', '.') }} VNĐ</div>
+            </div>
+            @endif
+            
+            <div class="amount-row total-row">
+                <div class="amount-label">TỔNG CỘNG:</div>
+                <div>{{ number_format($invoice->amount, 0, ',', '.') }} VNĐ</div>
+            </div>
+        </div>
+
         <!-- Footer -->
-        <div class="invoice-footer">
-            <div>Cảm ơn quý khách đã sử dụng dịch vụ của chúng tôi!</div>
-            <div>Hóa đơn được tạo tự động bởi hệ thống Tour365</div>
-            <div>Ngày tạo: {{ now()->format('d/m/Y H:i:s') }}</div>
+        <div class="footer">
+            <p><strong>Cảm ơn quý khách đã sử dụng dịch vụ của {{ $company['name'] }}!</strong></p>
+            <p>Hóa đơn này được tạo tự động bởi hệ thống quản lý du lịch Tour365</p>
+            <p>Mọi thắc mắc vui lòng liên hệ: {{ $company['phone'] }} hoặc {{ $company['email'] }}</p>
         </div>
     </div>
 </body>

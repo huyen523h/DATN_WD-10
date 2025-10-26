@@ -86,7 +86,7 @@ class Tour extends Model
      */
     public function departures(): HasMany
     {
-        return $this->hasMany(TourDeparture::class);
+        return $this->hasMany(TourDeparture::class, 'tour_id');
     }
 
     /**
@@ -120,5 +120,84 @@ class Tour extends Model
     public function coverImage()
     {
         return $this->images()->where('is_cover', true)->first();
+    }
+
+    /**
+     * Get the main image URL for the tour.
+     */
+    public function getMainImageAttribute()
+    {
+        return $this->images()->where('is_cover', true)->first()?->image_url;
+    }
+
+    /**
+     * Get formatted price.
+     */
+    public function getFormattedPriceAttribute()
+    {
+        return number_format($this->price, 0, ',', '.') . ' VND';
+    }
+
+    /**
+     * Get formatted departure date.
+     */
+    public function getFormattedDepartureDateAttribute()
+    {
+        return $this->departure_date ? $this->departure_date->format('d/m/Y') : null;
+    }
+
+    /**
+     * Scope: Filter by location
+     */
+    public function scopeByLocation($query, $location)
+    {
+        return $query->where('location', 'like', '%' . $location . '%');
+    }
+
+    /**
+     * Scope: Filter by price range
+     */
+    public function scopeByPriceRange($query, $minPrice = null, $maxPrice = null)
+    {
+        if ($minPrice) {
+            $query->where('price', '>=', $minPrice);
+        }
+        if ($maxPrice) {
+            $query->where('price', '<=', $maxPrice);
+        }
+        return $query;
+    }
+
+    /**
+     * Scope: Filter available tours
+     */
+    public function scopeAvailable($query)
+    {
+        return $query->where('status', 'active')
+                    ->where('available_seats', '>', 0);
+    }
+
+    /**
+     * Scope: Filter by status
+     */
+    public function scopeByStatus($query, $status)
+    {
+        return $query->where('status', $status);
+    }
+
+    /**
+     * Scope: Active tours
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
+    }
+
+    /**
+     * Get wishlists for the tour.
+     */
+    public function wishlists(): HasMany
+    {
+        return $this->hasMany(Wishlist::class);
     }
 }

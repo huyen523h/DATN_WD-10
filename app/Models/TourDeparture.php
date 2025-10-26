@@ -34,7 +34,7 @@ class TourDeparture extends Model
      */
     public function tour(): BelongsTo
     {
-        return $this->belongsTo(Tour::class);
+        return $this->belongsTo(Tour::class , 'tour_id');
     }
 
     /**

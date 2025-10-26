@@ -562,10 +562,144 @@ document.addEventListener('DOMContentLoaded', function() {
 <script>
     // Initialize tooltips
     document.addEventListener('DOMContentLoaded', function() {
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl);
-        });
+        if (typeof bootstrap !== 'undefined') {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        }
     });
+
+    // Generate Invoice PDF
+    async function generateInvoice(bookingId, buttonElement = null) {
+        let button = null;
+        let originalContent = null;
+        
+        try {
+            button = buttonElement || event.target.closest('button');
+            originalContent = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            button.disabled = true;
+
+            console.log('Generating invoice for booking:', bookingId);
+
+            // First test simple debug route
+            const debugResponse = await fetch(`/debug-invoice-simple/${bookingId}`);
+            const debugData = await debugResponse.json();
+            console.log('Debug response:', debugData);
+
+            if (!debugData.success) {
+                throw new Error('Debug failed: ' + debugData.message);
+            }
+
+            const response = await fetch(`/web/invoices/booking/${bookingId}/pdf`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                }
+            });
+
+            console.log('Response status:', response.status);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('Response data:', data);
+
+            if (data.success && data.data && data.data.download_url) {
+                // Open PDF in new tab
+                const newWindow = window.open(data.data.download_url, '_blank');
+                
+                if (newWindow) {
+                    showAlert('success', 'PDF hóa đơn đã được tạo thành công!');
+                } else {
+                    showAlert('warning', 'Popup bị chặn. Vui lòng cho phép popup và thử lại.');
+                }
+            } else {
+                showAlert('danger', 'Lỗi: ' + (data.message || 'Không thể tạo PDF'));
+            }
+        } catch (error) {
+            console.error('Error generating invoice:', error);
+            showAlert('danger', 'Lỗi: ' + error.message);
+        } finally {
+            if (button && originalContent) {
+                button.innerHTML = originalContent;
+                button.disabled = false;
+            }
+        }
+    }
+
+    // Download Invoice PDF
+    async function downloadInvoice(bookingId) {
+        let button = null;
+        let originalContent = null;
+        
+        try {
+            button = event.target.closest('button');
+            originalContent = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            button.disabled = true;
+
+            const response = await fetch(`/web/invoices/booking/${bookingId}/pdf`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success) {
+                    // Download the PDF file
+                    const link = document.createElement('a');
+                    link.href = data.data.download_url;
+                    link.download = data.data.file_name;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    showAlert('success', 'PDF hóa đơn đã được tải xuống!');
+                } else {
+                    showAlert('danger', 'Lỗi: ' + data.message);
+                }
+            } else {
+                const errorText = await response.text();
+                showAlert('danger', 'Lỗi: ' + errorText);
+            }
+        } catch (error) {
+            showAlert('danger', 'Lỗi: ' + error.message);
+        } finally {
+            if (button && originalContent) {
+                button.innerHTML = originalContent;
+                button.disabled = false;
+            }
+        }
+    }
+
+    // Show alert message
+    function showAlert(type, message) {
+        const alertContainer = document.createElement('div');
+        alertContainer.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        alertContainer.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        alertContainer.innerHTML = `
+            <div class="d-flex align-items-center">
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : type === 'info' ? 'info-circle' : 'exclamation-circle'} me-2"></i>
+                <span>${message}</span>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(alertContainer);
+        
+        setTimeout(() => {
+            if (alertContainer.parentNode) {
+                alertContainer.remove();
+            }
+        }, 5000);
+    }
 </script>
 @endsection

@@ -67,14 +67,6 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the employee record for the user.
-     */
-    public function employee(): HasOne
-    {
-        return $this->hasOne(Employee::class);
-    }
-
-    /**
      * Get the bookings for the user.
      */
     public function bookings(): HasMany
@@ -169,56 +161,5 @@ class User extends Authenticatable
     public function isCustomer(): bool
     {
         return $this->hasRole('customer');
-    }
-
-    /**
-     * Check if user has a specific permission.
-     */
-    public function hasPermission(string $permission): bool
-    {
-        foreach ($this->roles as $role) {
-            if ($role->permissions()->where('name', $permission)->exists()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Check if user has any of the given permissions.
-     */
-    public function hasAnyPermission(array $permissions): bool
-    {
-        foreach ($permissions as $permission) {
-            if ($this->hasPermission($permission)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Check if user has all of the given permissions.
-     */
-    public function hasAllPermissions(array $permissions): bool
-    {
-        foreach ($permissions as $permission) {
-            if (!$this->hasPermission($permission)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /**
-     * Get user's permissions.
-     */
-    public function getPermissions(): \Illuminate\Database\Eloquent\Collection
-    {
-        $permissions = collect();
-        foreach ($this->roles as $role) {
-            $permissions = $permissions->merge($role->permissions);
-        }
-        return $permissions->unique('id');
     }
 }
