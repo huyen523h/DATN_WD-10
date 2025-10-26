@@ -23,6 +23,7 @@
     <link href="{{ asset('css/admin.css') }}" rel="stylesheet">
     <link href="{{ asset('css/admin-modern.css') }}" rel="stylesheet">
     <link href="{{ asset('css/dashboard-professional.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/admin-tables.css') }}" rel="stylesheet">
     <style>
         :root {
             /* Primary Colors */
@@ -909,6 +910,14 @@
                             <i class="fas fa-tags"></i>
                         </div>
                         <span class="nav-text">Danh mục</span>
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="{{ route('admin.invoices.index') }}" class="nav-link {{ request()->routeIs('admin.invoices*') ? 'active' : '' }}">
+                        <div class="nav-icon">
+                            <i class="fas fa-file-invoice"></i>
+                        </div>
+                        <span class="nav-text">Hóa đơn</span>
                     </a>
                 </div>
                 <div class="nav-item">
