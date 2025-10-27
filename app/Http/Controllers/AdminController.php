@@ -70,7 +70,7 @@ class AdminController extends Controller
     $categories = Category::orderBy('name')->get();
 
     // Trả kèm giá trị filter hiện tại để giữ selected trong view
-    return view('admin.tours', [
+    return view('admin.tours.index', [
         'tours'               => $tours,
         'categories'          => $categories,
         'availabilityCurrent' => $av,
@@ -727,6 +727,143 @@ class AdminController extends Controller
         }
 
         return redirect()->route('admin.settings')->with('success', 'Cài đặt đã được cập nhật thành công!');
+    }
+
+    // Banner management methods
+    public function banners()
+    {
+        $banners = \App\Models\Banner::orderBy('sort_order', 'asc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
+
+        return view('admin.banners.index', compact('banners'));
+    }
+
+    public function createBanner()
+    {
+        return view('admin.banners.create');
+    }
+
+    public function storeBanner(Request $request)
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:200',
+            'description' => 'nullable|string',
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:5120', // 5MB max
+            'link_url' => 'nullable|url|max:500',
+            'type' => 'required|in:hero,promotion,category,featured',
+            'position' => 'required|in:top,middle,bottom,sidebar',
+            'sort_order' => 'nullable|integer|min:0',
+            'is_active' => 'nullable|boolean',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'target_audience' => 'nullable|array',
+        ]);
+
+        // Upload image
+        if ($request->hasFile('image')) {
+            $image = $request->file('image');
+            $imageName = time() . '_' . $image->getClientOriginalName();
+            $imagePath = $image->storeAs('banners', $imageName, 'public');
+            $validated['image_url'] = Storage::url($imagePath);
+        }
+
+        unset($validated['image']); // Remove image from validated data
+        \App\Models\Banner::create($validated);
+
+        return redirect()->route('admin.banners')
+            ->with('success', 'Banner đã được tạo thành công!');
+    }
+
+    public function showBanner(\App\Models\Banner $banner)
+    {
+        return view('admin.banners.show', compact('banner'));
+    }
+
+    public function editBanner(\App\Models\Banner $banner)
+    {
+        return view('admin.banners.edit', compact('banner'));
+    }
+
+    public function updateBanner(Request $request, \App\Models\Banner $banner)
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:200',
+            'description' => 'nullable|string',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120', // 5MB max, nullable for update
+            'link_url' => 'nullable|url|max:500',
+            'type' => 'required|in:hero,promotion,category,featured',
+            'position' => 'required|in:top,middle,bottom,sidebar',
+            'sort_order' => 'nullable|integer|min:0',
+            'is_active' => 'nullable|boolean',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'target_audience' => 'nullable|array',
+        ]);
+
+        // Upload new image if provided
+        if ($request->hasFile('image')) {
+            $image = $request->file('image');
+            $imageName = time() . '_' . $image->getClientOriginalName();
+            $imagePath = $image->storeAs('banners', $imageName, 'public');
+            $validated['image_url'] = Storage::url($imagePath);
+        }
+
+        unset($validated['image']); // Remove image from validated data
+        $banner->update($validated);
+
+        return redirect()->route('admin.banners')
+            ->with('success', 'Banner đã được cập nhật thành công!');
+    }
+
+    public function deleteBanner(\App\Models\Banner $banner)
+    {
+        $banner->delete();
+
+        return redirect()->route('admin.banners')
+            ->with('success', 'Banner đã được xóa thành công!');
+    }
+
+    public function moveBanner(Request $request, \App\Models\Banner $banner)
+    {
+        $direction = $request->input('direction');
+        
+        if (!in_array($direction, ['up', 'down'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hướng di chuyển không hợp lệ'
+            ], 400);
+        }
+
+        $banners = \App\Models\Banner::where('position', $banner->position)
+            ->orderBy('sort_order')
+            ->get();
+
+        $currentIndex = $banners->search(function ($item) use ($banner) {
+            return $item->id === $banner->id;
+        });
+
+        if ($direction === 'up' && $currentIndex > 0) {
+            $previousBanner = $banners[$currentIndex - 1];
+            $tempOrder = $banner->sort_order;
+            $banner->update(['sort_order' => $previousBanner->sort_order]);
+            $previousBanner->update(['sort_order' => $tempOrder]);
+        } elseif ($direction === 'down' && $currentIndex < $banners->count() - 1) {
+            $nextBanner = $banners[$currentIndex + 1];
+            $tempOrder = $banner->sort_order;
+            $banner->update(['sort_order' => $nextBanner->sort_order]);
+            $nextBanner->update(['sort_order' => $tempOrder]);
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không thể di chuyển banner theo hướng này'
+            ], 400);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Banner đã được di chuyển thành công'
+        ]);
     }
 }
 

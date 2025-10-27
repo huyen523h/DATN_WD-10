@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\TourImageController; // thêm: controller ảnh
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\Admin\ReviewController as AdminReviewController;
 use App\Http\Controllers\Api\PromotionController;
+use App\Http\Controllers\Api\BannerController; // thêm: controller banner
 
 
 // Public routes

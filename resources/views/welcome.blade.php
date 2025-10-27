@@ -23,6 +23,9 @@
 @endphp
 
 @section('content')
+<!-- Banner Slider -->
+<x-banner-slider />
+
 <!-- Hero Section với Video Background -->
 <section class="hero-section">
     <div class="hero-video">
@@ -475,6 +478,9 @@
     </div>
 </section>
 
+<!-- Banner Middle Section -->
+<x-banner-section position="middle" />
+
 <!-- Featured Tours Section -->
 <section class="py-5 bg-light">
     <div class="container">
@@ -660,6 +666,9 @@
         </div>
     </div>
 </section>
+
+<!-- Banner Bottom Section -->
+<x-banner-section position="bottom" />
 @endsection
 
 @section('scripts')
