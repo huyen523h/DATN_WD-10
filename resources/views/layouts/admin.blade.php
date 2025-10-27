@@ -965,6 +965,7 @@
                     <span class="nav-text">Quản lý khởi hành</span>
                 </a>
             </div>
+            
 
             <!-- Reports -->
             <div class="nav-item">
@@ -1119,34 +1120,35 @@
     <!-- Custom Admin JS -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-                    // Sidebar toggle
-                    const sidebarToggle = document.getElementById('sidebarToggle');
-                    const sidebar = document.getElementById('adminSidebar');
-                    const main = document.getElementById('adminMain');
+            // Sidebar toggle
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebar = document.getElementById('adminSidebar');
+            const main = document.getElementById('adminMain');
 
-                    sidebarToggle.addEventListener('click', function() {
-                        sidebar.classList.toggle('collapsed');
-                        main.classList.toggle('sidebar-collapsed');
+            sidebarToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('collapsed');
+                main.classList.toggle('sidebar-collapsed');
 
-                        // Save state to localStorage
-                        const isCollapsed = sidebar.classList.contains('collapsed');
-                        localStorage.setItem('adminSidebarCollapsed', isCollapsed);
+                // Save state to localStorage
+                const isCollapsed = sidebar.classList.contains('collapsed');
+                localStorage.setItem('adminSidebarCollapsed', isCollapsed);
 
-                    });
+            });
 
-                    // Close sidebar when clicking outside
-                    document.addEventListener('click', (e) => {
-                        if (!sidebar.contains(e.target) && !sidebarToggle.contains(e.target)) {
-                            sidebar.classList.remove('open');
-                        }
-                    });
+            // Close sidebar when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!sidebar.contains(e.target) && !sidebarToggle.contains(e.target)) {
+                    sidebar.classList.remove('open');
                 }
+            });
+        });
 
-                // User menu toggle
-                function toggleUserMenu() {
-                    // Implement user menu dropdown
-                    console.log('Toggle user menu');
-                }
+
+        // User menu toggle
+        function toggleUserMenu() {
+            // Implement user menu dropdown
+            console.log('Toggle user menu');
+        }
     </script>
 
     @yield('scripts')
