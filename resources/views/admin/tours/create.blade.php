@@ -3,7 +3,7 @@
 @section('title', 'Thêm tour mới - Admin')
 
 @section('breadcrumb')
-<li class="breadcrumb-item"><a href="{{ route('admin.tours.index') }}">Quản lý Tours</a></li>
+<li class="breadcrumb-item"><a href="{{ route('admin.tours') }}">Quản lý Tours</a></li>
 <li class="breadcrumb-item active">Thêm tour mới</li>
 @endsection
 
@@ -14,7 +14,7 @@
         <h2><i class="fas fa-plus text-primary"></i> Thêm tour mới</h2>
         <p class="text-muted mb-0">Tạo tour du lịch mới cho hệ thống</p>
     </div>
-    <a href="{{ route('admin.tours.index') }}" class="btn btn-outline-secondary">
+    <a href="{{ route('admin.tours') }}" class="btn btn-outline-secondary">
         <i class="fas fa-arrow-left"></i> Quay lại
     </a>
 </div>
@@ -513,7 +513,7 @@
                         <p class="text-muted mb-0">Kiểm tra lại thông tin trước khi lưu</p>
                     </div>
                     <div class="d-flex gap-2">
-                        <a href="{{ route('admin.tours.index') }}" class="btn btn-outline-secondary">
+                        <a href="{{ route('admin.tours') }}" class="btn btn-outline-secondary">
                             <i class="fas fa-times"></i> Hủy
                         </a>
                         <button type="submit" class="btn btn-primary" form="tourForm" id="saveBtn">

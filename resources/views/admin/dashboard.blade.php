@@ -368,7 +368,7 @@
                     Thao tác nhanh
                 </h3>
                 <div class="actions-grid">
-                    <a href="{{ route('admin.tours.index') }}" class="action-item">
+                    <a href="{{ route('admin.tours') }}" class="action-item">
                         <div class="action-icon">
                             <i class="fas fa-plus"></i>
                         </div>
