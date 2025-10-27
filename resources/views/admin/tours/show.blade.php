@@ -4,7 +4,7 @@
 
 @section('breadcrumb')
 <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
-<li class="breadcrumb-item"><a href="{{ route('admin.tours.index') }}">Tours</a></li>
+<li class="breadcrumb-item"><a href="{{ route('admin.tours') }}">Tours</a></li>
 <li class="breadcrumb-item active">Chi tiết</li>
 @endsection
 
@@ -16,7 +16,7 @@
         <p class="text-muted mb-0">{{ $tour->title }}</p>
     </div>
     <div class="d-flex gap-2">
-        <a href="{{ route('admin.tours.index') }}" class="btn btn-outline-secondary">
+        <a href="{{ route('admin.tours') }}" class="btn btn-outline-secondary">
             <i class="fas fa-arrow-left"></i> Quay lại
         </a>
         <a href="{{ route('admin.tours.edit', $tour) }}" class="btn btn-warning">
