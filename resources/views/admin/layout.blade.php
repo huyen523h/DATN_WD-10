@@ -73,7 +73,7 @@
                     href="{{ route('admin.dashboard') }}"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
                 {{-- <a class="nav-link {{ request()->routeIs('admin.tours') ? 'active' : '' }}" href="{{ route('admin.tours.index') }}"><i class="bi bi-map me-2"></i>Tours</a> --}}
                 <a class="nav-link {{ request()->routeIs('admin.tours.*') ? 'active' : '' }}"
-                    href="{{ route('admin.tours.index') }}">
+                    href="{{ route('admin.tours') }}">
                     <i class="bi bi-map me-2"></i>Tours
                 </a>
 
