@@ -932,6 +932,14 @@
                 </a>
             </div>
 
+        <!-- Banners Management -->
+        <div class="nav-item">
+            <a href="{{ route('admin.banners') }}" class="nav-link {{ request()->routeIs('admin.banners*') ? 'active' : '' }}">
+                <i class="fas fa-image"></i>
+                <span class="nav-text">Quản lý Banner</span>
+            </a>
+        </div>
+
             <!-- Categories Management -->
             <div class="nav-item">
                 <a href="{{ route('admin.categories') }}"
@@ -1101,7 +1109,7 @@
 
                 <div class="user-menu">
                     <div class="user-avatar" onclick="toggleUserMenu()">
-                        {{ substr(Auth::user()->name, 0, 1) }}
+                        {{ Auth::user() ? substr(Auth::user()->name, 0, 1) : 'A' }}
                     </div>
                 </div>
             </div>

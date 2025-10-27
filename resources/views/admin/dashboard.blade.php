@@ -308,6 +308,59 @@
                 </div>
             </div>
 
+            <!-- Recent Banners -->
+            <div class="card mb-6">
+                <div class="card-header">
+                    <h3 class="text-lg font-semibold text-gray-900">
+                        <i class="fas fa-image text-indigo-600 mr-2"></i>
+                        Banner gần đây
+                    </h3>
+                    <a href="{{ route('admin.banners') }}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-eye mr-1"></i>
+                        Xem tất cả
+                    </a>
+                </div>
+                <div class="card-body">
+                    @php
+                        $recent_banners = \App\Models\Banner::orderBy('created_at', 'desc')->limit(3)->get();
+                    @endphp
+                    @if($recent_banners->count() > 0)
+                        <div class="space-y-3">
+                            @foreach($recent_banners as $banner)
+                                <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+                                    <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mr-3">
+                                        <i class="fas fa-image text-indigo-600"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="text-sm font-medium text-gray-900">{{ $banner->title }}</div>
+                                        <div class="text-xs text-gray-500">
+                                            {{ $banner->type }} • {{ $banner->position }}
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-xs text-gray-500">
+                                            {{ $banner->created_at->format('d/m/Y') }}
+                                        </div>
+                                        @if($banner->is_active)
+                                            <span class="badge badge-success badge-sm">Hoạt động</span>
+                                        @else
+                                            <span class="badge badge-secondary badge-sm">Tạm dừng</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="text-center py-4">
+                            <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                                <i class="fas fa-image text-gray-400"></i>
+                            </div>
+                            <p class="text-sm text-gray-500">Chưa có banner nào</p>
+                        </div>
+                    @endif
+                </div>
+            </div>
+
             <!-- Quick Actions -->
             <div class="quick-actions">
                 <h3 class="quick-actions-title">
@@ -315,7 +368,7 @@
                     Thao tác nhanh
                 </h3>
                 <div class="actions-grid">
-                    <a href="{{ route('admin.tours.index') }}" class="action-item">
+                    <a href="{{ route('admin.tours') }}" class="action-item">
                         <div class="action-icon">
                             <i class="fas fa-plus"></i>
                         </div>
@@ -342,7 +395,16 @@
                             <div class="action-desc">Danh sách khách hàng</div>
                         </div>
                     </a>
-                    <a href="{{ route('admin.settings') }}" class="action-item">
+                    <a href="{{ route('admin.banners') }}" class="action-item">
+                        <div class="action-icon">
+                            <i class="fas fa-image"></i>
+                        </div>
+                        <div class="action-text">
+                            <div class="action-title">Quản lý Banner</div>
+                            <div class="action-desc">Thêm/sửa banner</div>
+                        </div>
+                    </a>
+                    <a href="{{ route('admin.reports') }}" class="action-item">
                         <div class="action-icon">
                             <i class="fas fa-cog"></i>
                         </div>

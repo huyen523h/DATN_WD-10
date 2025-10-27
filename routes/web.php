@@ -11,7 +11,8 @@ use App\Http\Controllers\Api\WishlistsController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\StaffController;
+use App\Http\Controllers\Admin\EmployeeController;
+use App\Http\Controllers\EmployeeAuthController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -467,6 +468,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/settings', [AdminController::class, 'settings'])->name('settings');
     Route::put('/settings', [AdminController::class, 'updateSettings'])->name('settings.update');
 
+<<<<<<< HEAD
     // Users management
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
@@ -475,6 +477,16 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+=======
+    // Banner management
+    Route::get('/banners', [AdminController::class, 'banners'])->name('banners');
+    Route::get('/banners/create', [AdminController::class, 'createBanner'])->name('banners.create');
+    Route::post('/banners', [AdminController::class, 'storeBanner'])->name('banners.store');
+    Route::get('/banners/{banner}', [AdminController::class, 'showBanner'])->name('banners.show');
+    Route::get('/banners/{banner}/edit', [AdminController::class, 'editBanner'])->name('banners.edit');
+    Route::put('/banners/{banner}', [AdminController::class, 'updateBanner'])->name('banners.update');
+    Route::delete('/banners/{banner}', [AdminController::class, 'deleteBanner'])->name('banners.destroy');
+    Route::post('/banners/{banner}/move', [AdminController::class, 'moveBanner'])->name('banners.move');
     
     // ============================================
     // INVOICE MANAGEMENT (Admin Only)
