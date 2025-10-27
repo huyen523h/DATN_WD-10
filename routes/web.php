@@ -279,7 +279,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 });
 
 // Staff routes
-Route::middleware(['auth', 'staff'])->prefix('staff')->name('staff.')->group(function () {
+        Route::middleware(['auth', 'staff'])->prefix('staff')->name('staff.')->group(function () {
     Route::get('/', [StaffController::class, 'dashboard'])->name('dashboard');
 
     // Tours management (read-only for staff)
