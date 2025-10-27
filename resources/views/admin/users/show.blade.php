@@ -58,11 +58,11 @@
                                 </tr>
                                 <tr>
                                     <th>Ngày tạo:</th>
-                                    <td>{{ $user->created_at->format('d/m/Y H:i:s') }}</td>
+                                    <td>{{ $user->created_at ? \Carbon\Carbon::parse($user->created_at)->format('d/m/Y H:i:s') : 'N/A' }}</td>
                                 </tr>
                                 <tr>
                                     <th>Cập nhật cuối:</th>
-                                    <td>{{ $user->updated_at->format('d/m/Y H:i:s') }}</td>
+                                    <td>{{ $user->updated_at ? \Carbon\Carbon::parse($user->updated_at)->format('d/m/Y H:i:s') : 'N/A' }}</td>
                                 </tr>
                                 <tr>
                                     <th>Số booking:</th>
@@ -94,7 +94,7 @@
                                             <tr>
                                                 <td>{{ $booking->id }}</td>
                                                 <td>{{ $booking->tour->title ?? 'N/A' }}</td>
-                                                <td>{{ $booking->created_at->format('d/m/Y') }}</td>
+                                                <td>{{ $booking->created_at ? \Carbon\Carbon::parse($booking->created_at)->format('d/m/Y') : 'N/A' }}</td>
                                                 <td>
                                                     <span class="badge badge-info">{{ $booking->status ?? 'N/A' }}</span>
                                                 </td>
@@ -131,7 +131,7 @@
                                                     @endfor
                                                 </td>
                                                 <td>{{ Str::limit($review->comment, 50) }}</td>
-                                                <td>{{ $review->created_at->format('d/m/Y') }}</td>
+                                                <td>{{ $review->created_at ? \Carbon\Carbon::parse($review->created_at)->format('d/m/Y') : 'N/A' }}</td>
                                             </tr>
                                         @endforeach
                                     </tbody>

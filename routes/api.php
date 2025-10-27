@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\TourController;
 use App\Http\Controllers\Api\TourImageController; // thêm: controller ảnh
 use App\Http\Controllers\Api\PromotionController;
+use App\Http\Controllers\Api\InvoiceController;
+use App\Http\Controllers\Api\InvoiceTestController;
 
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -33,6 +35,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/profile', [AuthController::class, 'updateProfile']);
     Route::post('/change-password', [AuthController::class, 'changePassword']);
     
+    // Check-in/Check-out routes
+    Route::prefix('check-in-out')->group(function () {
+        Route::post('/', [\App\Http\Controllers\CheckInOutController::class, 'mobileCheckInOut']);
+        Route::get('/history', [\App\Http\Controllers\CheckInOutController::class, 'mobileHistory']);
+    });
+
     // Admin routes
     Route::middleware('admin')->group(function () {
         Route::get('/users', [AuthController::class, 'getAllUsers']);
@@ -61,9 +69,27 @@ Route::middleware('auth:sanctum')->group(function () {
         // Xóa 1 ảnh
         Route::delete('tour-images/{image}', [TourImageController::class, 'destroy']); // DELETE /api/tour-images/{image}
     });
+
+    // ============================================
+    // Invoice API routes (authenticated users)
+    // ============================================
+    Route::prefix('invoices')->group(function () {
+        Route::get('/', [InvoiceController::class, 'index']); // GET /api/invoices
+        Route::get('/booking/{bookingId}', [InvoiceController::class, 'show']); // GET /api/invoices/booking/1
+        Route::get('/booking/{bookingId}/pdf', [InvoiceController::class, 'generatePdf']); // GET /api/invoices/booking/1/pdf
+        Route::get('/booking/{bookingId}/download', [InvoiceController::class, 'downloadPdf']); // GET /api/invoices/booking/1/download
     });
 
-// Test route
+    // Admin/Staff only invoice routes
+    Route::middleware(['admin', 'staff'])->group(function () {
+        Route::post('/invoices', [InvoiceController::class, 'store']); // POST /api/invoices
+        Route::put('/invoices/{invoiceId}', [InvoiceController::class, 'update']); // PUT /api/invoices/1
+    });
+});
+
+// Test routes
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
+
+Route::get('/invoice-api-docs', [InvoiceTestController::class, 'testEndpoints']);
