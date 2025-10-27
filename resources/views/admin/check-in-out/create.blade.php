@@ -3,7 +3,6 @@
 @section('title', 'Tạo Check-in/Check-out mới')
 
 @section('content')
-<div class="container-fluid">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -211,7 +210,6 @@
             </div>
         </div>
     </div>
-</div>
 @endsection
 
 @push('scripts')
