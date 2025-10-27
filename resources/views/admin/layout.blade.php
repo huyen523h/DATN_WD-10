@@ -73,7 +73,7 @@
                     href="{{ route('admin.dashboard') }}"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
                 {{-- <a class="nav-link {{ request()->routeIs('admin.tours') ? 'active' : '' }}" href="{{ route('admin.tours') }}"><i class="bi bi-map me-2"></i>Tours</a> --}}
                 <a class="nav-link {{ request()->routeIs('admin.tours.*') ? 'active' : '' }}"
-                    href="{{ route('admin.tours.index') }}">
+                    href="{{ route('admin.tours') }}">
                     <i class="bi bi-map me-2"></i>Tours
                 </a>
 
@@ -81,8 +81,10 @@
                     href="{{ route('admin.bookings') }}"><i class="bi bi-journal-check me-2"></i>Đặt tour</a>
                 <a class="nav-link {{ request()->routeIs('admin.customers') ? 'active' : '' }}"
                     href="{{ route('admin.customers') }}"><i class="bi bi-people me-2"></i>Khách hàng</a>
-                <a class="nav-link {{ request()->routeIs('admin.settings') ? 'active' : '' }}"
-                    href="{{ route('admin.settings') }}"><i class="bi bi-gear me-2"></i>Cấu hình</a>
+                <a class="nav-link {{ request()->routeIs('admin.banners') ? 'active' : '' }}"
+                    href="{{ route('admin.banners') }}"><i class="bi bi-image me-2"></i>Banner</a>
+                <a class="nav-link {{ request()->routeIs('admin.reports') ? 'active' : '' }}"
+                    href="{{ route('admin.reports') }}"><i class="bi bi-gear me-2"></i>Báo cáo</a>
 
                 <hr class="my-3">
 
