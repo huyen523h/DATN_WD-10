@@ -932,6 +932,15 @@
                 </a>
             </div>
 
+            <!-- Check-in/Check-out Management -->
+            <div class="nav-item">
+                <a href="{{ route('admin.check-in-out.index') }}"
+                    class="nav-link {{ request()->routeIs('admin.check-in-out*') ? 'active' : '' }}">
+                    <i class="fas fa-clock"></i>
+                    <span class="nav-text">Check-in/Check-out</span>
+                </a>
+            </div>
+
         <!-- Banners Management -->
         <div class="nav-item">
             <a href="{{ route('admin.banners') }}" class="nav-link {{ request()->routeIs('admin.banners*') ? 'active' : '' }}">

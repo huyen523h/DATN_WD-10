@@ -785,4 +785,7 @@
             });
         });
     </script>
+
+    <!-- Check-in/Check-out Statistics Widget -->
+    @include('components.check-in-out-stats')
 @endsection

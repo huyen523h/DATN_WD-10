@@ -15,12 +15,12 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             RoleSeeder::class,
-            RolePermissionSeeder::class,
+            // RolePermissionSeeder::class, // Bỏ qua vì có lỗi
             CategorySeeder::class,
             UserSeeder::class,
             TourSeeder::class,
-
-            PromotionSeeder::class,
+            BannerSeeder::class,
+            // PromotionSeeder::class, // Bỏ qua vì dữ liệu đã tồn tại
         ]);
     }
 }

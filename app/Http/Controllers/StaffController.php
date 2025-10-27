@@ -2,131 +2,120 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Support\Facades\DB; 
 use App\Models\Tour;
 use App\Models\Booking;
 use App\Models\User;
-use App\Models\Category;
 use Illuminate\Http\Request;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\View\View;
+use Illuminate\Support\Facades\Auth;
 
 class StaffController extends Controller
 {
     public function dashboard()
     {
-        $stats = [
-            'total_tours' => Tour::count(),
-            'total_bookings' => Booking::count(),
-            'pending_bookings' => Booking::where('status', 'pending')->count(),
-            'confirmed_bookings' => Booking::where('status', 'confirmed')->count(),
-        ];
-
-        $recent_bookings = Booking::with(['tour', 'user'])
+        $totalTours = Tour::count();
+        $totalBookings = Booking::count();
+        $totalCustomers = User::whereHas('roles', function ($q) {
+            $q->where('name', 'customer');
+        })->count();
+        
+        $recentBookings = Booking::with(['user', 'tour'])
             ->orderBy('created_at', 'desc')
-            ->limit(10)
+            ->limit(5)
             ->get();
 
-        return view('staff.dashboard', compact('stats', 'recent_bookings'));
+        return view('staff.dashboard', compact(
+            'totalTours',
+            'totalBookings', 
+            'totalCustomers',
+            'recentBookings'
+        ));
     }
 
-    public function tours(Request $request)
+    public function tours()
     {
-        $query = Tour::with(['category', 'images', 'bookings']);
+        $tours = Tour::with(['category', 'images'])
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
 
-        // Tìm kiếm theo tiêu đề/mô tả/danh mục
-        if ($request->filled('search')) {
-            $search = $request->string('search')->toString();
-            $query->where(function ($q) use ($search) {
-                $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhereHas('category', fn ($cq) =>
-                        $cq->where('name', 'like', "%{$search}%")
-                  );
-            });
-        }
-
-        // Lọc theo danh mục
-        if ($request->filled('category_id')) {
-            $query->where('category_id', $request->integer('category_id'));
-        }
-
-        $tours = $query->orderByDesc('created_at')->paginate(10)
-                       ->appends($request->only(['search','category_id']));
-        $categories = Category::orderBy('name')->get();
-
-        return view('staff.tours', [
-            'tours' => $tours,
-            'categories' => $categories,
-        ]);
+        return view('staff.tours.index', compact('tours'));
     }
 
-    public function showTour(Tour $tour): View
+    public function showTour(Tour $tour)
     {
-        $tour->load(['category', 'images', 'schedules', 'departures', 'bookings.user', 'reviews.user']);
+        $tour->load(['category', 'images', 'bookings.user']);
+        
         return view('staff.tours.show', compact('tour'));
     }
 
     public function bookings()
     {
-        $bookings = Booking::with(['tour', 'user', 'departure'])
+        $bookings = Booking::with(['user', 'tour'])
             ->orderBy('created_at', 'desc')
             ->paginate(15);
-        
+
         return view('staff.bookings.index', compact('bookings'));
     }
 
-    public function showBooking(Booking $booking): View
+    public function showBooking(Booking $booking)
     {
-        $booking->load(['tour', 'user', 'departure', 'payments', 'documents', 'chat.messages.sender']);
+        $booking->load(['user', 'tour', 'tour.images']);
+        
         return view('staff.bookings.show', compact('booking'));
     }
 
-    public function updateBooking(Request $request, Booking $booking): RedirectResponse
+    public function updateBooking(Request $request, Booking $booking)
     {
-        $validated = $request->validate([
+        $request->validate([
             'status' => 'required|in:pending,confirmed,cancelled,completed',
-            'notes' => 'nullable|string',
+            'notes' => 'nullable|string|max:500'
         ]);
 
-        $booking->update($validated);
+        $booking->update($request->only(['status', 'notes']));
 
-        return redirect()->route('staff.bookings')->with('success', 'Đặt tour đã được cập nhật thành công!');
+        return redirect()->route('staff.bookings.show', $booking)
+            ->with('success', 'Cập nhật booking thành công.');
     }
 
     public function customers()
     {
-        $customers = User::whereHas('roles', function($query) {
-            $query->where('name', 'customer');
-        })->with(['bookings'])
+        $customers = User::whereHas('roles', function ($q) {
+            $q->where('name', 'customer');
+        })->with(['bookings' => function ($query) {
+            $query->latest()->limit(3);
+        }])
         ->orderBy('created_at', 'desc')
         ->paginate(15);
-        
+
         return view('staff.customers.index', compact('customers'));
     }
 
-    public function showCustomer(User $user): View
+    public function showCustomer(User $user)
     {
-        $user->load(['bookings.tour', 'reviews.tour', 'supportTickets', 'notifications']);
+        $user->load(['bookings.tour', 'reviews.tour']);
+        
         return view('staff.customers.show', compact('user'));
     }
 
     public function profile()
     {
-        return view('staff.profile');
+        $user = Auth::user();
+        return view('staff.profile', compact('user'));
     }
 
-    public function updateProfile(Request $request): RedirectResponse
+    public function updateProfile(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . auth()->id(),
+        $user = Auth::user();
+        
+        $request->validate([
+            'name' => 'required|string|max:100',
+            'email' => 'required|email|unique:users,email,' . $user->id,
             'phone' => 'nullable|string|max:20',
-            'address' => 'nullable|string|max:500',
+            'address' => 'nullable|string|max:255',
         ]);
 
-        auth()->user()->update($validated);
+        $user->update($request->only(['name', 'email', 'phone', 'address']));
 
-        return redirect()->route('staff.profile')->with('success', 'Thông tin cá nhân đã được cập nhật thành công!');
+        return redirect()->route('staff.profile')
+            ->with('success', 'Cập nhật thông tin thành công.');
     }
 }

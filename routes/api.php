@@ -35,6 +35,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/profile', [AuthController::class, 'updateProfile']);
     Route::post('/change-password', [AuthController::class, 'changePassword']);
     
+    // Check-in/Check-out routes
+    Route::prefix('check-in-out')->group(function () {
+        Route::post('/', [\App\Http\Controllers\CheckInOutController::class, 'mobileCheckInOut']);
+        Route::get('/history', [\App\Http\Controllers\CheckInOutController::class, 'mobileHistory']);
+    });
+
     // Admin routes
     Route::middleware('admin')->group(function () {
         Route::get('/users', [AuthController::class, 'getAllUsers']);

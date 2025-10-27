@@ -11,6 +11,8 @@ use App\Http\Controllers\Api\WishlistsController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\StaffController;
+use App\Http\Controllers\CheckInOutController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\EmployeeAuthController;
 
@@ -384,7 +386,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
 
     // Tours management
-    Route::get('/tours', [AdminController::class, 'tours'])->name('tours');
+    Route::get('/tours', [AdminController::class, 'tours'])->name('tours.index');
     Route::get('/tours/create', [AdminController::class, 'createTour'])->name('tours.create');
     Route::post('/tours', [AdminController::class, 'storeTour'])->name('tours.store');
     Route::get('/tours/{tour}', [AdminController::class, 'showTour'])->name('tours.show');
@@ -444,6 +446,19 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::put('/promotions/{promotion}', [AdminController::class, 'updatePromotion'])->name('promotions.update');
     Route::delete('/promotions/{promotion}', [AdminController::class, 'deletePromotion'])->name('promotions.destroy');
 
+    // Check-in/Check-out management
+    Route::get('/check-in-out', [CheckInOutController::class, 'index'])->name('check-in-out.index');
+    Route::get('/check-in-out/create', [CheckInOutController::class, 'create'])->name('check-in-out.create');
+    Route::post('/check-in-out', [CheckInOutController::class, 'store'])->name('check-in-out.store');
+    Route::get('/check-in-out/{checkInOut}', [CheckInOutController::class, 'show'])->name('check-in-out.show');
+    Route::get('/check-in-out/{checkInOut}/edit', [CheckInOutController::class, 'edit'])->name('check-in-out.edit');
+    Route::put('/check-in-out/{checkInOut}', [CheckInOutController::class, 'update'])->name('check-in-out.update');
+    Route::delete('/check-in-out/{checkInOut}', [CheckInOutController::class, 'destroy'])->name('check-in-out.destroy');
+    Route::post('/check-in-out/{checkInOut}/confirm', [CheckInOutController::class, 'confirm'])->name('check-in-out.confirm');
+    Route::post('/check-in-out/{checkInOut}/cancel', [CheckInOutController::class, 'cancel'])->name('check-in-out.cancel');
+    Route::get('/check-in-out-statistics', [CheckInOutController::class, 'statistics'])->name('check-in-out.statistics');
+    Route::get('/check-in-out-statistics-page', [CheckInOutController::class, 'showStatistics'])->name('check-in-out.statistics-page');
+
     // Reports
     Route::get('/reports', [AdminController::class, 'reports'])->name('reports');
 
@@ -468,7 +483,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/settings', [AdminController::class, 'settings'])->name('settings');
     Route::put('/settings', [AdminController::class, 'updateSettings'])->name('settings.update');
 
-<<<<<<< HEAD
     // Users management
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
@@ -477,7 +491,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
-=======
+
     // Banner management
     Route::get('/banners', [AdminController::class, 'banners'])->name('banners');
     Route::get('/banners/create', [AdminController::class, 'createBanner'])->name('banners.create');
