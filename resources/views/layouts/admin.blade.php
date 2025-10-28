@@ -1092,7 +1092,7 @@
             <div class="header-left">
                 <button class="sidebar-toggle" id="sidebarToggle">
                     <i class="fas fa-bars"></i>
-                </button>h
+                </button>
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb">
                         <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Admin</a></li>
@@ -1164,7 +1164,7 @@
                             sidebar.classList.remove('open');
                         }
                     });
-                }
+        });
 
                 // User menu toggle
                 function toggleUserMenu() {
@@ -1329,5 +1329,5 @@
         }
     </style>
 </body>
-
+    
 </html>
