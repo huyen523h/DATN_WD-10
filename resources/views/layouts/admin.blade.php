@@ -17,14 +17,20 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
 
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
     <!-- Icons -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/feather-icons@4.29.0/dist/feather.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 
     <!-- CSS -->
     <link href="{{ asset('css/admin.css') }}" rel="stylesheet">
     <link href="{{ asset('css/admin-modern.css') }}" rel="stylesheet">
     <link href="{{ asset('css/dashboard-professional.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/admin-tables.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/admin-icons.css') }}" rel="stylesheet">
     <style>
         :root {
             /* Primary Colors */
@@ -931,6 +937,23 @@
                 </a>
             </div>
 
+            <!-- Check-in/Check-out Management -->
+            <div class="nav-item">
+                <a href="{{ route('admin.check-in-out.index') }}"
+                    class="nav-link {{ request()->routeIs('admin.check-in-out*') ? 'active' : '' }}">
+                    <i class="fas fa-clock"></i>
+                    <span class="nav-text">Check-in/Check-out</span>
+                </a>
+            </div>
+
+        <!-- Banners Management -->
+        <div class="nav-item">
+            <a href="{{ route('admin.banners') }}" class="nav-link {{ request()->routeIs('admin.banners*') ? 'active' : '' }}">
+                <i class="fas fa-image"></i>
+                <span class="nav-text">Quản lý Banner</span>
+            </a>
+        </div>
+
             <!-- Categories Management -->
             <div class="nav-item">
                 <a href="{{ route('admin.categories') }}"
@@ -1102,7 +1125,7 @@
 
                 <div class="user-menu">
                     <div class="user-avatar" onclick="toggleUserMenu()">
-                        {{ substr(Auth::user()->name, 0, 1) }}
+                        {{ Auth::user() ? substr(Auth::user()->name, 0, 1) : 'A' }}
                     </div>
                 </div>
             </div>
@@ -1110,8 +1133,9 @@
 
         <!-- Content -->
         <main class="content">
-            @yield('content')
-
+            <div class="container-fluid p-4">
+                @yield('content')
+            </div>
         </main>
     </div>
 
@@ -1153,6 +1177,160 @@
     </script>
 
     @yield('scripts')
+    
+    <!-- Check-in/Check-out specific CSS -->
+    <style>
+        /* Form elements styling for check-in/check-out */
+        .form-control, .form-select {
+            border-radius: 0.375rem;
+            border: 1px solid #d1d5db;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
+        }
+
+        /* Card styling for check-in/check-out */
+        .card {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            margin-bottom: 1.5rem;
+        }
+
+        .card-header {
+            background-color: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+            font-weight: 600;
+            padding: 1rem 1.5rem;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        /* Button styling for check-in/check-out */
+        .btn {
+            border-radius: 0.375rem;
+            font-weight: 500;
+            transition: all 0.15s ease-in-out;
+            padding: 0.5rem 1rem;
+        }
+
+        .btn-primary {
+            background-color: #3b82f6;
+            border-color: #3b82f6;
+        }
+
+        .btn-primary:hover {
+            background-color: #2563eb;
+            border-color: #2563eb;
+        }
+
+        .btn-success {
+            background-color: #10b981;
+            border-color: #10b981;
+        }
+
+        .btn-success:hover {
+            background-color: #059669;
+            border-color: #059669;
+        }
+
+        .btn-warning {
+            background-color: #f59e0b;
+            border-color: #f59e0b;
+        }
+
+        .btn-warning:hover {
+            background-color: #d97706;
+            border-color: #d97706;
+        }
+
+        .btn-danger {
+            background-color: #ef4444;
+            border-color: #ef4444;
+        }
+
+        .btn-danger:hover {
+            background-color: #dc2626;
+            border-color: #dc2626;
+        }
+
+        .btn-secondary {
+            background-color: #6b7280;
+            border-color: #6b7280;
+        }
+
+        .btn-secondary:hover {
+            background-color: #4b5563;
+            border-color: #4b5563;
+        }
+
+        /* Statistics cards styling */
+        .border-left-primary {
+            border-left: 0.25rem solid #3b82f6 !important;
+        }
+
+        .border-left-success {
+            border-left: 0.25rem solid #10b981 !important;
+        }
+
+        .border-left-info {
+            border-left: 0.25rem solid #06b6d4 !important;
+        }
+
+        .border-left-warning {
+            border-left: 0.25rem solid #f59e0b !important;
+        }
+
+        /* Table styling */
+        .table th {
+            background-color: #f8f9fc;
+            border-color: #e3e6f0;
+            color: #5a5c69;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+        }
+
+        .table td {
+            vertical-align: middle;
+        }
+
+        /* Badge styling */
+        .badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        /* Avatar styling */
+        .avatar-sm {
+            width: 40px;
+            height: 40px;
+            font-size: 14px;
+        }
+
+        .avatar-lg {
+            width: 60px;
+            height: 60px;
+            font-size: 24px;
+        }
+
+        /* Icons styling */
+        .nav-link i, .btn i {
+            margin-right: 0.5rem;
+        }
+
+        /* Ensure icons are visible */
+        .bi, .fas, .far, .fab {
+            font-family: "bootstrap-icons", "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+        }
+    </style>
 </body>
 
 </html>
