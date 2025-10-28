@@ -78,7 +78,7 @@ class Tour extends Model
      */
     public function schedules(): HasMany
     {
-        return $this->hasMany(TourSchedule::class);
+        return $this->hasMany(TourSchedule::class)->orderBy('day_number');
     }
 
     /**

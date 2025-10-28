@@ -23,6 +23,12 @@ class DepartureController extends Controller
         $tours = Tour::all();
         return view('admin.tour_departures.create', compact('tours'));
     }
+    // Hiển thi chi tiết 
+    public function show($id)
+    {
+        $departure = TourDeparture::findOrFail($id);
+        return view('admin.tour_departures.show', compact('departure'));
+    }
 
     // Lưu khởi hành mới
     public function store(Request $request)

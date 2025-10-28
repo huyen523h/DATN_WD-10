@@ -186,7 +186,7 @@ class AdminController extends Controller
             }
         }
 
-        return redirect()->route('admin.tours')->with('success', 'Tour đã được tạo thành công!');
+        return redirect()->route('admin.tours.index')->with('success', 'Tour đã được tạo thành công!');
     }
 
     public function editTour(Tour $tour): View
@@ -320,7 +320,7 @@ class AdminController extends Controller
         });
 
         return redirect()
-            ->route('admin.tours')
+            ->route('admin.tours.index')
             ->with('success', 'Tour đã được cập nhật thành công!');
     }
 
@@ -333,7 +333,7 @@ class AdminController extends Controller
     public function deleteTour(Tour $tour): RedirectResponse
     {
         $tour->delete();
-        return redirect()->route('admin.tours')->with('success', 'Tour đã được xóa thành công!');
+        return redirect()->route('admin.tours.index')->with('success', 'Tour đã được xóa thành công!');
     }
     public function deleteTourImage($tourId, $imageId): RedirectResponse
     {

@@ -85,7 +85,7 @@ class TourController extends Controller
             }
         }
 
-        return redirect()->route('admin.tours.index')->with('success', 'Tour đã được tạo thành công!');
+        return redirect()->route('admin.tours.index')->with(['success', 'Tour đã được tạo thành công!','tour_id' => $tour->id]);
     }
 
     /**
