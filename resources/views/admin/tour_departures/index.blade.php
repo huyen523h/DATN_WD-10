@@ -44,6 +44,26 @@
         <div class="container mt-4">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h4 class="fw-bold text-primary">Danh sách lịch khởi hành</h4>
+                @if (session('success'))
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <i class="fas fa-check-circle"></i> {{ session('success') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
+
+                @if (session('error'))
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="fas fa-times-circle"></i> {{ session('error') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
+
+                @if (session('warning'))
+                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                        <i class="fas fa-exclamation-triangle"></i> {{ session('warning') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
                 <a href="{{ route('admin.departures.create') }}" class="btn btn-primary">
                     <i class="fas fa-plus"></i> Thêm lịch khởi hành
                 </a>
@@ -79,35 +99,55 @@
                                     <td>{{ number_format($departure->child_price, 0, ',', '.') }}₫</td>
                                     <td>{{ number_format($departure->infant_price, 0, ',', '.') }}₫</td>
                                     <td>
-                                        @if ($departure->status === 'available')
-                                            <span class="badge bg-success">Còn chỗ</span>
-                                        @elseif ($departure->status === 'contact')
-                                            <span class="badge bg-warning text-dark">Liên hệ</span>
-                                        @elseif ($departure->status === 'sold_out')
-                                            <span class="badge bg-danger">Hết chỗ</span>
-                                        @else
-                                            <span class="badge bg-secondary">Không xác định</span>
-                                        @endif
+                                        @switch($departure->status)
+                                            @case('available')
+                                                <span class="badge bg-success">Còn chỗ</span>
+                                            @break
+
+                                            @case('contact')
+                                                <span class="badge bg-warning text-dark">Liên hệ</span>
+                                            @break
+
+                                            @case('sold_out')
+                                                <span class="badge bg-danger">Hết chỗ</span>
+                                            @break
+
+                                            @case('finished')
+                                                <span class="badge bg-secondary text-light">Đã kết thúc</span>
+                                            @break
+
+                                            @default
+                                                <span class="badge bg-dark text-light">Không xác định</span>
+                                        @endswitch
                                     </td>
                                     <td>{{ $departure->created_at ? $departure->created_at->format('d/m/Y') : '---' }}</td>
                                     <td>
                                         <a href="{{ route('admin.departures.show', $departure->id) }}"
-                                            class="btn btn-sm btn-primary">
+                                            class="btn btn-sm btn-primary" title="Xem chi tiết">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        <a href="{{ route('admin.departures.edit', $departure->id) }}"
-                                            class="btn btn-sm btn-warning text-white">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <form action="{{ route('admin.departures.destroy', $departure->id) }}"
-                                            method="POST" class="d-inline">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button class="btn btn-sm btn-danger"
-                                                onclick="return confirm('Bạn có chắc muốn xóa lịch này?')">
-                                                <i class="fas fa-trash-alt"></i>
+
+                                        @if ($departure->status !== 'finished')
+                                            <a href="{{ route('admin.departures.edit', $departure->id) }}"
+                                                class="btn btn-sm btn-warning text-white" title="Chỉnh sửa">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+
+                                            <form action="{{ route('admin.departures.destroy', $departure->id) }}"
+                                                method="POST" class="d-inline">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button class="btn btn-sm btn-danger"
+                                                    onclick="return confirm('Bạn có chắc muốn xóa lịch này?')"
+                                                    title="Xóa">
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </button>
+                                            </form>
+                                        @else
+                                            <button class="btn btn-sm btn-secondary" disabled title="Tour đã kết thúc">
+                                                <i class="fas fa-ban"></i>
                                             </button>
-                                        </form>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach
