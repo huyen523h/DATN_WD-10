@@ -967,6 +967,7 @@
             </div>
             
 
+
             <!-- Reports -->
             <div class="nav-item">
                 <a href="{{ route('admin.reports') }}"

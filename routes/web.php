@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\DepartureController;
+use App\Http\Controllers\Admin\TourScheduleController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\AdminController;
@@ -276,10 +277,17 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+    // Quản lý lịch trình
+    Route::get('tours/{tour}/schedules', [TourScheduleController::class, 'index'])->name('schedules.index');
+    Route::get('tours/{tour}/schedules/create', [TourScheduleController::class, 'create'])->name('schedules.create');
+    Route::post('tours/{tour}/schedules', [TourScheduleController::class, 'store'])->name('schedules.store');
+    Route::get('schedules/{id}/edit', [TourScheduleController::class, 'edit'])->name('schedules.edit');
+    Route::put('schedules/{id}', [TourScheduleController::class, 'update'])->name('schedules.update');
+    Route::delete('schedules/{id}', [TourScheduleController::class, 'destroy'])->name('schedules.destroy');
 });
 
 // Staff routes
-        Route::middleware(['auth', 'staff'])->prefix('staff')->name('staff.')->group(function () {
+Route::middleware(['auth', 'staff'])->prefix('staff')->name('staff.')->group(function () {
     Route::get('/', [StaffController::class, 'dashboard'])->name('dashboard');
 
     // Tours management (read-only for staff)

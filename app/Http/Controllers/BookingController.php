@@ -32,7 +32,7 @@ class BookingController extends Controller
     public function create(Request $request): View
     {
         $tour = Tour::with(['departures', 'images'])->findOrFail($request->tour_id);
-        $departures = $tour->departures()->where('seats_available', '>', 0)->get();
+        $departures = $tour->departures()->where('seats_available', '>', 0)->whereDate('departure_date', '>=', now())->get();
         // dd($departures);
         $promotions = Promotion::where('status', 'active')
             ->where('start_date', '<=', now())
@@ -59,13 +59,17 @@ class BookingController extends Controller
 
         $tour = Tour::findOrFail($validated['tour_id']);
         $departure = TourDeparture::findOrFail($validated['departure_id']);
+        // kiểm tra ngày khởi hành hợp lệ
+        if ($departure->departure_date < now()->toDateString()) {
+            return back()->withErrors(['departure_id' => 'Ngày khởi hành đã qua, vui lòng chọn ngày khác.']);
+        }
 
         // Check seat availability
         if ($departure->seats_available < $validated['adults'] + $validated['children']) {
             return back()->withErrors(['seats' => 'Không đủ chỗ trống cho số lượng khách đã chọn.']);
         }
 
-        
+
         //Tính tổng tiền dựa theo giá của lịch khởi hành (TourDeparture)
         $totalAmount = ($departure->price * $validated['adults']) +
             ($departure->child_price * ($validated['children'] ?? 0)) +
