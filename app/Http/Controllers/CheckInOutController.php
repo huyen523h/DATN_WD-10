@@ -94,11 +94,14 @@ class CheckInOutController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Dữ liệu không hợp lệ',
-                'errors' => $validator->errors()
-            ], 422);
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Dữ liệu không hợp lệ',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+            return back()->withErrors($validator)->withInput();
         }
 
         // Check if user already checked in/out for this booking
@@ -109,10 +112,14 @@ class CheckInOutController extends Controller
             ->first();
 
         if ($existingCheck) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Người dùng đã thực hiện ' . ($request->type === 'check_in' ? 'check-in' : 'check-out') . ' cho booking này'
-            ], 400);
+            $errorMessage = 'Người dùng đã thực hiện ' . ($request->type === 'check_in' ? 'check-in' : 'check-out') . ' cho booking này';
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $errorMessage
+                ], 400);
+            }
+            return back()->with('error', $errorMessage)->withInput();
         }
 
         $checkInOut = CheckInOut::create([
@@ -128,11 +135,16 @@ class CheckInOutController extends Controller
             'status' => 'pending'
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Tạo ' . ($request->type === 'check_in' ? 'check-in' : 'check-out') . ' thành công',
-            'data' => $checkInOut->load(['user', 'booking'])
-        ]);
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Tạo ' . ($request->type === 'check_in' ? 'check-in' : 'check-out') . ' thành công',
+                'data' => $checkInOut->load(['user', 'booking'])
+            ]);
+        }
+
+        return redirect()->route('admin.check-in-out.show', $checkInOut)
+            ->with('success', 'Tạo ' . ($request->type === 'check_in' ? 'check-in' : 'check-out') . ' thành công!');
     }
 
     /**
@@ -140,7 +152,7 @@ class CheckInOutController extends Controller
      */
     public function show(CheckInOut $checkInOut)
     {
-        $checkInOut->load(['user', 'booking.tour', 'booking.images']);
+        $checkInOut->load(['user', 'booking.tour']);
         
         return view('admin.check-in-out.show', compact('checkInOut'));
     }
@@ -174,59 +186,81 @@ class CheckInOutController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Dữ liệu không hợp lệ',
-                'errors' => $validator->errors()
-            ], 422);
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Dữ liệu không hợp lệ',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+            return back()->withErrors($validator)->withInput();
         }
 
         $checkInOut->update($request->all());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Cập nhật thành công',
-            'data' => $checkInOut->load(['user', 'booking'])
-        ]);
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Cập nhật thành công',
+                'data' => $checkInOut->load(['user', 'booking'])
+            ]);
+        }
+
+        return redirect()->route('admin.check-in-out.show', $checkInOut)
+            ->with('success', 'Cập nhật check-in/check-out thành công!');
     }
 
     /**
      * Remove the specified check-in/out
      */
-    public function destroy(CheckInOut $checkInOut)
+    public function destroy(Request $request, CheckInOut $checkInOut)
     {
         $checkInOut->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Xóa thành công'
-        ]);
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Xóa thành công'
+            ]);
+        }
+
+        return redirect()->route('admin.check-in-out.index')
+            ->with('success', 'Xóa check-in/check-out thành công!');
     }
 
     /**
      * Confirm a check-in/out
      */
-    public function confirm(CheckInOut $checkInOut)
+    public function confirm(Request $request, CheckInOut $checkInOut)
     {
-        $checkInOut->confirm(Auth::user()->name);
+        $verifiedBy = Auth::check() ? Auth::user()->name : 'System';
+        $checkInOut->confirm($verifiedBy);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Xác nhận thành công'
-        ]);
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Xác nhận thành công'
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Xác nhận check-in/check-out thành công!');
     }
 
     /**
      * Cancel a check-in/out
      */
-    public function cancel(CheckInOut $checkInOut)
+    public function cancel(Request $request, CheckInOut $checkInOut)
     {
         $checkInOut->cancel();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Hủy thành công'
-        ]);
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Hủy thành công'
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Hủy check-in/check-out thành công!');
     }
 
     /**
@@ -275,13 +309,24 @@ class CheckInOutController extends Controller
         if ($dateFrom && $dateTo) {
             $dailyQuery->whereBetween('check_time', [$dateFrom, $dateTo]);
         } else {
-            $startDate = match($period) {
-                'today' => now()->startOfDay(),
-                'week' => now()->startOfWeek(),
-                'month' => now()->startOfMonth(),
-                'year' => now()->startOfYear(),
-                default => now()->subDays(30)
-            };
+            // Using switch instead of match() for PHP 8.0 compatibility
+            switch($period) {
+                case 'today':
+                    $startDate = now()->startOfDay();
+                    break;
+                case 'week':
+                    $startDate = now()->startOfWeek();
+                    break;
+                case 'month':
+                    $startDate = now()->startOfMonth();
+                    break;
+                case 'year':
+                    $startDate = now()->startOfYear();
+                    break;
+                default:
+                    $startDate = now()->subDays(30);
+                    break;
+            }
             $endDate = now();
             $dailyQuery->whereBetween('check_time', [$startDate, $endDate]);
         }

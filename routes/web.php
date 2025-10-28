@@ -124,7 +124,7 @@ Route::get('/test-invoice', function () {
 Route::get('/debug-invoice/{bookingId}', function ($bookingId) {
     try {
         $booking = \App\Models\Booking::with(['user', 'tour'])->find($bookingId);
-        
+
         if (!$booking) {
             return response()->json([
                 'success' => false,
@@ -156,12 +156,12 @@ Route::get('/debug-invoice/{bookingId}', function ($bookingId) {
 Route::get('/test-bookings', function () {
     try {
         $bookings = \App\Models\Booking::with(['user', 'tour'])->take(5)->get();
-        
+
         return response()->json([
             'success' => true,
             'message' => 'Bookings found',
             'count' => $bookings->count(),
-            'data' => $bookings->map(function($booking) {
+            'data' => $bookings->map(function ($booking) {
                 return [
                     'id' => $booking->id,
                     'user_name' => $booking->user->name ?? 'No user',
@@ -192,7 +192,7 @@ Route::get('/simple-test', function () {
 Route::get('/debug-invoice-simple/{bookingId}', function ($bookingId) {
     try {
         $booking = \App\Models\Booking::with(['user', 'tour'])->find($bookingId);
-        
+
         if (!$booking) {
             return response()->json([
                 'success' => false,
@@ -210,7 +210,6 @@ Route::get('/debug-invoice-simple/{bookingId}', function ($bookingId) {
                 'total_amount' => $booking->total_amount ?? 0
             ]
         ]);
-
     } catch (\Exception $e) {
         return response()->json([
             'success' => false,
@@ -228,7 +227,7 @@ Route::get('/debug-invoice-simple/{bookingId}', function ($bookingId) {
 Route::get('/web/invoices/booking/{bookingId}/pdf', function ($bookingId) {
     try {
         $booking = \App\Models\Booking::with(['user', 'tour', 'departure'])->find($bookingId);
-        
+
         if (!$booking) {
             return response()->json([
                 'success' => false,
@@ -273,12 +272,12 @@ Route::get('/web/invoices/booking/{bookingId}/pdf', function ($bookingId) {
         // Save HTML to public directory for direct access
         $fileName = 'invoice_' . $bookingId . '_' . time() . '.html';
         $publicPath = public_path('invoices/' . $fileName);
-        
+
         // Create invoices directory if not exists
         if (!file_exists(public_path('invoices'))) {
             mkdir(public_path('invoices'), 0755, true);
         }
-        
+
         file_put_contents($publicPath, $html);
 
         $downloadUrl = url('invoices/' . $fileName);
@@ -293,7 +292,6 @@ Route::get('/web/invoices/booking/{bookingId}/pdf', function ($bookingId) {
                 'format' => 'html'
             ]
         ]);
-
     } catch (\Exception $e) {
         return response()->json([
             'success' => false,
@@ -351,7 +349,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', function () {
         return view('profile.index');
     })->name('profile.index');
-    
+
     // Bookings
     Route::get('/bookings', [BookingController::class, 'index'])->name('bookings.index');
     Route::get('/bookings/create', [BookingController::class, 'create'])->name('bookings.create');
@@ -363,13 +361,17 @@ Route::middleware('auth')->group(function () {
     Route::get('/wishlists', [WishlistsController::class, 'index'])->name('wishlists.index');
     Route::post('/wishlists', [WishlistsController::class, 'store'])->name('wishlists.store');
     Route::delete('/wishlists/{id}', [WishlistsController::class, 'destroy'])->name('wishlists.destroy');
-    
-    // Legacy MoMo routes (for backward compatibility)
+
+    // Thanh toán MOMO
     Route::get('/checkout', function () {
         return view('checkout'); // form thanh toán
     });
+
     Route::post('/momo_payment/{id}', [CheckoutController::class, 'momo_payment'])->name('momo_payment');
+    // MoMo redirect user về sau khi thanh toán (hiển thị kết quả)
     Route::get('/payment/momo_return', [CheckoutController::class, 'momo_return'])->name('momo.return');
+
+    // MoMo gửi IPN server → server xác nhận đơn hàng
     Route::post('/payment/momo_ipn', [CheckoutController::class, 'momo_ipn'])->name('momo.ipn');
 });
 
@@ -388,7 +390,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/tours/{tour}/edit', [AdminController::class, 'editTour'])->name('tours.edit');
     Route::put('/tours/{tour}', [AdminController::class, 'updateTour'])->name('tours.update');
     Route::delete('/tours/{tour}', [AdminController::class, 'deleteTour'])->name('tours.destroy');
-    
+
     // Xóa ảnh của tour
     Route::delete('/tours/{tour}/images/{image}', [AdminController::class, 'deleteTourImage'])
         ->name('tours.images.delete');
@@ -470,7 +472,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/support', [AdminController::class, 'storeSupportTicket'])->name('support.store');
     Route::put('/support/{ticket}', [AdminController::class, 'updateTicket'])->name('support.update');
     Route::delete('/support/{ticket}', [AdminController::class, 'deleteTicket'])->name('support.destroy');
-    
+
     // Admin quản lý khởi hành tour (Departures)
     Route::resource('departures', DepartureController::class);
 

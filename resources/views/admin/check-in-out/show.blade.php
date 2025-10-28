@@ -220,12 +220,14 @@
                 <div class="card-body">
                     @if($checkInOut->isPending())
                     <div class="d-grid gap-2 mb-3">
-                        <button class="btn btn-success" onclick="confirmCheckInOut({{ $checkInOut->id }})">
-                            <i class="fas fa-check me-2"></i>Xác nhận
-                        </button>
-                        <button class="btn btn-danger" onclick="cancelCheckInOut({{ $checkInOut->id }})">
-                            <i class="fas fa-times me-2"></i>Hủy
-                        </button>
+                        <form action="{{ route('admin.check-in-out.confirm', $checkInOut) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn xác nhận?')">
+                            @csrf
+                            <button type="submit" class="btn btn-success w-100"><i class="fas fa-check me-2"></i>Xác nhận</button>
+                        </form>
+                        <form action="{{ route('admin.check-in-out.cancel', $checkInOut) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn hủy?')">
+                            @csrf
+                            <button type="submit" class="btn btn-danger w-100"><i class="fas fa-times me-2"></i>Hủy</button>
+                        </form>
                     </div>
                     @endif
                     
@@ -233,9 +235,11 @@
                         <a href="{{ route('admin.check-in-out.edit', $checkInOut) }}" class="btn btn-warning">
                             <i class="fas fa-edit me-2"></i>Chỉnh sửa
                         </a>
-                        <button class="btn btn-danger" onclick="deleteCheckInOut({{ $checkInOut->id }})">
-                            <i class="fas fa-trash me-2"></i>Xóa
-                        </button>
+                        <form action="{{ route('admin.check-in-out.destroy', $checkInOut) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn xóa?')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-danger w-100"><i class="fas fa-trash me-2"></i>Xóa</button>
+                        </form>
                     </div>
 
                     <hr>
@@ -299,73 +303,51 @@
 <script>
 function confirmCheckInOut(id) {
     if (confirm('Bạn có chắc chắn muốn xác nhận check-in/check-out này?')) {
-        fetch(`/admin/check-in-out/${id}/confirm`, {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showAlert('success', data.message);
-                location.reload();
-            } else {
-                showAlert('error', data.message);
-            }
-        })
-        .catch(error => {
-            showAlert('error', 'Có lỗi xảy ra');
-        });
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/admin/check-in-out/${id}/confirm`;
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = '_token';
+        csrfInput.value = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        form.appendChild(csrfInput);
+        document.body.appendChild(form);
+        form.submit();
     }
 }
 
 function cancelCheckInOut(id) {
     if (confirm('Bạn có chắc chắn muốn hủy check-in/check-out này?')) {
-        fetch(`/admin/check-in-out/${id}/cancel`, {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showAlert('success', data.message);
-                location.reload();
-            } else {
-                showAlert('error', data.message);
-            }
-        })
-        .catch(error => {
-            showAlert('error', 'Có lỗi xảy ra');
-        });
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/admin/check-in-out/${id}/cancel`;
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = '_token';
+        csrfInput.value = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        form.appendChild(csrfInput);
+        document.body.appendChild(form);
+        form.submit();
     }
 }
 
 function deleteCheckInOut(id) {
     if (confirm('Bạn có chắc chắn muốn xóa check-in/check-out này?')) {
-        fetch(`/admin/check-in-out/${id}`, {
-            method: 'DELETE',
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showAlert('success', data.message);
-                window.location.href = '/admin/check-in-out';
-            } else {
-                showAlert('error', data.message);
-            }
-        })
-        .catch(error => {
-            showAlert('error', 'Có lỗi xảy ra');
-        });
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/admin/check-in-out/${id}`;
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = '_token';
+        csrfInput.value = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        form.appendChild(csrfInput);
+        const methodInput = document.createElement('input');
+        methodInput.type = 'hidden';
+        methodInput.name = '_method';
+        methodInput.value = 'DELETE';
+        form.appendChild(methodInput);
+        document.body.appendChild(form);
+        form.submit();
     }
 }
 

@@ -1094,7 +1094,7 @@
             <div class="header-left">
                 <button class="sidebar-toggle" id="sidebarToggle">
                     <i class="fas fa-bars"></i>
-                </button>h
+                </button>
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb">
                         <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Admin</a></li>
@@ -1160,12 +1160,12 @@
 
             });
 
-            // Close sidebar when clicking outside
-            document.addEventListener('click', (e) => {
-                if (!sidebar.contains(e.target) && !sidebarToggle.contains(e.target)) {
-                    sidebar.classList.remove('open');
-                }
-            });
+                    // Close sidebar when clicking outside
+                    document.addEventListener('click', (e) => {
+                        if (!sidebar.contains(e.target) && !sidebarToggle.contains(e.target)) {
+                            sidebar.classList.remove('open');
+                        }
+                    });
         });
 
 
@@ -1332,5 +1332,5 @@
         }
     </style>
 </body>
-
+    
 </html>

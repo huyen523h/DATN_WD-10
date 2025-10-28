@@ -27,7 +27,8 @@
                     </h6>
                 </div>
                 <div class="card-body">
-                    <form id="createForm">
+                    <form id="createForm" action="{{ route('admin.check-in-out.store') }}" method="POST">
+                        @csrf
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
@@ -217,36 +218,8 @@
 let map;
 let marker;
 
-// Form submission
-document.getElementById('createForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(this);
-    const data = Object.fromEntries(formData);
-    
-    fetch('/admin/check-in-out', {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showAlert('success', data.message);
-            setTimeout(() => {
-                window.location.href = '/admin/check-in-out';
-            }, 1500);
-        } else {
-            showAlert('error', data.message);
-        }
-    })
-    .catch(error => {
-        showAlert('error', 'Có lỗi xảy ra');
-    });
-});
+// Form submission - Allow normal form submit
+// JavaScript validation can be added here if needed
 
 function getCurrentLocation() {
     if (navigator.geolocation) {

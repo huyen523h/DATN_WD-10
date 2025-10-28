@@ -30,7 +30,9 @@
                     </h6>
                 </div>
                 <div class="card-body">
-                    <form id="editForm">
+                    <form id="editForm" action="{{ route('admin.check-in-out.update', $checkInOut) }}" method="POST">
+                        @csrf
+                        @method('PUT')
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
@@ -197,36 +199,8 @@
 let map;
 let marker;
 
-// Form submission
-document.getElementById('editForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(this);
-    const data = Object.fromEntries(formData);
-    
-    fetch(`/admin/check-in-out/{{ $checkInOut->id }}`, {
-        method: 'PUT',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showAlert('success', data.message);
-            setTimeout(() => {
-                window.location.href = '/admin/check-in-out/{{ $checkInOut->id }}';
-            }, 1500);
-        } else {
-            showAlert('error', data.message);
-        }
-    })
-    .catch(error => {
-        showAlert('error', 'Có lỗi xảy ra');
-    });
-});
+// Form submission - Allow normal form submit
+// JavaScript validation can be added here if needed
 
 function confirmCheckInOut(id) {
     if (confirm('Bạn có chắc chắn muốn xác nhận check-in/check-out này?')) {
