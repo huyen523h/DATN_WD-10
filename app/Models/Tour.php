@@ -15,14 +15,43 @@ class Tour extends Model
     protected $fillable = [
         'category_id',
         'title',
+        'short_description',
         'description',
-        'duration_days',
+        'location',
+        'duration',       // dạng text "3 ngày 2 đêm"
+        'duration_days',  // số ngày (mới)
+        'duration_nights', // số đêm (mới)
+
         'price',
-        'status',
+        'original_price',
+        'discount_price', // mới
+
+        'price_adult',
+        'price_child',
+        'price_infant',
+
+        'includes',
+        'excludes',
+        'surcharges',         // mới
+        'notes',
+        'cancellation_policy',
+        'visa_requirements',  // mới
+
+        'available_seats',
+        'availability_status', // available|contact|sold_out (tổng thể)
+        'status',             // active|inactive|draft
+        'image',
+        'departure_date', // nếu bạn đang dùng ở chỗ khác
     ];
 
     protected $casts = [
-        'price' => 'decimal:2',
+        'price'          => 'decimal:2',
+        'original_price' => 'decimal:2',
+        'discount_price' => 'decimal:2',
+        'price_adult'    => 'decimal:2',
+        'price_child'    => 'decimal:2',
+        'price_infant'   => 'decimal:2',
+        'departure_date' => 'date',
     ];
 
     /**
@@ -38,7 +67,10 @@ class Tour extends Model
      */
     public function images(): HasMany
     {
-        return $this->hasMany(TourImage::class);
+        return $this->hasMany(TourImage::class)
+            ->orderByDesc('is_cover')   // CHANGED
+            ->orderBy('sort_order')     // CHANGED
+            ->orderByDesc('id');        // CHANGED (ảnh mới nhất nếu chưa có sort)
     }
 
     /**
@@ -54,7 +86,7 @@ class Tour extends Model
      */
     public function departures(): HasMany
     {
-        return $this->hasMany(TourDeparture::class);
+        return $this->hasMany(TourDeparture::class, 'tour_id');
     }
 
     /**
@@ -79,7 +111,7 @@ class Tour extends Model
     public function wishlistedBy(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'wishlists')
-                    ->withTimestamps();
+            ->withTimestamps();
     }
 
     /**
@@ -88,5 +120,84 @@ class Tour extends Model
     public function coverImage()
     {
         return $this->images()->where('is_cover', true)->first();
+    }
+
+    /**
+     * Get the main image URL for the tour.
+     */
+    public function getMainImageAttribute()
+    {
+        return $this->images()->where('is_cover', true)->first()?->image_url;
+    }
+
+    /**
+     * Get formatted price.
+     */
+    public function getFormattedPriceAttribute()
+    {
+        return number_format($this->price, 0, ',', '.') . ' VND';
+    }
+
+    /**
+     * Get formatted departure date.
+     */
+    public function getFormattedDepartureDateAttribute()
+    {
+        return $this->departure_date ? $this->departure_date->format('d/m/Y') : null;
+    }
+
+    /**
+     * Scope: Filter by location
+     */
+    public function scopeByLocation($query, $location)
+    {
+        return $query->where('location', 'like', '%' . $location . '%');
+    }
+
+    /**
+     * Scope: Filter by price range
+     */
+    public function scopeByPriceRange($query, $minPrice = null, $maxPrice = null)
+    {
+        if ($minPrice) {
+            $query->where('price', '>=', $minPrice);
+        }
+        if ($maxPrice) {
+            $query->where('price', '<=', $maxPrice);
+        }
+        return $query;
+    }
+
+    /**
+     * Scope: Filter available tours
+     */
+    public function scopeAvailable($query)
+    {
+        return $query->where('status', 'active')
+                    ->where('available_seats', '>', 0);
+    }
+
+    /**
+     * Scope: Filter by status
+     */
+    public function scopeByStatus($query, $status)
+    {
+        return $query->where('status', $status);
+    }
+
+    /**
+     * Scope: Active tours
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
+    }
+
+    /**
+     * Get wishlists for the tour.
+     */
+    public function wishlists(): HasMany
+    {
+        return $this->hasMany(Wishlist::class);
     }
 }

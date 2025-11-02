@@ -38,7 +38,7 @@ class TourController extends Controller
             }
 
             // Sorting
-            $sortBy = $request->get('sort_by', 'created_at');
+            $sortBy = $request->get('sort_by', 'id');
             $sortOrder = $request->get('sort_order', 'desc');
             $query->orderBy($sortBy, $sortOrder);
 
@@ -100,8 +100,7 @@ class TourController extends Controller
                 'image_url' => $tour->image_url,
                 'status' => $tour->status,
                 'category' => $tour->category,
-                'created_at' => $tour->created_at,
-                'updated_at' => $tour->updated_at,
+                'id' => $tour->id,
                 
                 // Additional computed fields
                 'is_available' => $tour->available_seats > 0 && 
@@ -165,7 +164,7 @@ class TourController extends Controller
     {
         try {
             $tours = Tour::available()
-                        ->orderBy('created_at', 'desc')
+                        ->orderBy('id', 'desc')
                         ->limit(6)
                         ->get();
 

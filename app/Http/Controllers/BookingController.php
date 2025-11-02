@@ -19,9 +19,9 @@ class BookingController extends Controller
     public function index(): View
     {
         $bookings = Booking::with(['tour', 'departure', 'user'])
-                          ->where('user_id', Auth::id())
-                          ->orderBy('created_at', 'desc')
-                          ->paginate(10);
+            ->where('user_id', Auth::id())
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
 
         return view('bookings.index', compact('bookings'));
     }
@@ -33,10 +33,11 @@ class BookingController extends Controller
     {
         $tour = Tour::with(['departures', 'images'])->findOrFail($request->tour_id);
         $departures = $tour->departures()->where('seats_available', '>', 0)->get();
+        // dd($departures);
         $promotions = Promotion::where('status', 'active')
-                              ->where('start_date', '<=', now())
-                              ->where('end_date', '>=', now())
-                              ->get();
+            ->where('start_date', '<=', now())
+            ->where('end_date', '>=', now())
+            ->get();
 
         return view('bookings.create', compact('tour', 'departures', 'promotions'));
     }
@@ -64,13 +65,15 @@ class BookingController extends Controller
             return back()->withErrors(['seats' => 'Không đủ chỗ trống cho số lượng khách đã chọn.']);
         }
 
-        // Calculate total amount
-        $totalPassengers = $validated['adults'] + $validated['children'] + $validated['infants'];
-        $totalAmount = $tour->price * $totalPassengers;
+        
+        //Tính tổng tiền dựa theo giá của lịch khởi hành (TourDeparture)
+        $totalAmount = ($departure->price * $validated['adults']) +
+            ($departure->child_price * ($validated['children'] ?? 0)) +
+            ($departure->infant_price * ($validated['infants'] ?? 0));
 
         // Apply promotion if provided
         $promotion = null;
-        if ($validated['promotion_code']) {
+        if (!empty($validated['promotion_code'] ?? null)) {
             $promotion = Promotion::where('code', $validated['promotion_code'])->first();
             if ($promotion && $promotion->isActive()) {
                 $discount = $promotion->calculateDiscount($totalAmount);
@@ -82,7 +85,7 @@ class BookingController extends Controller
             'user_id' => Auth::id(),
             'tour_id' => $validated['tour_id'],
             'departure_id' => $validated['departure_id'],
-            'promotion_code' => $validated['promotion_code'],
+            'promotion_id' => $promotion?->id,
             'adults' => $validated['adults'],
             'children' => $validated['children'] ?? 0,
             'infants' => $validated['infants'] ?? 0,
@@ -92,10 +95,11 @@ class BookingController extends Controller
         ]);
 
         // Update available seats
+        $totalPassengers = ($validated['adults'] ?? 0) + ($validated['children'] ?? 0) + ($validated['infants'] ?? 0);
         $departure->decrement('seats_available', $totalPassengers);
 
         return redirect()->route('bookings.show', $booking)
-                        ->with('success', 'Đặt tour thành công! Vui lòng thanh toán để hoàn tất.');
+            ->with('success', 'Đặt tour thành công! Vui lòng thanh toán để hoàn tất.');
     }
 
     /**
@@ -103,8 +107,20 @@ class BookingController extends Controller
      */
     public function show(Booking $booking): View
     {
-        $booking->load(['tour.images', 'departure', 'payments']);
-        
+        $booking->load(['tour.images', 'departure', 'payment']);
+
         return view('bookings.show', compact('booking'));
+    }
+    public function destroy($id)
+    {
+        $booking = Booking::findOrFail($id);
+
+        // Chỉ cho phép huỷ nếu chưa thanh toán hoặc đang chờ
+        if (in_array($booking->status, ['pending', 'confirmed'])) {
+            $booking->update(['status' => 'cancelled']);
+            return redirect()->route('bookings.index')->with('success', 'Đã hủy đặt tour thành công.');
+        }
+
+        return redirect()->back()->with('error', 'Không thể hủy tour đã hoàn thành hoặc đã thanh toán.');
     }
 }

@@ -28,92 +28,92 @@
             </div>
             <div class="card-body">
                 @if($categories->count() > 0)
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Hình ảnh</th>
-                                    <th>Tên danh mục</th>
-                                    <th>Mô tả</th>
-                                    <th>Số tours</th>
-                                    <th>Trạng thái</th>
-                                    <th>Ngày tạo</th>
-                                    <th width="150">Thao tác</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($categories as $category)
-                                    <tr>
-                                        <td>
-                                            @if($category->image_url)
-                                                <img src="{{ $category->image_url }}" alt="{{ $category->name }}" 
-                                                     class="category-thumbnail">
-                                            @else
-                                                <div class="category-thumbnail bg-light d-flex align-items-center justify-content-center">
-                                                    <i class="fas fa-image text-muted"></i>
-                                                </div>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            <div class="fw-bold">{{ $category->name }}</div>
-                                        </td>
-                                        <td>
-                                            <small class="text-muted">{{ Str::limit($category->description, 50) }}</small>
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-info">{{ $category->tours_count }}</span>
-                                        </td>
-                                        <td>
-                                            <span class="badge 
-                                                @if($category->status === 'active') bg-success
-                                                @elseif($category->status === 'inactive') bg-warning
-                                                @else bg-secondary
-                                                @endif">
-                                                @switch($category->status)
-                                                    @case('active') Hoạt động @break
-                                                    @case('inactive') Tạm dừng @break
-                                                    @default {{ $category->status }} @break
-                                                @endswitch
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <small class="text-muted">{{ $category->created_at->format('d/m/Y') }}</small>
-                                        </td>
-                                        <td>
-                                            <div class="btn-group btn-group-sm" role="group">
-                                                <button class="btn btn-outline-primary" onclick="editCategory({{ $category->id }})" title="Sửa">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button class="btn btn-outline-danger" onclick="deleteCategory({{ $category->id }})" title="Xóa">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Hình ảnh</th>
+                                <th>Tên danh mục</th>
+                                <th>Mô tả</th>
+                                <th>Số tours</th>
+                                <th>Trạng thái</th>
+                                <th>Ngày tạo</th>
+                                <th width="150">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($categories as $category)
+                            <tr>
+                                <td>
+                                    @if ($category->image_url)
+                                        <img src="{{ $category->image_url }}" alt="{{ $category->name }}" class="category-thumbnail">
+                                    @else
+                                        <div class="category-thumbnail bg-light d-flex align-items-center justify-content-center">
+                                            <i class="fas fa-image text-muted"></i>
+                                        </div>
+                                    @endif
+                                </td>
+                                <td class="fw-bold">{{ $category->name }}</td>
+                                <td><small class="text-muted">{{ Str::limit($category->description, 50) }}</small></td>
+                                <td><span class="badge bg-info">{{ $category->tours_count }}</span></td>
+                                <td>
+                                    <span class="badge 
+                                        @if ($category->status === 'active') bg-success
+                                        @elseif($category->status === 'inactive') bg-warning
+                                        @else bg-secondary @endif">
+                                        @switch($category->status)
+                                            @case('active') Hoạt động @break
+                                            @case('inactive') Tạm dừng @break
+                                            @default {{ $category->status }}
+                                        @endswitch
+                                    </span>
+                                </td>
+                                <td><small class="text-muted">{{ $category->created_at->format('d/m/Y') }}</small></td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button class="btn btn-outline-primary"
+                                            onclick="openEditModal({{ $category->id }}, '{{ addslashes($category->name) }}', '{{ addslashes($category->description) }}', '{{ $category->status }}')"
+                                            title="Sửa">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
 
-                    <!-- Pagination -->
-                    <div class="d-flex justify-content-between align-items-center mt-3">
-                        <div class="text-muted">
-                            Hiển thị {{ $categories->firstItem() }} đến {{ $categories->lastItem() }} 
-                            trong tổng số {{ $categories->total() }} danh mục
-                        </div>
-                        <div>
-                            {{ $categories->links() }}
-                        </div>
+                                        <form action="{{ route('admin.categories.destroy', $category->id) }}"
+                                              method="POST" style="display:inline;">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-outline-danger"
+                                                onclick="return confirm('Bạn có chắc chắn muốn xóa danh mục này?')"
+                                                title="Xóa">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div class="text-muted">
+                        Hiển thị {{ $categories->firstItem() }} đến {{ $categories->lastItem() }}
+                        trong tổng số {{ $categories->total() }} danh mục
                     </div>
+                    <div>
+                        {{ $categories->links() }}
+                    </div>
+                </div>
                 @else
-                    <div class="text-center py-5">
-                        <i class="fas fa-tags fa-4x text-muted mb-3"></i>
-                        <h5 class="text-muted">Chưa có danh mục nào</h5>
-                        <p class="text-muted">Hãy thêm danh mục đầu tiên để bắt đầu</p>
-                        <button class="btn btn-admin-primary" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
-                            <i class="fas fa-plus"></i> Thêm danh mục mới
-                        </button>
-                    </div>
+                <div class="text-center py-5">
+                    <i class="fas fa-tags fa-4x text-muted mb-3"></i>
+                    <h5 class="text-muted">Chưa có danh mục nào</h5>
+                    <p class="text-muted">Hãy thêm danh mục đầu tiên để bắt đầu</p>
+                    <button class="btn btn-admin-primary" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+                        <i class="fas fa-plus"></i> Thêm danh mục mới
+                    </button>
+                </div>
                 @endif
             </div>
         </div>
@@ -124,12 +124,12 @@
 <div class="modal fade" id="addCategoryModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Thêm danh mục mới</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
             <form method="POST" action="{{ route('admin.categories.store') }}">
                 @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title">Thêm danh mục mới</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="name" class="form-label">Tên danh mục <span class="text-danger">*</span></label>
@@ -138,10 +138,6 @@
                     <div class="mb-3">
                         <label for="description" class="form-label">Mô tả</label>
                         <textarea class="form-control" id="description" name="description" rows="3"></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label for="image_url" class="form-label">URL hình ảnh</label>
-                        <input type="url" class="form-control" id="image_url" name="image_url">
                     </div>
                     <div class="mb-3">
                         <label for="status" class="form-label">Trạng thái</label>
@@ -159,31 +155,68 @@
         </div>
     </div>
 </div>
+
+<!-- Edit Category Modal -->
+<div class="modal fade" id="editCategoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="editCategoryForm" method="POST">
+                @csrf
+                @method('PUT')
+                <div class="modal-header">
+                    <h5 class="modal-title">Chỉnh sửa danh mục</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Tên danh mục</label>
+                        <input type="text" class="form-control" id="edit_name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mô tả</label>
+                        <textarea class="form-control" id="edit_description" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Trạng thái</label>
+                        <select class="form-select" id="edit_status" name="status">
+                            <option value="active">Hoạt động</option>
+                            <option value="inactive">Tạm dừng</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-admin-primary">Cập nhật</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
 
 @section('styles')
 <style>
-.category-thumbnail {
-    width: 60px;
-    height: 40px;
-    object-fit: cover;
-    border-radius: 4px;
-}
+    .category-thumbnail {
+        width: 60px;
+        height: 40px;
+        object-fit: cover;
+        border-radius: 4px;
+    }
 </style>
 @endsection
 
 @section('scripts')
 <script>
-function editCategory(categoryId) {
-    // Implement edit functionality
-    console.log('Edit category:', categoryId);
-}
+    function openEditModal(id, name, description, status) {
+        document.getElementById('edit_name').value = name;
+        document.getElementById('edit_description').value = description;
+        document.getElementById('edit_status').value = status;
 
-function deleteCategory(categoryId) {
-    if (confirm('Bạn có chắc chắn muốn xóa danh mục này?')) {
-        // Implement delete functionality
-        console.log('Delete category:', categoryId);
+        // Tạo URL route update động bằng JS
+        const url = `{{ route('admin.categories.update', ':id') }}`.replace(':id', id);
+        document.getElementById('editCategoryForm').action = url;
+
+        new bootstrap.Modal(document.getElementById('editCategoryModal')).show();
     }
-}
 </script>
 @endsection

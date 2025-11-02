@@ -16,10 +16,17 @@ class TourDeparture extends Model
         'departure_date',
         'seats_total',
         'seats_available',
+        'price',
+        'child_price',
+        'infant_price',
+        'status', // string: available|contact|sold_out
     ];
 
     protected $casts = [
         'departure_date' => 'date',
+        'price'         => 'decimal:2',
+        'child_price'   => 'decimal:2',
+        'infant_price'  => 'decimal:2',
     ];
 
     /**
@@ -27,7 +34,7 @@ class TourDeparture extends Model
      */
     public function tour(): BelongsTo
     {
-        return $this->belongsTo(Tour::class);
+        return $this->belongsTo(Tour::class , 'tour_id');
     }
 
     /**
