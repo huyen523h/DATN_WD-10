@@ -633,7 +633,7 @@ class AdminController extends Controller
     }
 
     // Bookings CRUD
-    public function updateBooking(Request $request, Booking $booking): RedirectResponse
+    public function updateBooking(Request $request, Booking $booking)
     {
         $validated = $request->validate([
             'status' => 'required|in:pending,confirmed,cancelled,completed',
@@ -642,12 +642,46 @@ class AdminController extends Controller
 
         $booking->update($validated);
 
+        // Always return JSON if request has JSON headers
+        $acceptHeader = $request->header('Accept', '');
+        $contentTypeHeader = $request->header('Content-Type', '');
+        $isAjax = $request->header('X-Requested-With') === 'XMLHttpRequest';
+        
+        if ($request->expectsJson() 
+            || $request->wantsJson() 
+            || str_contains($acceptHeader, 'application/json')
+            || str_contains($contentTypeHeader, 'application/json')
+            || $isAjax) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Đặt tour đã được cập nhật thành công!',
+                'booking' => $booking->fresh()
+            ]);
+        }
+
         return redirect()->route('admin.bookings')->with('success', 'Đặt tour đã được cập nhật thành công!');
     }
 
-    public function deleteBooking(Booking $booking): RedirectResponse
+    public function deleteBooking(Request $request, Booking $booking)
     {
         $booking->delete();
+
+        // Check if request is AJAX/JSON request
+        $acceptHeader = $request->header('Accept', '');
+        $contentTypeHeader = $request->header('Content-Type', '');
+        $isAjax = $request->header('X-Requested-With') === 'XMLHttpRequest';
+        
+        if ($request->expectsJson() 
+            || $request->wantsJson() 
+            || str_contains($acceptHeader, 'application/json')
+            || str_contains($contentTypeHeader, 'application/json')
+            || $isAjax) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Đặt tour đã được xóa thành công!'
+            ]);
+        }
+
         return redirect()->route('admin.bookings')->with('success', 'Đặt tour đã được xóa thành công!');
     }
 

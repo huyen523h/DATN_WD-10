@@ -209,7 +209,8 @@
     :actions="[
         ['action' => 'view', 'icon' => 'fas fa-eye', 'class' => 'btn-primary', 'title' => 'Xem chi tiết'],
         ['action' => 'status', 'icon' => 'fas fa-edit', 'class' => 'btn-info', 'title' => 'Cập nhật trạng thái'],
-        ['action' => 'email', 'icon' => 'fas fa-envelope', 'class' => 'btn-warning', 'title' => 'Gửi email'],
+        ['action' => 'invoice', 'icon' => 'fas fa-file-invoice', 'class' => 'btn-success', 'title' => 'In hóa đơn'],
+        ['action' => 'download_pdf', 'icon' => 'fas fa-download', 'class' => 'btn-primary', 'title' => 'Tải PDF'],
         ['action' => 'delete', 'icon' => 'fas fa-trash', 'class' => 'btn-danger', 'title' => 'Xóa']
     ]"
     :searchable="true"
@@ -369,16 +370,35 @@
 </style>
 @endsection
 
-@push('scripts')
+@section('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Handle booking actions
-    const actionButtons = document.querySelectorAll('[data-action]');
+    // Handle booking actions - Only for bookings table
+    const bookingsTable = document.getElementById('bookings-table');
+    if (!bookingsTable) return;
+    
+    // Find action buttons only within bookings table
+    const actionButtons = bookingsTable.querySelectorAll('[data-action]');
     
     actionButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
+        // Remove any existing listeners first
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+        
+        newBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
             const action = this.dataset.action;
             const bookingId = this.dataset.id;
+            
+            console.log('Action button clicked:', { action, bookingId, button: this, url: `/admin/bookings/${bookingId}` });
+            
+            if (!bookingId || bookingId === 'undefined' || bookingId === 'null') {
+                console.error('Booking ID not found in button:', this, 'data-id:', this.dataset.id);
+                showAlert('danger', 'Không tìm thấy ID đặt tour. Vui lòng thử lại.');
+                return;
+            }
             
             switch(action) {
                 case 'view':
@@ -386,320 +406,435 @@ document.addEventListener('DOMContentLoaded', function() {
                     break;
                     
                 case 'status':
-                    updateBookingStatus(bookingId);
+                    if (typeof updateBookingStatus === 'function') {
+                        updateBookingStatus(parseInt(bookingId));
+                    } else {
+                        console.error('updateBookingStatus function not found');
+                        showAlert('danger', 'Hàm cập nhật trạng thái không tồn tại.');
+                    }
                     break;
                     
-                case 'email':
-                    sendBookingEmail(bookingId);
+                case 'invoice':
+                    if (typeof generateInvoice === 'function') {
+                        generateInvoice(parseInt(bookingId), this);
+                    } else {
+                        console.error('generateInvoice function not found');
+                        showAlert('danger', 'Hàm tạo hóa đơn không tồn tại.');
+                    }
+                    break;
+                    
+                case 'download_pdf':
+                    if (typeof downloadInvoice === 'function') {
+                        downloadInvoice(parseInt(bookingId), this);
+                    } else {
+                        console.error('downloadInvoice function not found');
+                        showAlert('danger', 'Hàm tải PDF không tồn tại.');
+                    }
                     break;
                     
                 case 'delete':
                     if (confirm('Bạn có chắc chắn muốn xóa đặt tour này?')) {
-                        deleteBooking(bookingId);
+                        if (typeof deleteBooking === 'function') {
+                            deleteBooking(parseInt(bookingId));
+                        } else {
+                            console.error('deleteBooking function not found');
+                            showAlert('danger', 'Hàm xóa đặt tour không tồn tại.');
+                        }
                     }
                     break;
+                    
+                default:
+                    console.warn('Unknown action:', action);
+                    showAlert('warning', `Hành động "${action}" chưa được hỗ trợ.`);
             }
         });
     });
+});
+
+// Show alert message - Must be defined first
+function showAlert(type, message) {
+    const alertContainer = document.createElement('div');
+    alertContainer.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertContainer.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertContainer.innerHTML = `
+        <div class="d-flex align-items-center">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : type === 'info' ? 'info-circle' : 'exclamation-circle'} me-2"></i>
+            <span>${message}</span>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
     
-    function updateBookingStatus(bookingId) {
-        // Tạo modal để chọn trạng thái mới
-        const statusOptions = [
-            { value: 'pending', label: 'Chờ xử lý', class: 'warning' },
-            { value: 'confirmed', label: 'Đã xác nhận', class: 'success' },
-            { value: 'cancelled', label: 'Đã hủy', class: 'danger' },
-            { value: 'completed', label: 'Hoàn thành', class: 'info' }
-        ];
-        
-        let modalHtml = `
-            <div class="modal fade" id="statusModal" tabindex="-1">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Cập nhật trạng thái booking</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <p>Chọn trạng thái mới cho booking #${bookingId}:</p>
-                            <div class="list-group">
-        `;
-        
-        statusOptions.forEach(option => {
-            modalHtml += `
-                <button type="button" class="list-group-item list-group-item-action" 
-                        onclick="confirmStatusUpdate(${bookingId}, '${option.value}')">
-                    <span class="badge bg-${option.class} me-2">${option.label}</span>
-                </button>
-            `;
-        });
-        
+    document.body.appendChild(alertContainer);
+    
+    setTimeout(() => {
+        if (alertContainer.parentNode) {
+            alertContainer.remove();
+        }
+    }, 5000);
+}
+
+// Move functions outside DOMContentLoaded so they're globally accessible
+function updateBookingStatus(bookingId) {
+    // Tạo modal để chọn trạng thái mới
+    const statusOptions = [
+        { value: 'pending', label: 'CHỜ XỬ LÝ', class: 'warning' },
+        { value: 'confirmed', label: 'ĐÃ XÁC NHẬN', class: 'success' },
+        { value: 'cancelled', label: 'ĐÃ HỦY', class: 'danger' },
+        { value: 'completed', label: 'HOÀN THÀNH', class: 'info' }
+    ];
+    
+    let modalHtml = `
+        <div class="modal fade" id="statusModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Cập nhật trạng thái booking</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Chọn trạng thái mới cho booking #${bookingId}:</p>
+                        <div class="d-grid gap-2">
+    `;
+    
+    statusOptions.forEach(option => {
         modalHtml += `
-                            </div>
+            <button type="button" class="btn btn-${option.class}" 
+                    onclick="confirmStatusUpdate(${bookingId}, '${option.value}')">
+                ${option.label}
+            </button>
+        `;
+    });
+    
+    modalHtml += `
                         </div>
                     </div>
                 </div>
             </div>
-        `;
-        
-        // Thêm modal vào body
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-        
-        // Hiển thị modal
-        const modal = new bootstrap.Modal(document.getElementById('statusModal'));
-        modal.show();
-        
-        // Xóa modal khi đóng
-        document.getElementById('statusModal').addEventListener('hidden.bs.modal', function() {
-            this.remove();
-        });
-    }
+        </div>
+    `;
     
-    function confirmStatusUpdate(bookingId, newStatus) {
-        const statusLabels = {
-            'pending': 'Chờ xử lý',
-            'confirmed': 'Đã xác nhận', 
-            'cancelled': 'Đã hủy',
-            'completed': 'Hoàn thành'
-        };
-        
-        if (confirm(`Bạn có chắc chắn muốn cập nhật trạng thái thành "${statusLabels[newStatus]}"?`)) {
-            fetch(`/admin/bookings/${bookingId}`, {
-                method: 'PUT',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    status: newStatus
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showNotification(data.message, 'success');
-                    location.reload();
-                } else {
-                    showNotification(data.message, 'error');
-                }
-            })
-            .catch(error => {
-                showNotification('Có lỗi xảy ra khi cập nhật trạng thái!', 'error');
-            });
-        }
-        
-        // Đóng modal
+    // Thêm modal vào body
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Hiển thị modal
+    const modal = new bootstrap.Modal(document.getElementById('statusModal'));
+    modal.show();
+    
+    // Xóa modal khi đóng
+    document.getElementById('statusModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+}
+
+function confirmStatusUpdate(bookingId, newStatus) {
+    const statusLabels = {
+        'pending': 'Chờ xử lý',
+        'confirmed': 'Đã xác nhận', 
+        'cancelled': 'Đã hủy',
+        'completed': 'Hoàn thành'
+    };
+    
+    if (confirm(`Bạn có chắc chắn muốn cập nhật trạng thái thành "${statusLabels[newStatus]}"?`)) {
+        // Đóng modal trước
         const modal = bootstrap.Modal.getInstance(document.getElementById('statusModal'));
         if (modal) modal.hide();
-    }
-    
-    function sendBookingEmail(bookingId) {
-        if (confirm('Bạn có chắc chắn muốn gửi email cho khách hàng?')) {
-            fetch(`/admin/bookings/${bookingId}/send-email`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    'Content-Type': 'application/json'
+        
+        // Disable buttons while processing
+        const buttons = document.querySelectorAll(`[onclick*="confirmStatusUpdate(${bookingId}"]`);
+        buttons.forEach(btn => {
+            btn.disabled = true;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
+            btn.dataset.originalHTML = originalHTML;
+        });
+        
+        const csrfToken = document.querySelector('meta[name="csrf-token"]');
+        if (!csrfToken) {
+            showAlert('danger', 'CSRF token not found. Vui lòng refresh trang và thử lại.');
+            // Re-enable buttons on error
+            buttons.forEach(btn => {
+                btn.disabled = false;
+                if (btn.dataset.originalHTML) {
+                    btn.innerHTML = btn.dataset.originalHTML;
                 }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showNotification(data.message, 'success');
-                } else {
-                    showNotification(data.message, 'error');
-                }
-            })
-            .catch(error => {
-                showNotification('Có lỗi xảy ra khi gửi email!', 'error');
             });
+            return;
         }
-    }
-    
-    function deleteBooking(bookingId) {
+        
         fetch(`/admin/bookings/${bookingId}`, {
-            method: 'DELETE',
+            method: 'PUT',
             headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                'Content-Type': 'application/json'
+                'X-CSRF-TOKEN': csrfToken.content,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                status: newStatus
+            })
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            
+            // Get response content type
+            const contentType = response.headers.get('content-type');
+            console.log('Content-Type:', contentType);
+            
+            if (!response.ok) {
+                // Try to get error message from response
+                return response.text().then(text => {
+                    console.error('Error response:', text);
+                    try {
+                        const err = JSON.parse(text);
+                        return Promise.reject(new Error(err.message || 'Lỗi cập nhật trạng thái'));
+                    } catch (e) {
+                        return Promise.reject(new Error(text || 'Lỗi cập nhật trạng thái'));
+                    }
+                });
+            }
+            
+            // Parse JSON response
+            if (contentType && contentType.includes('application/json')) {
+                return response.json();
+            } else {
+                // If not JSON, it might be a redirect HTML
+                return response.text().then(text => {
+                    console.warn('Received non-JSON response:', text);
+                    return { success: false, message: 'Nhận được phản hồi không hợp lệ từ server' };
+                });
             }
         })
-        .then(response => response.json())
         .then(data => {
             if (data.success) {
-                showNotification(data.message, 'success');
-                location.reload();
+                showAlert('success', data.message || 'Đặt tour đã được cập nhật thành công!');
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
             } else {
-                showNotification(data.message, 'error');
+                showAlert('danger', data.message || 'Có lỗi xảy ra khi cập nhật trạng thái!');
+                // Re-enable buttons on error
+                buttons.forEach(btn => {
+                    btn.disabled = false;
+                    if (btn.dataset.originalHTML) {
+                        btn.innerHTML = btn.dataset.originalHTML;
+                    }
+                });
             }
         })
         .catch(error => {
-            showNotification('Có lỗi xảy ra khi xóa booking!', 'error');
+            console.error('Error updating status:', error);
+            const errorMessage = error.message || 'Có lỗi xảy ra khi cập nhật trạng thái!';
+            showAlert('danger', errorMessage);
+            // Re-enable buttons on error
+            buttons.forEach(btn => {
+                btn.disabled = false;
+                if (btn.dataset.originalHTML) {
+                    btn.innerHTML = btn.dataset.originalHTML;
+                }
+            });
         });
     }
+}
+
+function deleteBooking(bookingId) {
+    console.log('deleteBooking called with bookingId:', bookingId);
     
-    function showNotification(message, type) {
-        const notification = document.createElement('div');
-        notification.className = `notification notification-${type}`;
-        notification.innerHTML = `
-            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
-            <span>${message}</span>
-        `;
-        
-        document.body.appendChild(notification);
-        
-        setTimeout(() => notification.classList.add('show'), 100);
-        
-        setTimeout(() => {
-            notification.classList.remove('show');
-            setTimeout(() => notification.remove(), 300);
-        }, 3000);
+    if (!bookingId) {
+        showAlert('danger', 'Không tìm thấy ID đặt tour để xóa.');
+        return;
+    }
+    
+    const csrfToken = document.querySelector('meta[name="csrf-token"]');
+    if (!csrfToken) {
+        showAlert('danger', 'CSRF token not found. Vui lòng refresh trang và thử lại.');
+        return;
+    }
+    
+    const url = `/admin/bookings/${bookingId}`;
+    console.log('Deleting booking at URL:', url);
+    
+    fetch(url, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': csrfToken.content,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => Promise.reject(err));
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message || 'Đặt tour đã được xóa thành công!');
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        } else {
+            showAlert('danger', data.message || 'Có lỗi xảy ra khi xóa booking!');
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting booking:', error);
+        showAlert('danger', error.message || 'Có lỗi xảy ra khi xóa booking!');
+    });
+}
+
+// Initialize tooltips after DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof bootstrap !== 'undefined') {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
     }
 });
-</script>
-@endpush
 
-@section('scripts')
-<script>
-    // Initialize tooltips
-    document.addEventListener('DOMContentLoaded', function() {
-        if (typeof bootstrap !== 'undefined') {
-            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl);
-            });
-        }
-    });
-
-    // Generate Invoice PDF
-    async function generateInvoice(bookingId, buttonElement = null) {
-        let button = null;
-        let originalContent = null;
-        
-        try {
-            button = buttonElement || event.target.closest('button');
-            originalContent = button.innerHTML;
-            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            button.disabled = true;
-
-            console.log('Generating invoice for booking:', bookingId);
-
-            // First test simple debug route
-            const debugResponse = await fetch(`/debug-invoice-simple/${bookingId}`);
-            const debugData = await debugResponse.json();
-            console.log('Debug response:', debugData);
-
-            if (!debugData.success) {
-                throw new Error('Debug failed: ' + debugData.message);
-            }
-
-            const response = await fetch(`/web/invoices/booking/${bookingId}/pdf`, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                }
-            });
-
-            console.log('Response status:', response.status);
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            console.log('Response data:', data);
-
-            if (data.success && data.data && data.data.download_url) {
-                // Open PDF in new tab
-                const newWindow = window.open(data.data.download_url, '_blank');
-                
-                if (newWindow) {
-                    showAlert('success', 'PDF hóa đơn đã được tạo thành công!');
-                } else {
-                    showAlert('warning', 'Popup bị chặn. Vui lòng cho phép popup và thử lại.');
-                }
-            } else {
-                showAlert('danger', 'Lỗi: ' + (data.message || 'Không thể tạo PDF'));
-            }
-        } catch (error) {
-            console.error('Error generating invoice:', error);
-            showAlert('danger', 'Lỗi: ' + error.message);
-        } finally {
-            if (button && originalContent) {
-                button.innerHTML = originalContent;
-                button.disabled = false;
-            }
-        }
-    }
-
-    // Download Invoice PDF
-    async function downloadInvoice(bookingId) {
-        let button = null;
-        let originalContent = null;
-        
-        try {
+// Generate Invoice PDF - Must be defined outside DOMContentLoaded
+async function generateInvoice(bookingId, buttonElement = null) {
+    let button = null;
+    let originalContent = null;
+    
+    try {
+        // Get button element safely
+        if (buttonElement) {
+            button = buttonElement;
+        } else if (typeof event !== 'undefined' && event && event.target) {
             button = event.target.closest('button');
-            originalContent = button.innerHTML;
-            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            button.disabled = true;
+        } else {
+            // Find button by data-action and data-id
+            button = document.querySelector(`button[data-action="invoice"][data-id="${bookingId}"]`);
+        }
+        
+        if (!button) {
+            console.error('Button not found for booking:', bookingId);
+            showAlert('danger', 'Không tìm thấy nút. Vui lòng thử lại.');
+            return;
+        }
 
-            const response = await fetch(`/web/invoices/booking/${bookingId}/pdf`, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                }
-            });
+        originalContent = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        button.disabled = true;
 
-            if (response.ok) {
-                const data = await response.json();
-                if (data.success) {
-                    // Download the PDF file
-                    const link = document.createElement('a');
-                    link.href = data.data.download_url;
-                    link.download = data.data.file_name;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    
-                    showAlert('success', 'PDF hóa đơn đã được tải xuống!');
-                } else {
-                    showAlert('danger', 'Lỗi: ' + data.message);
-                }
+        // Get CSRF token safely
+        const csrfTokenElement = document.querySelector('meta[name="csrf-token"]');
+        if (!csrfTokenElement) {
+            throw new Error('CSRF token not found');
+        }
+        const csrfToken = csrfTokenElement.getAttribute('content');
+
+        const response = await fetch(`/web/invoices/booking/${bookingId}/pdf`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+        }
+
+        const data = await response.json();
+
+        if (data.success && data.data && data.data.download_url) {
+            // Open PDF in new tab
+            const newWindow = window.open(data.data.download_url, '_blank');
+            
+            if (newWindow) {
+                showAlert('success', 'PDF hóa đơn đã được tạo thành công!');
             } else {
-                const errorText = await response.text();
-                showAlert('danger', 'Lỗi: ' + errorText);
+                showAlert('warning', 'Popup bị chặn. Vui lòng cho phép popup và thử lại.');
             }
-        } catch (error) {
-            showAlert('danger', 'Lỗi: ' + error.message);
-        } finally {
-            if (button && originalContent) {
-                button.innerHTML = originalContent;
-                button.disabled = false;
-            }
+        } else {
+            showAlert('danger', 'Lỗi: ' + (data.message || 'Không thể tạo PDF'));
+        }
+    } catch (error) {
+        console.error('Error generating invoice:', error);
+        showAlert('danger', 'Lỗi: ' + error.message);
+    } finally {
+        if (button && originalContent) {
+            button.innerHTML = originalContent;
+            button.disabled = false;
         }
     }
+}
 
-    // Show alert message
-    function showAlert(type, message) {
-        const alertContainer = document.createElement('div');
-        alertContainer.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-        alertContainer.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
-        alertContainer.innerHTML = `
-            <div class="d-flex align-items-center">
-                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : type === 'info' ? 'info-circle' : 'exclamation-circle'} me-2"></i>
-                <span>${message}</span>
-            </div>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
+// Download Invoice PDF
+async function downloadInvoice(bookingId, buttonElement = null) {
+    let button = null;
+    let originalContent = null;
+    
+    try {
+        // Get button element safely
+        if (buttonElement) {
+            button = buttonElement;
+        } else if (typeof event !== 'undefined' && event && event.target) {
+            button = event.target.closest('button');
+        } else {
+            // Find button by data-action and data-id
+            button = document.querySelector(`button[data-action="download_pdf"][data-id="${bookingId}"]`);
+        }
         
-        document.body.appendChild(alertContainer);
-        
-        setTimeout(() => {
-            if (alertContainer.parentNode) {
-                alertContainer.remove();
+        if (!button) {
+            console.error('Button not found for booking:', bookingId);
+            showAlert('danger', 'Không tìm thấy nút. Vui lòng thử lại.');
+            return;
+        }
+
+        originalContent = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        button.disabled = true;
+
+        // Get CSRF token safely
+        const csrfTokenElement = document.querySelector('meta[name="csrf-token"]');
+        if (!csrfTokenElement) {
+            throw new Error('CSRF token not found');
+        }
+        const csrfToken = csrfTokenElement.getAttribute('content');
+
+        const response = await fetch(`/web/invoices/booking/${bookingId}/pdf`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
             }
-        }, 5000);
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data && data.data.download_url) {
+                // Download the PDF file
+                const link = document.createElement('a');
+                link.href = data.data.download_url;
+                link.download = data.data.file_name || `invoice_${bookingId}.html`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                showAlert('success', 'PDF hóa đơn đã được tải xuống!');
+            } else {
+                showAlert('danger', 'Lỗi: ' + (data.message || 'Không thể tải PDF'));
+            }
+        } else {
+            const errorText = await response.text();
+            showAlert('danger', 'Lỗi: ' + errorText);
+        }
+    } catch (error) {
+        console.error('Error downloading invoice:', error);
+        showAlert('danger', 'Lỗi: ' + error.message);
+    } finally {
+        if (button && originalContent) {
+            button.innerHTML = originalContent;
+            button.disabled = false;
+        }
     }
+}
+
 </script>
 @endsection

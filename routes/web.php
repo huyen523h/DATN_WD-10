@@ -248,6 +248,9 @@ Route::get('/web/invoices/booking/{bookingId}/pdf', function ($bookingId) {
             $invoice = $booking->invoice;
         }
 
+        // Load booking with promotion relationship
+        $booking->load('promotion');
+
         // Company information
         $company = [
             'name' => 'Tour365 - Công ty Du lịch',
@@ -296,6 +299,71 @@ Route::get('/web/invoices/booking/{bookingId}/pdf', function ($bookingId) {
         return response()->json([
             'success' => false,
             'message' => 'Error generating invoice: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// Route to download invoice file (with proper headers)
+Route::get('/web/invoices/booking/{bookingId}/download', function ($bookingId) {
+    try {
+        $booking = \App\Models\Booking::with(['user', 'tour', 'departure'])->find($bookingId);
+        
+        if (!$booking) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Booking not found'
+            ], 404);
+        }
+
+        // Create invoice if not exists
+        if (!$booking->invoice) {
+            $invoice = \App\Models\Invoice::create([
+                'booking_id' => $booking->id,
+                'invoice_number' => \App\Models\Invoice::generateInvoiceNumber(),
+                'issue_date' => now(),
+                'amount' => $booking->total_amount,
+                'status' => 'issued',
+            ]);
+        } else {
+            $invoice = $booking->invoice;
+        }
+
+        // Load booking with promotion relationship
+        $booking->load('promotion');
+
+        // Company information
+        $company = [
+            'name' => 'Tour365 - Công ty Du lịch',
+            'address' => '123 Đường ABC, Quận 1, TP.HCM',
+            'phone' => '0123 456 789',
+            'email' => 'info@tour365.com',
+            'website' => 'www.tour365.com',
+            'tax_code' => '0123456789'
+        ];
+
+        // Generate HTML
+        $html = view('invoices.pdf', [
+            'invoice' => $invoice,
+            'booking' => $booking,
+            'tour' => $booking->tour,
+            'user' => $booking->user,
+            'departure' => $booking->departure,
+            'company' => $company,
+            'promotion' => $booking->promotion ?? null,
+        ])->render();
+
+        // Generate filename
+        $fileName = 'invoice_' . $bookingId . '_' . time() . '.html';
+
+        // Return file with download headers
+        return response($html, 200)
+            ->header('Content-Type', 'text/html; charset=utf-8')
+            ->header('Content-Disposition', 'attachment; filename="' . $fileName . '"')
+            ->header('Content-Length', strlen($html));
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Error downloading invoice: ' . $e->getMessage()
         ], 500);
     }
 });

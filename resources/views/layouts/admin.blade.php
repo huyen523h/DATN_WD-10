@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Admin Dashboard - Tour365')</title>
     <meta name="description" content="Admin Dashboard - Tour365">
     <meta name="theme-color" content="#6366F1">
@@ -1150,22 +1151,25 @@
             const sidebar = document.getElementById('adminSidebar');
             const main = document.getElementById('adminMain');
 
-            sidebarToggle.addEventListener('click', function() {
-                sidebar.classList.toggle('collapsed');
-                main.classList.toggle('sidebar-collapsed');
+            if (sidebarToggle && sidebar && main) {
+                sidebarToggle.addEventListener('click', function() {
+                    sidebar.classList.toggle('collapsed');
+                    main.classList.toggle('sidebar-collapsed');
 
-                // Save state to localStorage
-                const isCollapsed = sidebar.classList.contains('collapsed');
-                localStorage.setItem('adminSidebarCollapsed', isCollapsed);
+                    // Save state to localStorage
+                    const isCollapsed = sidebar.classList.contains('collapsed');
+                    localStorage.setItem('adminSidebarCollapsed', isCollapsed);
+                });
 
-            });
-
-            // Close sidebar when clicking outside
-            document.addEventListener('click', (e) => {
-                if (!sidebar.contains(e.target) && !sidebarToggle.contains(e.target)) {
-                    sidebar.classList.remove('open');
-                }
-            });
+                // Close sidebar when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (e.target && sidebar && sidebarToggle) {
+                        if (!sidebar.contains(e.target) && !sidebarToggle.contains(e.target)) {
+                            sidebar.classList.remove('open');
+                        }
+                    }
+                });
+            }
         });
 
 

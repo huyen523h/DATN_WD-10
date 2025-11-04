@@ -112,13 +112,14 @@ class CheckoutController extends Controller
                 //Cập nhật trạng thái booking
                 $payment->booking()->update(['status' => 'completed']);
 
-
                 $data['message'] = 'Thanh toán thành công';
+                $booking = $payment->booking;
             } else {
                 $data['message'] = 'Thanh toán thất bại';
+                $booking = null;
             }
 
-            return view('payment.result', ['data' => $data]);
+            return view('payment.result', ['data' => $data, 'booking' => $booking ?? null]);
         }
     }
     public function momo_ipn(Request $request)

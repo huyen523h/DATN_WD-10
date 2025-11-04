@@ -238,10 +238,15 @@
                         </button>
                         @endif
                         
-                        <button class="btn btn-warning" onclick="sendEmail({{ $invoice->id }})">
-                            <i class="fas fa-envelope"></i> Gửi email cho khách hàng
+                        @if($invoice->booking)
+                        <button class="btn btn-success" onclick="generateInvoice({{ $invoice->booking->id }})">
+                            <i class="fas fa-file-invoice"></i> In hóa đơn
                         </button>
                         
+                        <button class="btn btn-primary" onclick="downloadInvoice({{ $invoice->booking->id }})">
+                            <i class="fas fa-download"></i> Tải PDF
+                        </button>
+                        @else
                         <a href="{{ route('admin.invoices.pdf', $invoice) }}" target="_blank" class="btn btn-info">
                             <i class="fas fa-file-pdf"></i> Xem PDF
                         </a>
@@ -249,6 +254,7 @@
                         <a href="{{ route('admin.invoices.download', $invoice) }}" class="btn btn-primary">
                             <i class="fas fa-download"></i> Tải PDF
                         </a>
+                        @endif
                         
                         <a href="{{ route('admin.invoices.edit', $invoice) }}" class="btn btn-secondary">
                             <i class="fas fa-edit"></i> Chỉnh sửa
@@ -383,26 +389,97 @@ function markAsPaid(invoiceId) {
     }
 }
 
-function sendEmail(invoiceId) {
-    if (confirm('Bạn có chắc chắn muốn gửi email hóa đơn cho khách hàng?')) {
-        fetch(`/admin/invoices/${invoiceId}/send-email`, {
-            method: 'POST',
+// Generate Invoice PDF
+async function generateInvoice(bookingId, buttonElement = null) {
+    let button = null;
+    let originalContent = null;
+    
+    try {
+        button = buttonElement || event.target.closest('button');
+        originalContent = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        button.disabled = true;
+
+        const response = await fetch(`/web/invoices/booking/${bookingId}/pdf`, {
+            method: 'GET',
             headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                'Content-Type': 'application/json'
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
             }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showNotification(data.message, 'success');
-            } else {
-                showNotification(data.message, 'error');
-            }
-        })
-        .catch(error => {
-            showNotification('Có lỗi xảy ra khi gửi email!', 'error');
         });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.success && data.data && data.data.download_url) {
+            const newWindow = window.open(data.data.download_url, '_blank');
+            
+            if (newWindow) {
+                showNotification('PDF hóa đơn đã được tạo thành công!', 'success');
+            } else {
+                showNotification('Popup bị chặn. Vui lòng cho phép popup và thử lại.', 'error');
+            }
+        } else {
+            showNotification('Lỗi: ' + (data.message || 'Không thể tạo PDF'), 'error');
+        }
+    } catch (error) {
+        console.error('Error generating invoice:', error);
+        showNotification('Lỗi: ' + error.message, 'error');
+    } finally {
+        if (button && originalContent) {
+            button.innerHTML = originalContent;
+            button.disabled = false;
+        }
+    }
+}
+
+// Download Invoice PDF
+async function downloadInvoice(bookingId) {
+    let button = null;
+    let originalContent = null;
+    
+    try {
+        button = event.target.closest('button');
+        originalContent = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        button.disabled = true;
+
+        const response = await fetch(`/web/invoices/booking/${bookingId}/pdf`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+                const link = document.createElement('a');
+                link.href = data.data.download_url;
+                link.download = data.data.file_name;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                showNotification('PDF hóa đơn đã được tải xuống!', 'success');
+            } else {
+                showNotification('Lỗi: ' + data.message, 'error');
+            }
+        } else {
+            const errorText = await response.text();
+            showNotification('Lỗi: ' + errorText, 'error');
+        }
+    } catch (error) {
+        showNotification('Lỗi: ' + error.message, 'error');
+    } finally {
+        if (button && originalContent) {
+            button.innerHTML = originalContent;
+            button.disabled = false;
+        }
     }
 }
 
