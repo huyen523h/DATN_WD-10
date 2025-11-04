@@ -12,23 +12,19 @@ class StaffController extends Controller
 {
     public function dashboard()
     {
-        $totalTours = Tour::count();
-        $totalBookings = Booking::count();
-        $totalCustomers = User::whereHas('roles', function ($q) {
-            $q->where('name', 'customer');
-        })->count();
-        
-        $recentBookings = Booking::with(['user', 'tour'])
+        $stats = [
+            'total_tours' => Tour::count(),
+            'total_bookings' => Booking::count(),
+            'pending_bookings' => Booking::where('status', 'pending')->count(),
+            'confirmed_bookings' => Booking::where('status', 'confirmed')->count(),
+        ];
+
+        $recent_bookings = Booking::with(['tour', 'user'])
             ->orderBy('created_at', 'desc')
-            ->limit(5)
+            ->limit(10)
             ->get();
 
-        return view('staff.dashboard', compact(
-            'totalTours',
-            'totalBookings', 
-            'totalCustomers',
-            'recentBookings'
-        ));
+        return view('staff.dashboard', compact('stats', 'recent_bookings'));
     }
 
     public function tours()
