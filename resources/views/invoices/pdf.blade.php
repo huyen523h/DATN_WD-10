@@ -210,7 +210,13 @@
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">Ngày phát hành:</div>
-                    <div class="detail-value">{{ $invoice->issue_date->format('d/m/Y') }}</div>
+                    <div class="detail-value">
+                        @if($invoice->issue_date)
+                            {{ is_string($invoice->issue_date) ? date('d/m/Y', strtotime($invoice->issue_date)) : $invoice->issue_date->format('d/m/Y') }}
+                        @else
+                            N/A
+                        @endif
+                    </div>
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">Trạng thái:</div>
@@ -269,7 +275,13 @@
                         <td>{{ $tour->title }}</td>
                         <td>{{ $tour->location }}</td>
                         <td>{{ $tour->duration }}</td>
-                        <td>{{ $departure ? $departure->departure_date->format('d/m/Y') : 'N/A' }}</td>
+                        <td>
+                            @if($departure && $departure->departure_date)
+                                {{ is_string($departure->departure_date) ? date('d/m/Y', strtotime($departure->departure_date)) : $departure->departure_date->format('d/m/Y') }}
+                            @else
+                                N/A
+                            @endif
+                        </td>
                     </tr>
                 </tbody>
             </table>
@@ -277,9 +289,11 @@
             @if($departure)
             <div class="departure-info">
                 <strong>Thông tin khởi hành:</strong><br>
-                Ngày: {{ $departure->departure_date->format('d/m/Y') }}<br>
+                @if($departure->departure_date)
+                Ngày: {{ is_string($departure->departure_date) ? date('d/m/Y', strtotime($departure->departure_date)) : $departure->departure_date->format('d/m/Y') }}<br>
+                @endif
                 @if($departure->return_date)
-                Ngày về: {{ $departure->return_date->format('d/m/Y') }}<br>
+                Ngày về: {{ is_string($departure->return_date) ? date('d/m/Y', strtotime($departure->return_date)) : (is_object($departure->return_date) ? $departure->return_date->format('d/m/Y') : $departure->return_date) }}<br>
                 @endif
                 @if($departure->meeting_point)
                 Điểm tập trung: {{ $departure->meeting_point }}<br>

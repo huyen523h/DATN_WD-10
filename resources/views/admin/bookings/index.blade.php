@@ -175,194 +175,95 @@
     </div>
 </div>
 
-<!-- Bookings Table -->
-<div class="row">
-    <div class="col-12">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white border-0 py-4">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold text-dark">
-                        <i class="fas fa-list text-primary me-2"></i>
-                        Danh sách đặt tour ({{ $bookings->total() }} đặt tour)
-                    </h5>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-outline-primary btn-sm">
-                            <i class="fas fa-download me-1"></i>
-                            Xuất báo cáo
-                        </button>
-                        <button class="btn btn-outline-secondary btn-sm">
-                            <i class="fas fa-print me-1"></i>
-                            In danh sách
-                        </button>
-                    </div>
+<!-- Modern Bookings Table -->
+<x-admin.table 
+    :headers="[
+        ['key' => 'id', 'label' => 'Mã đặt tour', 'sortable' => true, 'component' => 'admin.table.booking-id'],
+        ['key' => 'customer', 'label' => 'Khách hàng', 'sortable' => true, 'component' => 'admin.table.avatar'],
+        ['key' => 'tour', 'label' => 'Tour', 'sortable' => true],
+        ['key' => 'departure_date', 'label' => 'Ngày khởi hành', 'sortable' => true, 'component' => 'admin.table.date'],
+        ['key' => 'guests', 'label' => 'Số khách', 'sortable' => true, 'component' => 'admin.table.guests'],
+        ['key' => 'total_amount', 'label' => 'Tổng tiền', 'sortable' => true, 'component' => 'admin.table.price'],
+        ['key' => 'status', 'label' => 'Trạng thái', 'sortable' => true, 'component' => 'admin.table.status-badge'],
+        ['key' => 'created_at', 'label' => 'Ngày đặt', 'sortable' => true, 'component' => 'admin.table.date']
+    ]"
+    :data="$bookings->map(function($booking) {
+        return [
+            'id' => $booking->id,
+            'customer' => [
+                'name' => $booking->user->name,
+                'email' => $booking->user->email
+            ],
+            'tour' => $booking->tour->title,
+            'departure_date' => $booking->departure->departure_date ?? 'N/A',
+            'guests' => [
+                'adults' => $booking->adults,
+                'children' => $booking->children,
+                'infants' => $booking->infants
+            ],
+            'total_amount' => $booking->total_amount,
+            'status' => $booking->status,
+            'created_at' => $booking->created_at
+        ];
+    })"
+    :actions="[
+        ['action' => 'view', 'icon' => 'fas fa-eye', 'class' => 'btn-primary', 'title' => 'Xem chi tiết'],
+        ['action' => 'status', 'icon' => 'fas fa-edit', 'class' => 'btn-info', 'title' => 'Cập nhật trạng thái'],
+        ['action' => 'invoice', 'icon' => 'fas fa-file-invoice', 'class' => 'btn-success', 'title' => 'In hóa đơn'],
+        ['action' => 'download_pdf', 'icon' => 'fas fa-download', 'class' => 'btn-primary', 'title' => 'Tải PDF'],
+        ['action' => 'delete', 'icon' => 'fas fa-trash', 'class' => 'btn-danger', 'title' => 'Xóa']
+    ]"
+    :searchable="true"
+    :sortable="true"
+    :filterable="true"
+    :pagination="$bookings"
+    empty-message="Chưa có đặt tour nào"
+    id="bookings-table"
+>
+    <!-- Custom Filters -->
+    <x-slot name="filters">
+        <div class="filter-grid">
+            <div class="filter-group">
+                <label class="filter-label">Trạng thái</label>
+                <select name="status" class="filter-select">
+                    <option value="">Tất cả trạng thái</option>
+                    <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Chờ xác nhận</option>
+                    <option value="confirmed" {{ request('status') == 'confirmed' ? 'selected' : '' }}>Đã xác nhận</option>
+                    <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Đã hủy</option>
+                    <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Hoàn thành</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">Từ ngày</label>
+                <input type="date" name="date_from" class="filter-input" value="{{ request('date_from') }}">
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">Đến ngày</label>
+                <input type="date" name="date_to" class="filter-input" value="{{ request('date_to') }}">
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">Khoảng tiền</label>
+                <div class="price-range">
+                    <input type="number" name="min_amount" class="filter-input" placeholder="Từ" value="{{ request('min_amount') }}">
+                    <span class="range-separator">-</span>
+                    <input type="number" name="max_amount" class="filter-input" placeholder="Đến" value="{{ request('max_amount') }}">
                 </div>
             </div>
-            <div class="card-body p-0">
-                @if($bookings->count() > 0)
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="bg-light">
-                                <tr>
-                                    <th class="border-0 py-3 px-4 fw-semibold text-muted">Mã đặt tour</th>
-                                    <th class="border-0 py-3 px-4 fw-semibold text-muted">Khách hàng</th>
-                                    <th class="border-0 py-3 px-4 fw-semibold text-muted">Tour</th>
-                                    <th class="border-0 py-3 px-4 fw-semibold text-muted">Ngày khởi hành</th>
-                                    <th class="border-0 py-3 px-4 fw-semibold text-muted">Số khách</th>
-                                    <th class="border-0 py-3 px-4 fw-semibold text-muted">Tổng tiền</th>
-                                    <th class="border-0 py-3 px-4 fw-semibold text-muted">Trạng thái</th>
-                                    <th class="border-0 py-3 px-4 fw-semibold text-muted">Ngày đặt</th>
-                                    <th class="border-0 py-3 px-4 fw-semibold text-muted text-center">Thao tác</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($bookings as $booking)
-                                    <tr class="border-bottom">
-                                        <td class="py-4 px-4">
-                                            <div class="d-flex align-items-center">
-                                                <div class="bg-primary bg-opacity-10 rounded p-2 me-3">
-                                                    <i class="fas fa-receipt text-primary"></i>
-                                                </div>
-                                                <div>
-                                                    <h6 class="mb-0 fw-bold text-dark">#{{ $booking->id }}</h6>
-                                                    <small class="text-muted">Mã đặt tour</small>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="py-4 px-4">
-                                            <div class="d-flex align-items-center">
-                                                <div class="bg-info bg-opacity-10 rounded-circle p-2 me-3">
-                                                    <i class="fas fa-user text-info"></i>
-                                                </div>
-                                                <div>
-                                                    <h6 class="mb-0 fw-bold text-dark">{{ $booking->user->name }}</h6>
-                                                    <small class="text-muted">{{ $booking->user->email }}</small>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="py-4 px-4">
-                                            <h6 class="mb-0 fw-bold text-dark">{{ $booking->tour->title }}</h6>
-                                            <small class="text-muted">
-                                                <i class="fas fa-clock me-1"></i>
-                                                {{ $booking->tour->duration_days }} ngày
-                                            </small>
-                                        </td>
-                                        <td class="py-4 px-4">
-                                            <small class="text-muted">
-                                                <i class="fas fa-calendar-alt me-1"></i>
-                                                {{ $booking->departure->departure_date ?? 'N/A' }}
-                                            </small>
-                                        </td>
-                                        <td class="py-4 px-4">
-                                            <div class="d-flex flex-column">
-                                                <span class="fw-bold text-dark">{{ $booking->adults }} người lớn</span>
-                                                @if($booking->children > 0)
-                                                    <small class="text-muted">{{ $booking->children }} trẻ em</small>
-                                                @endif
-                                                @if($booking->infants > 0)
-                                                    <small class="text-muted">{{ $booking->infants }} em bé</small>
-                                                @endif
-                                            </div>
-                                        </td>
-                                        <td class="py-4 px-4">
-                                            <h6 class="mb-0 fw-bold text-success">
-                                                {{ number_format($booking->total_amount, 0, ',', '.') }}đ
-                                            </h6>
-                                        </td>
-                                        <td class="py-4 px-4">
-                                            <form action="{{ route('admin.bookings.update', $booking) }}" method="POST" class="d-inline">
-                                                @csrf
-                                                @method('PUT')
-                                                <select name="status" onchange="this.form.submit()" 
-                                                        class="form-select form-select-sm 
-                                                        @if($booking->status === 'pending') border-warning
-                                                        @elseif($booking->status === 'confirmed') border-success
-                                                        @elseif($booking->status === 'cancelled') border-danger
-                                                        @elseif($booking->status === 'completed') border-info
-                                                        @endif">
-                                                    <option value="pending" {{ $booking->status=='pending'?'selected':'' }}>Chờ xác nhận</option>
-                                                    <option value="confirmed" {{ $booking->status=='confirmed'?'selected':'' }}>Đã xác nhận</option>
-                                                    <option value="cancelled" {{ $booking->status=='cancelled'?'selected':'' }}>Đã hủy</option>
-                                                    <option value="completed" {{ $booking->status=='completed'?'selected':'' }}>Hoàn thành</option>
-                                                </select>
-                                            </form>
-                                        </td>
-                                        <td class="py-4 px-4">
-                                            <small class="text-muted">
-                                                <i class="fas fa-calendar me-1"></i>
-                                                {{ $booking->created_at->format('d/m/Y H:i') }}
-                                            </small>
-                                        </td>
-                                        <td class="py-4 px-4 text-center">
-                                            <div class="btn-group" role="group">
-                                                <a href="{{ route('admin.bookings.show', $booking) }}" 
-                                                   class="btn btn-outline-info btn-sm" 
-                                                   title="Xem chi tiết"
-                                                   data-bs-toggle="tooltip">
-                                                    <i class="fas fa-eye"></i>
-                                                </a>
-                                                <button class="btn btn-outline-success btn-sm" 
-                                                        title="In hóa đơn"
-                                                        data-bs-toggle="tooltip"
-                                                        onclick="generateInvoice({{ $booking->id }})">
-                                                    <i class="fas fa-file-invoice"></i>
-                                                </button>
-                                                <button class="btn btn-outline-primary btn-sm" 
-                                                        title="Tải PDF"
-                                                        data-bs-toggle="tooltip"
-                                                        onclick="downloadInvoice({{ $booking->id }})">
-                                                    <i class="fas fa-download"></i>
-                                                </button>
-                                                <button class="btn btn-outline-warning btn-sm" 
-                                                        title="Gửi email"
-                                                        data-bs-toggle="tooltip">
-                                                    <i class="fas fa-envelope"></i>
-                                                </button>
-                                                <form action="{{ route('admin.bookings.destroy', $booking) }}" 
-                                                      method="POST" class="d-inline">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button class="btn btn-outline-danger btn-sm" 
-                                                            onclick="return confirm('Bạn có chắc chắn muốn xóa đặt tour này?')" 
-                                                            title="Xóa"
-                                                            data-bs-toggle="tooltip">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Pagination -->
-                    <div class="d-flex justify-content-between align-items-center p-4 border-top">
-                        <div class="text-muted">
-                            Hiển thị {{ $bookings->firstItem() }} - {{ $bookings->lastItem() }} 
-                            trong tổng số {{ $bookings->total() }} đặt tour
-                        </div>
-                        <div>
-                            {{ $bookings->links() }}
-                        </div>
-                    </div>
-                @else
-                    <!-- Empty State -->
-                    <div class="text-center py-5">
-                        <div class="mb-4">
-                            <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center" 
-                                 style="width: 120px; height: 120px;">
-                                <i class="fas fa-calendar-times fa-3x text-muted"></i>
-                            </div>
-                        </div>
-                        <h4 class="fw-bold text-dark mb-3">Chưa có đặt tour nào</h4>
-                        <p class="text-muted mb-4">Các đặt tour mới sẽ hiển thị ở đây</p>
-                    </div>
-                @endif
-            </div>
         </div>
-    </div>
-</div>
+        
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search"></i> Áp dụng bộ lọc
+            </button>
+            <a href="{{ route('admin.bookings') }}" class="btn btn-secondary">
+                <i class="fas fa-times"></i> Xóa bộ lọc
+            </a>
+        </div>
+    </x-slot>
+</x-admin.table>
 @endsection
 
 @section('styles')
@@ -435,185 +336,505 @@
         border-color: #0EA5E9;
         box-shadow: 0 0 0 0.2rem rgba(14, 165, 233, 0.25);
     }
+    
+    /* Notification styles */
+    .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        z-index: 9999;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .notification.show {
+        transform: translateX(0);
+    }
+    
+    .notification-success {
+        background: linear-gradient(135deg, #10b981, #059669);
+    }
+    
+    .notification-error {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+    }
+    
+    .notification i {
+        margin-right: 8px;
+    }
 </style>
 @endsection
 
 @section('scripts')
 <script>
-    // Initialize tooltips
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('DOM loaded, initializing tooltips...');
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle booking actions - Only for bookings table
+    const bookingsTable = document.getElementById('bookings-table');
+    if (!bookingsTable) return;
+    
+    // Find action buttons only within bookings table
+    const actionButtons = bookingsTable.querySelectorAll('[data-action]');
+    
+    actionButtons.forEach(btn => {
+        // Remove any existing listeners first
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
         
-        // Check if Bootstrap is available
-        if (typeof bootstrap !== 'undefined') {
-            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl);
-            });
-            console.log('Bootstrap tooltips initialized');
-        } else {
-            console.warn('Bootstrap not available, skipping tooltip initialization');
-        }
-        
-        // Test if functions are available
-        console.log('testInvoiceAPI function available:', typeof testInvoiceAPI);
-        console.log('simpleTest function available:', typeof simpleTest);
-        
-        // Add click event listeners as backup
-        const testApiBtn = document.querySelector('button[onclick="testInvoiceAPI()"]');
-        const quickTestBtn = document.querySelector('button[onclick="simpleTest()"]');
-        
-        if (testApiBtn) {
-            testApiBtn.addEventListener('click', function(e) {
-                console.log('Test API button clicked via event listener');
-                testInvoiceAPI();
-            });
-        }
-        
-        if (quickTestBtn) {
-            quickTestBtn.addEventListener('click', function(e) {
-                console.log('Quick Test button clicked via event listener');
-                simpleTest();
-            });
-        }
-    });
-
-    // Generate Invoice PDF
-    async function generateInvoice(bookingId, buttonElement = null) {
-        let button = null;
-        let originalContent = null;
-        
-        try {
-            // Show loading
-            button = buttonElement || event.target.closest('button');
-            originalContent = button.innerHTML;
-            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            button.disabled = true;
-
-            console.log('Generating invoice for booking:', bookingId);
-
-            // First test simple debug route
-            const debugResponse = await fetch(`/debug-invoice-simple/${bookingId}`);
-            const debugData = await debugResponse.json();
-            console.log('Debug response:', debugData);
-
-            if (!debugData.success) {
-                throw new Error('Debug failed: ' + debugData.message);
+        newBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const action = this.dataset.action;
+            const bookingId = this.dataset.id;
+            
+            console.log('Action button clicked:', { action, bookingId, button: this, url: `/admin/bookings/${bookingId}` });
+            
+            if (!bookingId || bookingId === 'undefined' || bookingId === 'null') {
+                console.error('Booking ID not found in button:', this, 'data-id:', this.dataset.id);
+                showAlert('danger', 'Không tìm thấy ID đặt tour. Vui lòng thử lại.');
+                return;
             }
-
-            const response = await fetch(`/web/invoices/booking/${bookingId}/pdf`, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                }
-            });
-
-            console.log('Response status:', response.status);
-            console.log('Response headers:', response.headers);
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            console.log('Response data:', data);
-
-            if (data.success && data.data && data.data.download_url) {
-                // Open PDF in new tab
-                const newWindow = window.open(data.data.download_url, '_blank');
-                
-                if (newWindow) {
-                    showAlert('success', 'PDF hóa đơn đã được tạo thành công!');
-                } else {
-                    showAlert('warning', 'Popup bị chặn. Vui lòng cho phép popup và thử lại.');
-                }
-            } else {
-                showAlert('danger', 'Lỗi: ' + (data.message || 'Không thể tạo PDF'));
-            }
-        } catch (error) {
-            console.error('Error generating invoice:', error);
-            showAlert('danger', 'Lỗi: ' + error.message);
-        } finally {
-            // Restore button
-            if (button && originalContent) {
-                button.innerHTML = originalContent;
-                button.disabled = false;
-            }
-        }
-    }
-
-    // Download Invoice PDF
-    async function downloadInvoice(bookingId) {
-        let button = null;
-        let originalContent = null;
-        
-        try {
-            // Show loading
-            button = event.target.closest('button');
-            originalContent = button.innerHTML;
-            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            button.disabled = true;
-
-            const response = await fetch(`/web/invoices/booking/${bookingId}/pdf`, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                }
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                if (data.success) {
-                    // Download the PDF file
-                    const link = document.createElement('a');
-                    link.href = data.data.download_url;
-                    link.download = data.data.file_name;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
+            
+            switch(action) {
+                case 'view':
+                    window.location.href = `/admin/bookings/${bookingId}`;
+                    break;
                     
-                    showAlert('success', 'PDF hóa đơn đã được tải xuống!');
-                } else {
-                    showAlert('danger', 'Lỗi: ' + data.message);
+                case 'status':
+                    if (typeof updateBookingStatus === 'function') {
+                        updateBookingStatus(parseInt(bookingId));
+                    } else {
+                        console.error('updateBookingStatus function not found');
+                        showAlert('danger', 'Hàm cập nhật trạng thái không tồn tại.');
+                    }
+                    break;
+                    
+                case 'invoice':
+                    if (typeof generateInvoice === 'function') {
+                        generateInvoice(parseInt(bookingId), this);
+                    } else {
+                        console.error('generateInvoice function not found');
+                        showAlert('danger', 'Hàm tạo hóa đơn không tồn tại.');
+                    }
+                    break;
+                    
+                case 'download_pdf':
+                    if (typeof downloadInvoice === 'function') {
+                        downloadInvoice(parseInt(bookingId), this);
+                    } else {
+                        console.error('downloadInvoice function not found');
+                        showAlert('danger', 'Hàm tải PDF không tồn tại.');
+                    }
+                    break;
+                    
+                case 'delete':
+                    if (confirm('Bạn có chắc chắn muốn xóa đặt tour này?')) {
+                        if (typeof deleteBooking === 'function') {
+                            deleteBooking(parseInt(bookingId));
+                        } else {
+                            console.error('deleteBooking function not found');
+                            showAlert('danger', 'Hàm xóa đặt tour không tồn tại.');
+                        }
+                    }
+                    break;
+                    
+                default:
+                    console.warn('Unknown action:', action);
+                    showAlert('warning', `Hành động "${action}" chưa được hỗ trợ.`);
+            }
+        });
+    });
+});
+
+// Show alert message - Must be defined first
+function showAlert(type, message) {
+    const alertContainer = document.createElement('div');
+    alertContainer.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertContainer.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertContainer.innerHTML = `
+        <div class="d-flex align-items-center">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : type === 'info' ? 'info-circle' : 'exclamation-circle'} me-2"></i>
+            <span>${message}</span>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(alertContainer);
+    
+    setTimeout(() => {
+        if (alertContainer.parentNode) {
+            alertContainer.remove();
+        }
+    }, 5000);
+}
+
+// Move functions outside DOMContentLoaded so they're globally accessible
+function updateBookingStatus(bookingId) {
+    // Tạo modal để chọn trạng thái mới
+    const statusOptions = [
+        { value: 'pending', label: 'CHỜ XỬ LÝ', class: 'warning' },
+        { value: 'confirmed', label: 'ĐÃ XÁC NHẬN', class: 'success' },
+        { value: 'cancelled', label: 'ĐÃ HỦY', class: 'danger' },
+        { value: 'completed', label: 'HOÀN THÀNH', class: 'info' }
+    ];
+    
+    let modalHtml = `
+        <div class="modal fade" id="statusModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Cập nhật trạng thái booking</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Chọn trạng thái mới cho booking #${bookingId}:</p>
+                        <div class="d-grid gap-2">
+    `;
+    
+    statusOptions.forEach(option => {
+        modalHtml += `
+            <button type="button" class="btn btn-${option.class}" 
+                    onclick="confirmStatusUpdate(${bookingId}, '${option.value}')">
+                ${option.label}
+            </button>
+        `;
+    });
+    
+    modalHtml += `
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Thêm modal vào body
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Hiển thị modal
+    const modal = new bootstrap.Modal(document.getElementById('statusModal'));
+    modal.show();
+    
+    // Xóa modal khi đóng
+    document.getElementById('statusModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+}
+
+function confirmStatusUpdate(bookingId, newStatus) {
+    const statusLabels = {
+        'pending': 'Chờ xử lý',
+        'confirmed': 'Đã xác nhận', 
+        'cancelled': 'Đã hủy',
+        'completed': 'Hoàn thành'
+    };
+    
+    if (confirm(`Bạn có chắc chắn muốn cập nhật trạng thái thành "${statusLabels[newStatus]}"?`)) {
+        // Đóng modal trước
+        const modal = bootstrap.Modal.getInstance(document.getElementById('statusModal'));
+        if (modal) modal.hide();
+        
+        // Disable buttons while processing
+        const buttons = document.querySelectorAll(`[onclick*="confirmStatusUpdate(${bookingId}"]`);
+        buttons.forEach(btn => {
+            btn.disabled = true;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
+            btn.dataset.originalHTML = originalHTML;
+        });
+        
+        const csrfToken = document.querySelector('meta[name="csrf-token"]');
+        if (!csrfToken) {
+            showAlert('danger', 'CSRF token not found. Vui lòng refresh trang và thử lại.');
+            // Re-enable buttons on error
+            buttons.forEach(btn => {
+                btn.disabled = false;
+                if (btn.dataset.originalHTML) {
+                    btn.innerHTML = btn.dataset.originalHTML;
                 }
+            });
+            return;
+        }
+        
+        fetch(`/admin/bookings/${bookingId}`, {
+            method: 'PUT',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken.content,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                status: newStatus
+            })
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            
+            // Get response content type
+            const contentType = response.headers.get('content-type');
+            console.log('Content-Type:', contentType);
+            
+            if (!response.ok) {
+                // Try to get error message from response
+                return response.text().then(text => {
+                    console.error('Error response:', text);
+                    try {
+                        const err = JSON.parse(text);
+                        return Promise.reject(new Error(err.message || 'Lỗi cập nhật trạng thái'));
+                    } catch (e) {
+                        return Promise.reject(new Error(text || 'Lỗi cập nhật trạng thái'));
+                    }
+                });
+            }
+            
+            // Parse JSON response
+            if (contentType && contentType.includes('application/json')) {
+                return response.json();
             } else {
-                const errorText = await response.text();
-                showAlert('danger', 'Lỗi: ' + errorText);
+                // If not JSON, it might be a redirect HTML
+                return response.text().then(text => {
+                    console.warn('Received non-JSON response:', text);
+                    return { success: false, message: 'Nhận được phản hồi không hợp lệ từ server' };
+                });
             }
-        } catch (error) {
-            showAlert('danger', 'Lỗi: ' + error.message);
-        } finally {
-            // Restore button
-            if (button && originalContent) {
-                button.innerHTML = originalContent;
-                button.disabled = false;
+        })
+        .then(data => {
+            if (data.success) {
+                showAlert('success', data.message || 'Đặt tour đã được cập nhật thành công!');
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            } else {
+                showAlert('danger', data.message || 'Có lỗi xảy ra khi cập nhật trạng thái!');
+                // Re-enable buttons on error
+                buttons.forEach(btn => {
+                    btn.disabled = false;
+                    if (btn.dataset.originalHTML) {
+                        btn.innerHTML = btn.dataset.originalHTML;
+                    }
+                });
             }
+        })
+        .catch(error => {
+            console.error('Error updating status:', error);
+            const errorMessage = error.message || 'Có lỗi xảy ra khi cập nhật trạng thái!';
+            showAlert('danger', errorMessage);
+            // Re-enable buttons on error
+            buttons.forEach(btn => {
+                btn.disabled = false;
+                if (btn.dataset.originalHTML) {
+                    btn.innerHTML = btn.dataset.originalHTML;
+                }
+            });
+        });
+    }
+}
+
+function deleteBooking(bookingId) {
+    console.log('deleteBooking called with bookingId:', bookingId);
+    
+    if (!bookingId) {
+        showAlert('danger', 'Không tìm thấy ID đặt tour để xóa.');
+        return;
+    }
+    
+    const csrfToken = document.querySelector('meta[name="csrf-token"]');
+    if (!csrfToken) {
+        showAlert('danger', 'CSRF token not found. Vui lòng refresh trang và thử lại.');
+        return;
+    }
+    
+    const url = `/admin/bookings/${bookingId}`;
+    console.log('Deleting booking at URL:', url);
+    
+    fetch(url, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': csrfToken.content,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => Promise.reject(err));
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message || 'Đặt tour đã được xóa thành công!');
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        } else {
+            showAlert('danger', data.message || 'Có lỗi xảy ra khi xóa booking!');
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting booking:', error);
+        showAlert('danger', error.message || 'Có lỗi xảy ra khi xóa booking!');
+    });
+}
+
+// Initialize tooltips after DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof bootstrap !== 'undefined') {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    }
+});
+
+// Generate Invoice PDF - Must be defined outside DOMContentLoaded
+async function generateInvoice(bookingId, buttonElement = null) {
+    let button = null;
+    let originalContent = null;
+    
+    try {
+        // Get button element safely
+        if (buttonElement) {
+            button = buttonElement;
+        } else if (typeof event !== 'undefined' && event && event.target) {
+            button = event.target.closest('button');
+        } else {
+            // Find button by data-action and data-id
+            button = document.querySelector(`button[data-action="invoice"][data-id="${bookingId}"]`);
+        }
+        
+        if (!button) {
+            console.error('Button not found for booking:', bookingId);
+            showAlert('danger', 'Không tìm thấy nút. Vui lòng thử lại.');
+            return;
+        }
+
+        originalContent = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        button.disabled = true;
+
+        // Get CSRF token safely
+        const csrfTokenElement = document.querySelector('meta[name="csrf-token"]');
+        if (!csrfTokenElement) {
+            throw new Error('CSRF token not found');
+        }
+        const csrfToken = csrfTokenElement.getAttribute('content');
+
+        const response = await fetch(`/web/invoices/booking/${bookingId}/pdf`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+        }
+
+        const data = await response.json();
+
+        if (data.success && data.data && data.data.download_url) {
+            // Open PDF in new tab
+            const newWindow = window.open(data.data.download_url, '_blank');
+            
+            if (newWindow) {
+                showAlert('success', 'PDF hóa đơn đã được tạo thành công!');
+            } else {
+                showAlert('warning', 'Popup bị chặn. Vui lòng cho phép popup và thử lại.');
+            }
+        } else {
+            showAlert('danger', 'Lỗi: ' + (data.message || 'Không thể tạo PDF'));
+        }
+    } catch (error) {
+        console.error('Error generating invoice:', error);
+        showAlert('danger', 'Lỗi: ' + error.message);
+    } finally {
+        if (button && originalContent) {
+            button.innerHTML = originalContent;
+            button.disabled = false;
         }
     }
+}
 
-    // Show alert message
-    function showAlert(type, message) {
-        const alertContainer = document.createElement('div');
-        alertContainer.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-        alertContainer.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
-        alertContainer.innerHTML = `
-            <div class="d-flex align-items-center">
-                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : type === 'info' ? 'info-circle' : 'exclamation-circle'} me-2"></i>
-                <span>${message}</span>
-            </div>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
+// Download Invoice PDF
+async function downloadInvoice(bookingId, buttonElement = null) {
+    let button = null;
+    let originalContent = null;
+    
+    try {
+        // Get button element safely
+        if (buttonElement) {
+            button = buttonElement;
+        } else if (typeof event !== 'undefined' && event && event.target) {
+            button = event.target.closest('button');
+        } else {
+            // Find button by data-action and data-id
+            button = document.querySelector(`button[data-action="download_pdf"][data-id="${bookingId}"]`);
+        }
         
-        document.body.appendChild(alertContainer);
-        
-        // Auto remove after 5 seconds
-        setTimeout(() => {
-            if (alertContainer.parentNode) {
-                alertContainer.remove();
+        if (!button) {
+            console.error('Button not found for booking:', bookingId);
+            showAlert('danger', 'Không tìm thấy nút. Vui lòng thử lại.');
+            return;
+        }
+
+        originalContent = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        button.disabled = true;
+
+        // Get CSRF token safely
+        const csrfTokenElement = document.querySelector('meta[name="csrf-token"]');
+        if (!csrfTokenElement) {
+            throw new Error('CSRF token not found');
+        }
+        const csrfToken = csrfTokenElement.getAttribute('content');
+
+        const response = await fetch(`/web/invoices/booking/${bookingId}/pdf`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
             }
-        }, 5000);
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data && data.data.download_url) {
+                // Download the PDF file
+                const link = document.createElement('a');
+                link.href = data.data.download_url;
+                link.download = data.data.file_name || `invoice_${bookingId}.html`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                showAlert('success', 'PDF hóa đơn đã được tải xuống!');
+            } else {
+                showAlert('danger', 'Lỗi: ' + (data.message || 'Không thể tải PDF'));
+            }
+        } else {
+            const errorText = await response.text();
+            showAlert('danger', 'Lỗi: ' + errorText);
+        }
+    } catch (error) {
+        console.error('Error downloading invoice:', error);
+        showAlert('danger', 'Lỗi: ' + error.message);
+    } finally {
+        if (button && originalContent) {
+            button.innerHTML = originalContent;
+            button.disabled = false;
+        }
     }
+}
+
 </script>
 @endsection

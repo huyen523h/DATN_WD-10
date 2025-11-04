@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\DepartureController;
+use App\Http\Controllers\Admin\TourScheduleController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\AdminController;
@@ -12,6 +13,9 @@ use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\StaffController;
+use App\Http\Controllers\CheckInOutController;
+use App\Http\Controllers\Admin\EmployeeController;
+use App\Http\Controllers\EmployeeAuthController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -120,7 +124,7 @@ Route::get('/test-invoice', function () {
 Route::get('/debug-invoice/{bookingId}', function ($bookingId) {
     try {
         $booking = \App\Models\Booking::with(['user', 'tour'])->find($bookingId);
-        
+
         if (!$booking) {
             return response()->json([
                 'success' => false,
@@ -152,12 +156,12 @@ Route::get('/debug-invoice/{bookingId}', function ($bookingId) {
 Route::get('/test-bookings', function () {
     try {
         $bookings = \App\Models\Booking::with(['user', 'tour'])->take(5)->get();
-        
+
         return response()->json([
             'success' => true,
             'message' => 'Bookings found',
             'count' => $bookings->count(),
-            'data' => $bookings->map(function($booking) {
+            'data' => $bookings->map(function ($booking) {
                 return [
                     'id' => $booking->id,
                     'user_name' => $booking->user->name ?? 'No user',
@@ -188,7 +192,7 @@ Route::get('/simple-test', function () {
 Route::get('/debug-invoice-simple/{bookingId}', function ($bookingId) {
     try {
         $booking = \App\Models\Booking::with(['user', 'tour'])->find($bookingId);
-        
+
         if (!$booking) {
             return response()->json([
                 'success' => false,
@@ -206,7 +210,6 @@ Route::get('/debug-invoice-simple/{bookingId}', function ($bookingId) {
                 'total_amount' => $booking->total_amount ?? 0
             ]
         ]);
-
     } catch (\Exception $e) {
         return response()->json([
             'success' => false,
@@ -224,7 +227,7 @@ Route::get('/debug-invoice-simple/{bookingId}', function ($bookingId) {
 Route::get('/web/invoices/booking/{bookingId}/pdf', function ($bookingId) {
     try {
         $booking = \App\Models\Booking::with(['user', 'tour', 'departure'])->find($bookingId);
-        
+
         if (!$booking) {
             return response()->json([
                 'success' => false,
@@ -244,6 +247,9 @@ Route::get('/web/invoices/booking/{bookingId}/pdf', function ($bookingId) {
         } else {
             $invoice = $booking->invoice;
         }
+
+        // Load booking with promotion relationship
+        $booking->load('promotion');
 
         // Company information
         $company = [
@@ -269,12 +275,12 @@ Route::get('/web/invoices/booking/{bookingId}/pdf', function ($bookingId) {
         // Save HTML to public directory for direct access
         $fileName = 'invoice_' . $bookingId . '_' . time() . '.html';
         $publicPath = public_path('invoices/' . $fileName);
-        
+
         // Create invoices directory if not exists
         if (!file_exists(public_path('invoices'))) {
             mkdir(public_path('invoices'), 0755, true);
         }
-        
+
         file_put_contents($publicPath, $html);
 
         $downloadUrl = url('invoices/' . $fileName);
@@ -289,11 +295,75 @@ Route::get('/web/invoices/booking/{bookingId}/pdf', function ($bookingId) {
                 'format' => 'html'
             ]
         ]);
-
     } catch (\Exception $e) {
         return response()->json([
             'success' => false,
             'message' => 'Error generating invoice: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// Route to download invoice file (with proper headers)
+Route::get('/web/invoices/booking/{bookingId}/download', function ($bookingId) {
+    try {
+        $booking = \App\Models\Booking::with(['user', 'tour', 'departure'])->find($bookingId);
+        
+        if (!$booking) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Booking not found'
+            ], 404);
+        }
+
+        // Create invoice if not exists
+        if (!$booking->invoice) {
+            $invoice = \App\Models\Invoice::create([
+                'booking_id' => $booking->id,
+                'invoice_number' => \App\Models\Invoice::generateInvoiceNumber(),
+                'issue_date' => now(),
+                'amount' => $booking->total_amount,
+                'status' => 'issued',
+            ]);
+        } else {
+            $invoice = $booking->invoice;
+        }
+
+        // Load booking with promotion relationship
+        $booking->load('promotion');
+
+        // Company information
+        $company = [
+            'name' => 'Tour365 - Công ty Du lịch',
+            'address' => '123 Đường ABC, Quận 1, TP.HCM',
+            'phone' => '0123 456 789',
+            'email' => 'info@tour365.com',
+            'website' => 'www.tour365.com',
+            'tax_code' => '0123456789'
+        ];
+
+        // Generate HTML
+        $html = view('invoices.pdf', [
+            'invoice' => $invoice,
+            'booking' => $booking,
+            'tour' => $booking->tour,
+            'user' => $booking->user,
+            'departure' => $booking->departure,
+            'company' => $company,
+            'promotion' => $booking->promotion ?? null,
+        ])->render();
+
+        // Generate filename
+        $fileName = 'invoice_' . $bookingId . '_' . time() . '.html';
+
+        // Return file with download headers
+        return response($html, 200)
+            ->header('Content-Type', 'text/html; charset=utf-8')
+            ->header('Content-Disposition', 'attachment; filename="' . $fileName . '"')
+            ->header('Content-Length', strlen($html));
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Error downloading invoice: ' . $e->getMessage()
         ], 500);
     }
 });
@@ -347,7 +417,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', function () {
         return view('profile.index');
     })->name('profile.index');
-    
+
     // Bookings
     Route::get('/bookings', [BookingController::class, 'index'])->name('bookings.index');
     Route::get('/bookings/create', [BookingController::class, 'create'])->name('bookings.create');
@@ -359,20 +429,18 @@ Route::middleware('auth')->group(function () {
     Route::get('/wishlists', [WishlistsController::class, 'index'])->name('wishlists.index');
     Route::post('/wishlists', [WishlistsController::class, 'store'])->name('wishlists.store');
     Route::delete('/wishlists/{id}', [WishlistsController::class, 'destroy'])->name('wishlists.destroy');
-
-    // Payment routes - MoMo & VNPay
-    Route::get('/payment/{bookingId}', [PaymentController::class, 'processPayment'])->name('payment.process');
-    Route::get('/payment/momo/return', [PaymentController::class, 'momoReturn'])->name('payment.momo.return');
-    Route::post('/payment/momo/notify', [PaymentController::class, 'momoNotify'])->name('payment.momo.notify');
-    Route::get('/payment/vnpay/callback', [PaymentController::class, 'vnpayCallback'])->name('payment.vnpay.callback');
-    
-    // Legacy MoMo routes (for backward compatibility)
+    // Thanh toán MOMO
     Route::get('/checkout', function () {
         return view('checkout'); // form thanh toán
     });
+
     Route::post('/momo_payment/{id}', [CheckoutController::class, 'momo_payment'])->name('momo_payment');
+    // MoMo redirect user về sau khi thanh toán (hiển thị kết quả)
     Route::get('/payment/momo_return', [CheckoutController::class, 'momo_return'])->name('momo.return');
+
+    // MoMo gửi IPN server → server xác nhận đơn hàng
     Route::post('/payment/momo_ipn', [CheckoutController::class, 'momo_ipn'])->name('momo.ipn');
+    
 });
 
 // ============================================
@@ -383,17 +451,25 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
 
     // Tours management
-    Route::get('/tours', [AdminController::class, 'tours'])->name('tours');
+    Route::get('/tours', [AdminController::class, 'tours'])->name('tours.index');
     Route::get('/tours/create', [AdminController::class, 'createTour'])->name('tours.create');
     Route::post('/tours', [AdminController::class, 'storeTour'])->name('tours.store');
     Route::get('/tours/{tour}', [AdminController::class, 'showTour'])->name('tours.show');
     Route::get('/tours/{tour}/edit', [AdminController::class, 'editTour'])->name('tours.edit');
     Route::put('/tours/{tour}', [AdminController::class, 'updateTour'])->name('tours.update');
     Route::delete('/tours/{tour}', [AdminController::class, 'deleteTour'])->name('tours.destroy');
-    
+
     // Xóa ảnh của tour
     Route::delete('/tours/{tour}/images/{image}', [AdminController::class, 'deleteTourImage'])
         ->name('tours.images.delete');
+
+    // Invoices management
+    Route::resource('invoices', \App\Http\Controllers\InvoiceController::class);
+    Route::get('/invoices/{invoice}/pdf', [\App\Http\Controllers\InvoiceController::class, 'generatePdf'])->name('invoices.pdf');
+    Route::get('/invoices/{invoice}/download', [\App\Http\Controllers\InvoiceController::class, 'downloadPdf'])->name('invoices.download');
+    Route::post('/invoices/{invoice}/save-pdf', [\App\Http\Controllers\InvoiceController::class, 'savePdf'])->name('invoices.save-pdf');
+    Route::post('/invoices/{invoice}/send-email', [\App\Http\Controllers\InvoiceController::class, 'sendEmail'])->name('invoices.send-email');
+    Route::post('/invoices/{invoice}/mark-paid', [\App\Http\Controllers\InvoiceController::class, 'markAsPaid'])->name('invoices.mark-paid');
 
     // Bookings management
     Route::get('/bookings', [AdminController::class, 'bookings'])->name('bookings');
@@ -435,6 +511,19 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::put('/promotions/{promotion}', [AdminController::class, 'updatePromotion'])->name('promotions.update');
     Route::delete('/promotions/{promotion}', [AdminController::class, 'deletePromotion'])->name('promotions.destroy');
 
+    // Check-in/Check-out management
+    Route::get('/check-in-out', [CheckInOutController::class, 'index'])->name('check-in-out.index');
+    Route::get('/check-in-out/create', [CheckInOutController::class, 'create'])->name('check-in-out.create');
+    Route::post('/check-in-out', [CheckInOutController::class, 'store'])->name('check-in-out.store');
+    Route::get('/check-in-out/{checkInOut}', [CheckInOutController::class, 'show'])->name('check-in-out.show');
+    Route::get('/check-in-out/{checkInOut}/edit', [CheckInOutController::class, 'edit'])->name('check-in-out.edit');
+    Route::put('/check-in-out/{checkInOut}', [CheckInOutController::class, 'update'])->name('check-in-out.update');
+    Route::delete('/check-in-out/{checkInOut}', [CheckInOutController::class, 'destroy'])->name('check-in-out.destroy');
+    Route::post('/check-in-out/{checkInOut}/confirm', [CheckInOutController::class, 'confirm'])->name('check-in-out.confirm');
+    Route::post('/check-in-out/{checkInOut}/cancel', [CheckInOutController::class, 'cancel'])->name('check-in-out.cancel');
+    Route::get('/check-in-out-statistics', [CheckInOutController::class, 'statistics'])->name('check-in-out.statistics');
+    Route::get('/check-in-out-statistics-page', [CheckInOutController::class, 'showStatistics'])->name('check-in-out.statistics-page');
+
     // Reports
     Route::get('/reports', [AdminController::class, 'reports'])->name('reports');
 
@@ -451,7 +540,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/support', [AdminController::class, 'storeSupportTicket'])->name('support.store');
     Route::put('/support/{ticket}', [AdminController::class, 'updateTicket'])->name('support.update');
     Route::delete('/support/{ticket}', [AdminController::class, 'deleteTicket'])->name('support.destroy');
-    
+
     // Admin quản lý khởi hành tour (Departures)
     Route::resource('departures', DepartureController::class);
 
@@ -467,17 +556,34 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
-    
+
+    // Banner management
+    Route::get('/banners', [AdminController::class, 'banners'])->name('banners');
+    Route::get('/banners/create', [AdminController::class, 'createBanner'])->name('banners.create');
+    Route::post('/banners', [AdminController::class, 'storeBanner'])->name('banners.store');
+    Route::get('/banners/{banner}', [AdminController::class, 'showBanner'])->name('banners.show');
+    Route::get('/banners/{banner}/edit', [AdminController::class, 'editBanner'])->name('banners.edit');
+    Route::put('/banners/{banner}', [AdminController::class, 'updateBanner'])->name('banners.update');
+    Route::delete('/banners/{banner}', [AdminController::class, 'deleteBanner'])->name('banners.destroy');
+    Route::post('/banners/{banner}/move', [AdminController::class, 'moveBanner'])->name('banners.move');
+
     // ============================================
     // INVOICE MANAGEMENT (Admin Only)
     // ============================================
     Route::get('/invoices', function () {
         return view('admin.invoices.index');
     })->name('invoices');
-    
+
     Route::post('/invoices', [App\Http\Controllers\InvoiceWebController::class, 'createInvoice']);
     Route::put('/invoices/{invoice}/status', [App\Http\Controllers\InvoiceWebController::class, 'updateStatus']);
     Route::get('/invoices/{invoice}', [App\Http\Controllers\InvoiceWebController::class, 'show']);
+    // Quản lý lịch trình
+    Route::get('tours/{tour}/schedules', [TourScheduleController::class, 'index'])->name('schedules.index');
+    Route::get('tours/{tour}/schedules/create', [TourScheduleController::class, 'create'])->name('schedules.create');
+    Route::post('tours/{tour}/schedules', [TourScheduleController::class, 'store'])->name('schedules.store');
+    Route::get('schedules/{id}/edit', [TourScheduleController::class, 'edit'])->name('schedules.edit');
+    Route::put('schedules/{id}', [TourScheduleController::class, 'update'])->name('schedules.update');
+    Route::delete('schedules/{id}', [TourScheduleController::class, 'destroy'])->name('schedules.destroy');
 });
 
 // ============================================
