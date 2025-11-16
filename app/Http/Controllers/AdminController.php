@@ -11,6 +11,7 @@ use App\Models\Promotion;
 use App\Models\TourImage;
 use App\Models\TourSchedule;
 use App\Models\TourDeparture;
+use App\Models\Review;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -113,7 +114,8 @@ class AdminController extends Controller
             'schedule_day_number.*'  => 'nullable|integer|min:1|max:60',
             'schedule_title.*'       => 'nullable|string|max:255',
             'schedule_description.*' => 'nullable|string',
-            'departure_date.*'  => 'nullable|date|after:today',
+            // 'departure_date.*'  => 'nullable|date|after:today', // ngăn không cho admin tạo ngày khởi hành trong quá khứ
+            'departure_date.*'  => 'nullable|date', // Loại bỏ validade được chọn ngày trong quá khứ để test pay -> đánh giá
             'seats_total.*'     => 'nullable|integer|min:1|max:100',
             'seats_available.*' => 'nullable|integer|min:0|max:100',
             'price_dep.*'       => 'nullable|numeric|min:0',
@@ -353,7 +355,7 @@ class AdminController extends Controller
         return back()->with('success', 'Ảnh đã được xóa thành công!');
     }
 
-   
+
 
     public function bookings()
     {
@@ -408,9 +410,11 @@ class AdminController extends Controller
 
     public function reviews()
     {
-        $reviews = \App\Models\Review::with(['tour', 'user'])
+        $reviews = Review::whereNull('parent_id')
+            ->with(['tour', 'user', 'replies.user'])
             ->orderBy('created_at', 'desc')
             ->paginate(10);
+
         return view('admin.reviews.index', compact('reviews'));
     }
 
@@ -633,22 +637,93 @@ class AdminController extends Controller
     }
 
     // Bookings CRUD
-    public function updateBooking(Request $request, Booking $booking): RedirectResponse
+    public function confirmBooking(Request $request, Booking $booking): \Illuminate\Http\JsonResponse|RedirectResponse
     {
-        $validated = $request->validate([
-            'status' => 'required|in:pending,confirmed,cancelled,completed',
-            'notes' => 'nullable|string',
-        ]);
+        if ($booking->status == Booking::STATUS_PENDING) {
+            $booking->update(['status' => Booking::STATUS_CONFIRMED]);
 
-        $booking->update($validated);
+            $message = 'Đã xác nhận đơn hàng. Chờ khách hàng thanh toán.';
 
-        return redirect()->route('admin.bookings')->with('success', 'Đặt tour đã được cập nhật thành công!');
+            if ($request->expectsJson()) {
+                return response()->json(['success' => true, 'message' => $message]);
+            }
+            return back()->with('success', $message);
+        }
+
+        $message = 'Không thể thực hiện hành động này.';
+        if ($request->expectsJson()) {
+            return response()->json(['success' => false, 'message' => $message], 400);
+        }
+        return back()->with('error', $message);
     }
 
-    public function deleteBooking(Booking $booking): RedirectResponse
+    /**
+     * HÀM MỚI (SỬA LỖI): Đánh dấu Đã thanh toán
+     */
+    public function markAsPaid(Request $request, Booking $booking): \Illuminate\Http\JsonResponse|RedirectResponse
     {
-        $booking->delete();
-        return redirect()->route('admin.bookings')->with('success', 'Đặt tour đã được xóa thành công!');
+        if (in_array($booking->status, [Booking::STATUS_CONFIRMED, Booking::STATUS_PENDING])) {
+            $booking->update(['status' => Booking::STATUS_PAID]);
+
+            $message = 'Đã xác nhận thanh toán thành công.';
+
+            if ($request->expectsJson()) {
+                return response()->json(['success' => true, 'message' => $message]);
+            }
+            return back()->with('success', $message);
+        }
+
+        $message = 'Không thể thực hiện hành động này.';
+        if ($request->expectsJson()) {
+            return response()->json(['success' => false, 'message' => $message], 400);
+        }
+        return back()->with('error', $message);
+    }
+
+    /**
+     * HÀM MỚI (SỬA LỖI): Hủy đơn hàng
+     */
+    public function cancelBooking(Request $request, Booking $booking): \Illuminate\Http\JsonResponse|RedirectResponse
+    {
+        if (in_array($booking->status, [Booking::STATUS_PENDING, Booking::STATUS_CONFIRMED])) {
+            $booking->update(['status' => Booking::STATUS_CANCELLED]);
+
+            $message = 'Đã hủy đơn hàng thành công.';
+
+            if ($request->expectsJson()) {
+                return response()->json(['success' => true, 'message' => $message]);
+            }
+            return back()->with('success', $message);
+        }
+
+        $message = 'Không thể hủy đơn hàng đã thanh toán.';
+        if ($request->expectsJson()) {
+            return response()->json(['success' => false, 'message' => $message], 400);
+        }
+        return back()->with('error', $message);
+    }
+
+    /**
+     * HÀM CŨ (SỬA LỖI): Xóa vĩnh viễn đơn hàng
+     */
+    public function deleteBooking(Request $request, Booking $booking): \Illuminate\Http\JsonResponse|RedirectResponse
+    {
+        try {
+            $booking->delete();
+            $message = 'Đặt tour đã được xóa vĩnh viễn!';
+
+            if ($request->expectsJson()) {
+                return response()->json(['success' => true, 'message' => $message]);
+            }
+            // Xóa từ trang show thì về trang index
+            return redirect()->route('admin.bookings')->with('success', $message);
+        } catch (\Exception $e) {
+            $message = 'Lỗi: ' . $e->getMessage();
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $message], 500);
+            }
+            return back()->with('error', $message);
+        }
     }
 
     // Customers CRUD
@@ -673,23 +748,82 @@ class AdminController extends Controller
     }
 
     // Reviews CRUD
-    public function updateReview(Request $request, \App\Models\Review $review): RedirectResponse
+    public function approveReview(Review $review): RedirectResponse
     {
-        $validated = $request->validate([
-            'rating' => 'required|integer|min:1|max:5',
-            'comment' => 'required|string',
-            'status' => 'required|in:visible,hidden',
-        ]);
 
-        $review->update($validated);
+        if ($review->status === 'pending') {
+            $review->update(['status' => 'approved']);
+            return back()->with('success', 'Đã duyệt đánh giá. Sẽ hiển thị công khai.');
+        };
 
-        return redirect()->route('admin.reviews')->with('success', 'Đánh giá đã được cập nhật thành công!');
+        return back()->with('error', 'Không thể duyệt đánh giá này (Trạng thái là Ẩn hoặc Đã duyệt).');
     }
 
-    public function deleteReview(\App\Models\Review $review): RedirectResponse
+
+    public function hideReview(Review $review): RedirectResponse
     {
-        $review->delete();
-        return redirect()->route('admin.reviews')->with('success', 'Đánh giá đã được xóa thành công!');
+        // $review ở đây có thể là review GỐC hoặc review TRẢ LỜI
+        if (in_array($review->status, ['pending', 'approved'])) {
+            $review->update(['status' => 'hidden']);
+            return back()->with('success', 'Đã ẩn đánh giá. Sẽ không hiển thị công khai.');
+        }
+        return back()->with('error', 'Không thể ẩn đánh giá này.');
+    }
+
+    //  admin chỉ được trả lơi 1 lần  - chặn 2 lần tl
+    public function storeReviewReply(Request $request, Review $review): RedirectResponse
+    {
+        $adminUser = auth()->user();
+        $validated = $request->validate(['comment' => 'required|string|max:1000']);
+
+        if ($review->parent_id !== null) {
+            return back()->with('error', 'Bạn chỉ có thể trả lời bình luận gốc của khách hàng.');
+        }
+        if ($review->status === 'hidden') {
+            return back()->with('error', 'Không thể trả lời một bình luận vi phạm (đã bị ẩn).');
+        }
+        if ($review->replies()->exists()) {
+            return back()->with('error', 'Bạn đã trả lời bình luận này rồi. Vui lòng dùng nút "Sửa" để thay đổi.');
+        }
+
+        Review::create([
+            'user_id' => $adminUser->id,
+            'tour_id' => $review->tour_id,
+            'booking_id' => $review->booking_id,
+            'parent_id' => $review->id,
+            'comment' => $validated['comment'],
+            'rating' => null,
+            'status' => 'approved',
+        ]);
+
+        return back()->with('success', 'Đã gửi trả lời thành công.');
+    }
+
+    //  ham sửa tl của admin
+    public function updateReviewReply(Request $request, Review $reply): RedirectResponse
+    {
+        $validated = $request->validate(['comment' => 'required|string|max:1000']);
+
+        if ($reply->parent_id === null) {
+            return back()->with('error', 'Không thể sửa bình luận gốc.');
+        }
+
+        $reply->update([
+            'comment' => $validated['comment']
+        ]);
+
+        return back()->with('success', 'Đã cập nhật trả lời thành công.');
+    }
+
+    //  HÀM: Xóa một câu trả lời của Admin
+    public function destroyReviewReply(Review $reply): RedirectResponse
+    {
+        if ($reply->parent_id === null) {
+            return back()->with('error', 'Không thể xóa bình luận gốc của khách hàng.');
+        }
+        $reply->delete();
+
+        return back()->with('success', 'Đã xóa trả lời thành công.');
     }
 
     // Payments CRUD

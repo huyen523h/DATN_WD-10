@@ -47,12 +47,17 @@ class TourController extends Controller
         return view('tours.index', compact('tours', 'categories'));
     }
 
-    /**
-     * Display the specified tour.
-     */
+
     public function show(Tour $tour): View
     {
-        $tour->load(['category', 'images', 'schedules', 'departures', 'reviews.user']);
+ 
+        $tour->load(['category', 'images', 'schedules', 'departures']);
+    
+        $tour->load([
+            'publicReviews' => function ($query) {
+                $query->with(['user', 'replies.user']); 
+            }
+        ]);
         
         return view('tours.show', compact('tour'));
     }

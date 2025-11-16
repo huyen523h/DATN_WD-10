@@ -16,6 +16,7 @@ use App\Http\Controllers\StaffController;
 use App\Http\Controllers\CheckInOutController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\EmployeeAuthController;
+use App\Http\Controllers\Api\ReviewController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -350,6 +351,10 @@ Route::middleware('auth')->group(function () {
         return view('profile.index');
     })->name('profile.index');
 
+    // Route để User gửi đánh giá
+    Route::post('/bookings/{booking}/reviews', [ReviewController::class, 'store'])
+         ->name('bookings.reviews.store'); // <-- Tên route mới
+
     // Bookings
     Route::get('/bookings', [BookingController::class, 'index'])->name('bookings.index');
     Route::get('/bookings/create', [BookingController::class, 'create'])->name('bookings.create');
@@ -372,7 +377,6 @@ Route::middleware('auth')->group(function () {
 
     // MoMo gửi IPN server → server xác nhận đơn hàng
     Route::post('/payment/momo_ipn', [CheckoutController::class, 'momo_ipn'])->name('momo.ipn');
-    
 });
 
 // ============================================
@@ -406,7 +410,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     // Bookings management
     Route::get('/bookings', [AdminController::class, 'bookings'])->name('bookings');
     Route::get('/bookings/{booking}', [AdminController::class, 'showBooking'])->name('bookings.show');
-    Route::put('/bookings/{booking}', [AdminController::class, 'updateBooking'])->name('bookings.update');
+    // Bookings management (THÊM 3 DÒNG MỚI NÀY VÀO - giữ nguyên delete)
+    Route::post('/bookings/{booking}/confirm', [AdminController::class, 'confirmBooking'])->name('bookings.confirm');
+    Route::post('/bookings/{booking}/mark-as-paid', [AdminController::class, 'markAsPaid'])->name('bookings.markAsPaid');
+    Route::post('/bookings/{booking}/cancel', [AdminController::class, 'cancelBooking'])->name('bookings.cancel');
     Route::delete('/bookings/{booking}', [AdminController::class, 'deleteBooking'])->name('bookings.destroy');
 
     // Customers management
@@ -424,10 +431,19 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::put('/categories/{category}', [AdminController::class, 'updateCategory'])->name('categories.update');
     Route::delete('/categories/{category}', [AdminController::class, 'deleteCategory'])->name('categories.destroy');
 
-    // Reviews management
+    // Reviews management  - code cũ của đánh giá 14/11  - rep 1-1 chạy ok 
+    // Route::get('/reviews', [AdminController::class, 'reviews'])->name('reviews');
+    // Route::post('/reviews/{review}/approve', [AdminController::class, 'approveReview'])->name('reviews.approve');
+    // Route::post('/reviews/{review}/hide', [AdminController::class, 'hideReview'])->name('reviews.hide');
+    // Route::post('/reviews/{review}/reply', [AdminController::class, 'storeReviewReply'])->name('reviews.reply');
+
+    // reviews mới admin có thêm 2 nút sửa - xóa đánh giá 
     Route::get('/reviews', [AdminController::class, 'reviews'])->name('reviews');
-    Route::put('/reviews/{review}', [AdminController::class, 'updateReview'])->name('reviews.update');
-    Route::delete('/reviews/{review}', [AdminController::class, 'deleteReview'])->name('reviews.destroy');
+    Route::post('/reviews/{review}/approve', [AdminController::class, 'approveReview'])->name('reviews.approve');
+    Route::post('/reviews/{review}/hide', [AdminController::class, 'hideReview'])->name('reviews.hide');
+    Route::post('/reviews/{review}/reply', [AdminController::class, 'storeReviewReply'])->name('reviews.reply');
+    Route::put('/reviews/reply/{reply}', [AdminController::class, 'updateReviewReply'])->name('reviews.reply.update');
+    Route::delete('/reviews/reply/{reply}', [AdminController::class, 'destroyReviewReply'])->name('reviews.reply.destroy');
 
     // Payments management
     Route::get('/payments', [AdminController::class, 'payments'])->name('payments');
