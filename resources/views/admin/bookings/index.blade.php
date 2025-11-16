@@ -503,10 +503,12 @@
 
                 modalHtml += `
                             </div>
+
                         </div>
                     </div>
                 </div>
             </div>
+
         `;
 
                 // Xóa modal cũ nếu có
@@ -650,6 +652,7 @@
             }
         }
 
+
         // Download Invoice PDF
         async function downloadInvoice(bookingId) {
             let button = null;
@@ -721,4 +724,4 @@
             }, 5000);
         }
     </script>
-@endsection
+

@@ -638,6 +638,7 @@ class AdminController extends Controller
 
     // Bookings CRUD
     public function confirmBooking(Request $request, Booking $booking): \Illuminate\Http\JsonResponse|RedirectResponse
+
     {
         if ($booking->status == Booking::STATUS_PENDING) {
             $booking->update(['status' => Booking::STATUS_CONFIRMED]);

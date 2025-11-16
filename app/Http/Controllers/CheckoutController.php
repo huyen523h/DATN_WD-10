@@ -130,7 +130,7 @@ class CheckoutController extends Controller
                 $data['message'] = 'Thanh toán thất bại';
             }
 
-            return view('payment.result', ['data' => $data]);
+           return view('payment.result', ['data' => $data]);
         }
         
         // (Xử lý khi thanh toán thất bại)

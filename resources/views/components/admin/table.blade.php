@@ -659,29 +659,42 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Action buttons
+    // Action buttons - Only handle if no custom handler exists
+    // Custom handlers should be defined in the page that uses this component
     const actionButtons = tableContainer.querySelectorAll('[data-action]');
     actionButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const action = this.dataset.action;
-            const id = this.dataset.id;
-            
-            // Handle different actions
-            switch(action) {
-                case 'view':
-                    window.location.href = `/admin/tours/${id}`;
-                    break;
-                case 'edit':
-                    window.location.href = `/admin/tours/${id}/edit`;
-                    break;
-                case 'delete':
-                    if (confirm('Bạn có chắc chắn muốn xóa?')) {
-                        // Handle delete
-                        handleDelete(id);
-                    }
-                    break;
-            }
-        });
+        // Check if button already has onclick handler or custom listener
+        if (!btn.hasAttribute('onclick')) {
+            btn.addEventListener('click', function(e) {
+                // Only handle if there's no custom handler on the page
+                // This allows pages to override default behavior
+                const action = this.dataset.action;
+                const id = this.dataset.id;
+                
+                // If custom handlers exist, don't process here
+                if (typeof window.handleTableAction === 'function') {
+                    return; // Let custom handler process
+                }
+                
+                // Default fallback handlers (only if no custom handler)
+                switch(action) {
+                    case 'view':
+                        window.location.href = `/admin/tours/${id}`;
+                        break;
+                    case 'edit':
+                        window.location.href = `/admin/tours/${id}/edit`;
+                        break;
+                    case 'delete':
+                        if (confirm('Bạn có chắc chắn muốn xóa?')) {
+                            // Handle delete
+                            if (typeof handleDelete === 'function') {
+                                handleDelete(id);
+                            }
+                        }
+                        break;
+                }
+            });
+        }
     });
     
     // Refresh button

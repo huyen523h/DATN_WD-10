@@ -268,6 +268,7 @@
                                                 <div class="alert alert-success">
                                                     <i class="fas fa-check-circle"></i>
                                                     Tour đã hoàn thành (Trạng thái cũ).
+
                                                 </div>
                                             @endif
                                             <hr>

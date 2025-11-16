@@ -41,6 +41,8 @@ class Invoice extends Model
         'payment_status',
         'invoice_date',
         'due_date',
+        'issue_date',
+        'amount',
         'notes',
         'pdf_path',
         'status'
@@ -50,6 +52,7 @@ class Invoice extends Model
         'invoice_date' => 'datetime',
         'due_date' => 'datetime',
         'departure_date' => 'date',
+        'issue_date' => 'datetime',
         'adult_price' => 'decimal:2',
         'child_price' => 'decimal:2',
         'infant_price' => 'decimal:2',
@@ -120,18 +123,22 @@ class Invoice extends Model
     }
 
     // Methods
-    public function generateInvoiceNumber()
+    public static function generateInvoiceNumber(): string
     {
-        $year = now()->year;
-        $month = now()->format('m');
-        $lastInvoice = self::whereYear('created_at', $year)
-                          ->whereMonth('created_at', $month)
-                          ->orderBy('id', 'desc')
+        $prefix = 'INV';
+        $date = now()->format('Ymd');
+        $lastInvoice = self::where('invoice_number', 'like', $prefix . $date . '%')
+                          ->orderBy('invoice_number', 'desc')
                           ->first();
         
-        $sequence = $lastInvoice ? (intval(substr($lastInvoice->invoice_number, -4)) + 1) : 1;
+        if ($lastInvoice) {
+            $lastNumber = (int) substr($lastInvoice->invoice_number, -4);
+            $newNumber = $lastNumber + 1;
+        } else {
+            $newNumber = 1;
+        }
         
-        return "INV-{$year}{$month}-" . str_pad($sequence, 4, '0', STR_PAD_LEFT);
+        return $prefix . $date . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
     }
 
     public function calculateTotals()
