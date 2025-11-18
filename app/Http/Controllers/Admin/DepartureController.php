@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Models\Booking;
 use App\Models\Tour;
 use App\Models\TourDeparture;
+use App\Services\NotificationService;
+use Illuminate\Http\Request;
 
 class DepartureController extends Controller
 {
@@ -23,7 +25,7 @@ class DepartureController extends Controller
         $tours = Tour::all();
         return view('admin.tour_departures.create', compact('tours'));
     }
-    // Hiển thi chi tiết 
+    // Hiển thi chi tiết
     public function show($id)
     {
         $departure = TourDeparture::findOrFail($id);
@@ -60,6 +62,7 @@ class DepartureController extends Controller
     public function update(Request $request, $id)
     {
         $departure = TourDeparture::findOrFail($id);
+        $oldDate = $departure->departure_date->format('d/m/Y');
 
         $request->validate([
             'tour_id' => 'required|exists:tours,id',
@@ -73,6 +76,20 @@ class DepartureController extends Controller
         ]);
 
         $departure->update($request->all());
+
+        // Gửi thông báo nếu ngày khởi hành thay đổi và có booking
+        if ($oldDate !== \Carbon\Carbon::parse($request->departure_date)->format('d/m/Y')) {
+            $newDate = \Carbon\Carbon::parse($request->departure_date)->format('d/m/Y');
+            $bookings = Booking::where('departure_id', $departure->id)
+                ->where('status', '!=', 'cancelled')
+                ->with(['user', 'tour'])
+                ->get();
+
+            $notificationService = new NotificationService();
+            foreach ($bookings as $booking) {
+                $notificationService->notifyTourScheduleChanged($booking, $oldDate, $newDate);
+            }
+        }
 
         return redirect()->route('admin.departures.index')
             ->with('success', 'Cập nhật khởi hành thành công!');

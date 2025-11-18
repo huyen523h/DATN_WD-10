@@ -225,53 +225,51 @@
                     </div>
                     <div class="card-body">
                         <div class="d-grid gap-2">
-
                             @if ($booking->status === 'pending')
-                                <form action="{{ route('admin.bookings.confirm', $booking) }}" method="POST"
-                                    class="d-inline"
-                                    onsubmit="return confirm('Bạn có chắc chắn muốn XÁC NHẬN đơn hàng này?')">
+                                <form action="{{ route('admin.bookings.update', $booking) }}" method="POST"
+                                    class="d-inline">
                                     @csrf
+                                    @method('PUT')
+                                    <input type="hidden" name="status" value="confirmed">
                                     <button type="submit" class="btn btn-success w-100">
-                                        <i class="fas fa-check"></i> Xác nhận đơn
+                                        <i class="fas fa-check"></i> Xác nhận đặt tour
                                     </button>
                                 </form>
                             @endif
 
                             @if ($booking->status === 'confirmed')
-                                <form action="{{ route('admin.bookings.markAsPaid', $booking) }}" method="POST"
-                                    class="d-inline"
-                                    onsubmit="return confirm('Xác nhận khách đã THANH TOÁN đơn hàng này (thủ công)?')">
+                                <form action="{{ route('admin.bookings.update', $booking) }}" method="POST"
+                                    class="d-inline">
                                     @csrf
+                                    @method('PUT')
+                                    <input type="hidden" name="status" value="completed">
                                     <button type="submit" class="btn btn-primary w-100">
-                                        <i class="fas fa-money-check-alt"></i> Đánh dấu Đã thanh toán
+                                        <i class="fas fa-flag-checkered"></i> Hoàn thành
                                     </button>
                                 </form>
                             @endif
 
-                            @if ($booking->status === 'pending' || $booking->status === 'confirmed')
-                                <form action="{{ route('admin.bookings.cancel', $booking) }}" method="POST"
-                                    class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn HỦY đơn hàng này?')">
+                            @if ($booking->status !== 'cancelled')
+                                <form action="{{ route('admin.bookings.update', $booking) }}" method="POST"
+                                    class="d-inline">
                                     @csrf
-                                    <button type="submit" class="btn btn-warning w-100">
-                                        <i class="fas fa-times"></i> Hủy đơn
+                                    @method('PUT')
+                                    <input type="hidden" name="status" value="cancelled">
+                                    <button type="submit" class="btn btn-warning w-100"
+                                        onclick="return confirm('Bạn có chắc chắn muốn hủy đặt tour này?')">
+                                        <i class="fas fa-times"></i> Hủy đặt tour
                                     </button>
                                 </form>
-
-                                <form action="{{ route('admin.bookings.destroy', $booking) }}" method="POST"
-                                    class="d-inline"
-                                    onsubmit="return confirm('HÀNH ĐỘNG NGUY HIỂM: Bạn có chắc chắn muốn XÓA VĨNH VIỄN đơn hàng này?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-danger w-100">
-                                        <i class="fas fa-trash"></i> Xóa đặt tour
-                                    </button>
-                                </form>
-                            @else
-                                <div class="alert alert-info mb-0">
-                                    <i class="fas fa-lock"></i>
-                                    Đơn hàng đã thanh toán (hoặc đã hủy) không thể bị xóa hoặc sửa đổi.
-                                </div>
                             @endif
+
+                            <form action="{{ route('admin.bookings.destroy', $booking) }}" method="POST"
+                                class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa đặt tour này?')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-danger w-100">
+                                    <i class="fas fa-trash"></i> Xóa đặt tour
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>

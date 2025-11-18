@@ -5,22 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany; // <-- THÊM MỚI
 
 class Review extends Model
 {
     use HasFactory;
 
-
-    const STATUS_PENDING = 'pending';
-    const STATUS_APPROVED = 'approved';
-    const STATUS_HIDDEN = 'hidden';
-
     protected $fillable = [
         'tour_id',
         'user_id',
-        'booking_id', 
-        'parent_id',  
         'rating',
         'comment',
         'images',
@@ -31,6 +23,9 @@ class Review extends Model
         'images' => 'array',
     ];
 
+    /**
+     * Get the validation rules for rating.
+     */
     public static function getRatingValidationRules(): array
     {
         return [
@@ -38,42 +33,33 @@ class Review extends Model
         ];
     }
 
- 
+    /**
+     * Get the tour that owns the review.
+     */
     public function tour(): BelongsTo
     {
         return $this->belongsTo(Tour::class);
     }
 
-   
+    /**
+     * Get the user that owns the review.
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-
-    public function booking(): BelongsTo
-    {
-        return $this->belongsTo(Booking::class);
-    }
-
-   
-    public function parent(): BelongsTo
-    {
-        return $this->belongsTo(Review::class, 'parent_id');
-    }
-
-    public function replies(): HasMany
-    {
-        // Một review gốc (parent) có thể có nhiều trả lời (replies)
-        return $this->hasMany(Review::class, 'parent_id')->orderBy('created_at', 'asc');
-    }
-
-
+    /**
+     * Check if review is visible.
+     */
     public function isVisible(): bool
     {
-        return $this->status === self::STATUS_APPROVED; // Đổi từ 'visible'
+        return $this->status === 'visible';
     }
 
+    /**
+     * Get star rating display.
+     */
     public function getStarRatingAttribute(): string
     {
         return str_repeat('★', $this->rating) . str_repeat('☆', 5 - $this->rating);

@@ -172,7 +172,7 @@
                                                 : null;
                                         @endphp
                                         @if ($isDeal)
-                                            <span class ="badge"
+                                            <span class="badge"
                                                 style="background: linear-gradient(45deg, #0EA5E9, #06B6D4);"
                                                 data-bs-toggle="tooltip"
                                                 title="Giá dưới 2.000.000đ – Deal tốt">Deal</span>
@@ -182,16 +182,6 @@
                                                 title="Giảm {{ $discount }}%">-{{ $discount }}%</span>
                                         @endif
                                     </div>
-
-                                    {{-- ⭐ Rating góc phải --}}
-    @if ($tour->reviews_count > 0)
-        <div class="position-absolute top-0 end-0 p-2">
-           <span class="badge bg-white text-dark shadow-sm small d-inline-flex align-items-center">
-    <i class="fas fa-star text-warning me-1"></i>
-    {{ number_format($tour->avg_rating, 1) }}
-</span>
-        </div>
-    @endif
                                 </div>
 
                                 <div class="card-body d-flex flex-column">
