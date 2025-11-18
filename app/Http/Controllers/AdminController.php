@@ -39,7 +39,14 @@ class AdminController extends Controller
 
     public function tours(Request $request)
     {
-        $query = Tour::with(['category', 'images', 'bookings']);
+        $completedStatuses = ['paid', 'completed', 'finished', 'confirmed'];
+
+        $query = Tour::with(['category', 'images', 'bookings'])
+            ->withCount([
+                'bookings as completed_bookings_count' => function ($q) use ($completedStatuses) {
+                    $q->whereIn('status', $completedStatuses);
+                },
+            ]);
 
         // Tìm kiếm theo tiêu đề/mô tả/danh mục
         if ($request->filled('search')) {
@@ -218,7 +225,7 @@ class AdminController extends Controller
             'cancellation_policy' => 'nullable|string',
             'visa_requirements' => 'nullable|string',
             'availability_status' => 'nullable|in:available,contact,sold_out',
-
+            'status'              => 'required|in:active,inactive,draft',
             // CHỈ cần upload khi muốn thay ảnh; nếu không upload thì giữ ảnh cũ
             'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
 
@@ -259,6 +266,7 @@ class AdminController extends Controller
                 'cancellation_policy' => $validated['cancellation_policy'] ?? null,
                 'visa_requirements' => $validated['visa_requirements'] ?? null,
                 'availability_status' => $validated['availability_status'] ?? 'available',
+                'status'              => $validated['status'],
             ]);
 
             // 2) Nếu có upload ảnh mới => XOÁ toàn bộ ảnh cũ rồi lưu ảnh mới
@@ -277,9 +285,9 @@ class AdminController extends Controller
                         continue;
                     $path = $image->store('tours', 'public');
                     TourImage::create([
-                        'tour_id' => $tour->id,
-                        'image_url' => Storage::url($path), // /storage/...
-                        'is_cover' => $idx === 0,          // ảnh đầu tiên làm cover
+                        'tour_id'    => $tour->id,
+                        'image_url'  => Storage::url($path), // /storage/...
+                        'is_cover'   => $idx === 0,         
                         'sort_order' => $order++,
                     ]);
                 }
@@ -333,8 +341,22 @@ class AdminController extends Controller
 
     public function deleteTour(Tour $tour): RedirectResponse
     {
+        $completedStatuses = ['paid', 'completed', 'finished', 'confirmed'];
+
+        $hasCompletedBookings = $tour->bookings()
+            ->whereIn('status', $completedStatuses)
+            ->exists();
+
+        if ($hasCompletedBookings) {
+            return redirect()
+                ->route('admin.tours.index')
+                ->with('error', 'Tour này đã có người đặt, bạn không thể xóa.');
+        }
         $tour->delete();
-        return redirect()->route('admin.tours.index')->with('success', 'Tour đã được xóa thành công!');
+
+        return redirect()
+            ->route('admin.tours.index')
+            ->with('success', 'Tour đã được xóa thành công!');
     }
     public function deleteTourImage($tourId, $imageId): RedirectResponse
     {
