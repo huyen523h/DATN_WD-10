@@ -4,7 +4,7 @@
 
 @section('breadcrumb')
 <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
-<li class="breadcrumb-item"><a href="{{ route('admin.tours') }}">Tours</a></li>
+<li class="breadcrumb-item"><a href="{{ route('admin.tours.index') }}">Tours</a></li>
 <li class="breadcrumb-item active">Chỉnh sửa</li>
 @endsection
 
@@ -15,7 +15,7 @@
         <h2><i class="fas fa-edit text-primary"></i> Chỉnh sửa Tour</h2>
         <p class="text-muted mb-0">Cập nhật thông tin tour: {{ $tour->title }}</p>
     </div>
-    <a href="{{ route('admin.tours') }}" class="btn btn-outline-secondary">
+    <a href="{{ route('admin.tours.index') }}" class="btn btn-outline-secondary">
         <i class="fas fa-arrow-left"></i> Quay lại
     </a>
 </div>
@@ -205,17 +205,10 @@
                 @foreach($tour->images as $image)
                 <div class="col-md-3 mb-3">
                     <div class="position-relative">
-                        <img src="{{ Storage::url($image->image_url) }}" alt="Tour Image" class="img-fluid rounded" style="height: 150px; width: 100%; object-fit: cover;">
+                        <img src="{{ asset($image->image_url) }}" alt="Tour Image" class="img-fluid rounded" style="height: 150px; width: 100%; object-fit: cover;">
                         @if($image->is_cover)
                             <span class="badge bg-primary position-absolute top-0 start-0 m-2">Ảnh bìa</span>
                         @endif
-                        <form action="{{ route('admin.tours.images.delete', ['tour' => $tour->id, 'image' => $image->id]) }}" method="POST" class="d-inline position-absolute top-0 end-0 m-2" onsubmit="return confirm('Bạn có chắc chắn muốn xóa hình ảnh này?')">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-danger btn-sm">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </form>
                     </div>
                 </div>
                 @endforeach
@@ -256,13 +249,13 @@
                     <p class="text-muted mb-0">Kiểm tra lại thông tin trước khi lưu</p>
                 </div>
                 <div class="d-flex gap-2">
-                    <a href="{{ route('admin.tours') }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-times"></i> Hủy
-                    </a>
-                    <button type="submit" class="btn btn-primary" id="saveBtn">
-                        <i class="fas fa-save"></i> Cập nhật tour
-                    </button>
-                </div>
+    <a href="{{ route('admin.tours.index') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-times"></i> Hủy
+    </a>
+   <button type="submit" class="btn btn-primary" id="saveBtn" form="tourForm">
+    <i class="fas fa-save"></i> Cập nhật tour
+</button>
+</div>
             </div>
         </div>
     </div>
