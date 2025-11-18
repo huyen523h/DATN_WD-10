@@ -20,7 +20,7 @@
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    
+
     <!-- Icons -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/feather-icons@4.29.0/dist/feather.min.css" rel="stylesheet">
@@ -947,13 +947,14 @@
                 </a>
             </div>
 
-        <!-- Banners Management -->
-        <div class="nav-item">
-            <a href="{{ route('admin.banners') }}" class="nav-link {{ request()->routeIs('admin.banners*') ? 'active' : '' }}">
-                <i class="fas fa-image"></i>
-                <span class="nav-text">Quản lý Banner</span>
-            </a>
-        </div>
+            <!-- Banners Management -->
+            <div class="nav-item">
+                <a href="{{ route('admin.banners') }}"
+                    class="nav-link {{ request()->routeIs('admin.banners*') ? 'active' : '' }}">
+                    <i class="fas fa-image"></i>
+                    <span class="nav-text">Quản lý Banner</span>
+                </a>
+            </div>
 
             <!-- Categories Management -->
             <div class="nav-item">
@@ -989,7 +990,7 @@
                     <span class="nav-text">Quản lý khởi hành</span>
                 </a>
             </div>
-            
+
 
 
             <!-- Reports -->
@@ -1028,8 +1029,16 @@
                     <i class="fas fa-cog"></i>
                     <span class="nav-text">Cài đặt hệ thống</span>
                 </a>
-
             </div>
+
+            <!-- Test Notifications -->
+            <!-- <div class="nav-item">
+                <a href="{{ route('admin.test.notifications') }}"
+                    class="nav-link {{ request()->routeIs('admin.test.notifications*') ? 'active' : '' }}">
+                    <i class="fas fa-vial"></i>
+                    <span class="nav-text">Test Thông báo</span>
+                </a>
+            </div> -->
 
             <!-- Reviews & Support -->
             <div class="nav-section">
@@ -1145,14 +1154,14 @@
 
     <!-- Custom Admin JS -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             // Sidebar toggle
             const sidebarToggle = document.getElementById('sidebarToggle');
             const sidebar = document.getElementById('adminSidebar');
             const main = document.getElementById('adminMain');
 
             if (sidebarToggle && sidebar && main) {
-                sidebarToggle.addEventListener('click', function() {
+                sidebarToggle.addEventListener('click', function () {
                     sidebar.classList.toggle('collapsed');
                     main.classList.toggle('sidebar-collapsed');
 
@@ -1181,11 +1190,12 @@
     </script>
 
     @yield('scripts')
-    
+
     <!-- Check-in/Check-out specific CSS -->
     <style>
         /* Form elements styling for check-in/check-out */
-        .form-control, .form-select {
+        .form-control,
+        .form-select {
             border-radius: 0.375rem;
             border: 1px solid #d1d5db;
             padding: 0.5rem 0.75rem;
@@ -1193,7 +1203,8 @@
             transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
         }
 
-        .form-control:focus, .form-select:focus {
+        .form-control:focus,
+        .form-select:focus {
             border-color: #3b82f6;
             box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
         }
@@ -1326,15 +1337,19 @@
         }
 
         /* Icons styling */
-        .nav-link i, .btn i {
+        .nav-link i,
+        .btn i {
             margin-right: 0.5rem;
         }
 
         /* Ensure icons are visible */
-        .bi, .fas, .far, .fab {
+        .bi,
+        .fas,
+        .far,
+        .fab {
             font-family: "bootstrap-icons", "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
         }
     </style>
 </body>
-    
+
 </html>

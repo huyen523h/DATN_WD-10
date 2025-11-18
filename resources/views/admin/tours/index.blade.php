@@ -25,12 +25,12 @@
                     @endif
 
                     @if (session('error'))
-    <div class="alert alert-danger d-flex justify-content-between align-items-center">
-        <div>
-            <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
-        </div>
-    </div>
-@endif
+                        <div class="alert alert-danger d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
         @endif
@@ -135,8 +135,8 @@
 
 
 
-<!-- Filters -->
-{{-- <div class="card mb-4">
+    <!-- Filters -->
+    {{-- <div class="card mb-4">
     <div class="card-header">
         <h5 class="mb-0"><i class="fas fa-filter"></i> Bộ lọc</h5>
     </div>
@@ -178,323 +178,296 @@
     </div>
 </div> --}}
 
-<!-- Tours Table -->
-<div class="card">
-    <div class="card-header">
-        <h5 class="mb-0"><i class="fas fa-list"></i> Danh sách Tours</h5>
-    </div>
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Tour</th>
-                        <th>Danh mục</th>
-                        <th>Giá</th>
-                        <th>Thời gian</th>
-                        <th>Trạng thái</th>
-                        <th>Đặt tour</th>
-                        <th>Hành động</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($tours as $tour)
+    <!-- Tours Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-list"></i> Danh sách Tours</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
                         <tr>
-                            <td>{{ $tour->id }}</td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    @if ($tour->images->count() > 0)
-                                        @php $coverImage = $tour->images->where('is_cover', true)->first() ?? $tour->images->first(); @endphp
-                                        <img src="{{ Storage::url($coverImage->image_url) }}"
-                                            alt="{{ $tour->title }}" class="rounded me-2"
-                                            style="width: 50px; height: 50px; object-fit: cover;"
-                                            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                        <div class="bg-light rounded me-2 d-flex align-items-center justify-content-center"
-                                            style="width: 50px; height: 50px; display: none;">
-                                            <i class="fas fa-image text-muted"></i>
-                                        </div>
-                                    @else
-                                        <div class="bg-light rounded me-2 d-flex align-items-center justify-content-center"
-                                            style="width: 50px; height: 50px;">
-                                            <i class="fas fa-image text-muted"></i>
-                                        </div>
-                                    @endif
-                                    <div>
-                                        <strong>{{ $tour->title }}</strong>
-                                        <br>
-                                        <small class="text-muted">{{ Str::limit($tour->description, 50) }}</small>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="badge bg-primary">{{ $tour->category->name }}</span>
-                            </td>
-                            <td>
-                                <strong class="text-success">{{ number_format($tour->price) }} VNĐ</strong>
-                            </td>
-                            <td>{{ $tour->duration_days ?? 'N/A' }} ngày</td>
-                            <td>
-                                @switch($tour->status)
-                                    @case('active')
-                                        <span class="badge bg-success">
-                                            <i class="fas fa-check-circle"></i> Hoạt động
-                                        </span>
-                                    @break
-
-                                    @case('inactive')
-                                        <span class="badge bg-secondary">
-                                            <i class="fas fa-pause-circle"></i> Không hoạt động
-                                        </span>
-                                    @break
-
-                                    @case('draft')
-                                        <span class="badge bg-warning">
-                                            <i class="fas fa-edit"></i> Bản nháp
-                                        </span>
-                                    @break
-
-                                    @default
-                                        <span class="badge bg-info">{{ $tour->status }}</span>
-                                @endswitch
-                            </td>
-                            <td>
-                                {{-- <span class="badge bg-info">{{ $tour->bookings->count() }}</span> --}}
-                                  <span class="badge bg-info">
-        {{ $tour->completed_bookings_count ?? 0 }}
-    </span>
-                            </td>
-                            {{-- <td>
-                                <div class="btn-group" role="group">
-                                    <a href="{{ route('admin.schedules.index', $tour->id) }}"
-                                        class="btn btn-info btn-sm">
-                                        <i class="fas fa-calendar-alt"></i> Xem lịch trình
-                                    </a>
-                                    <a href="{{ route('admin.tours.show', $tour) }}" class="btn btn-primary btn-sm"
-                                        title="Xem chi tiết">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <a href="{{ route('admin.tours.edit', $tour) }}" class="btn btn-warning btn-sm"
-                                        title="Chỉnh sửa">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <form action="{{ route('admin.tours.destroy', $tour) }}" method="POST"
-                                        class="d-inline"
-                                        onsubmit="return confirm('Bạn có chắc chắn muốn xóa tour này?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-danger btn-sm" title="Xóa">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </td> --}}
-                            <td>
-    <div class="btn-group" role="group">
-        <a href="{{ route('admin.schedules.index', $tour->id) }}"
-           class="btn btn-info btn-sm">
-            <i class="fas fa-calendar-alt"></i> Xem lịch trình
-        </a>
-
-        <a href="{{ route('admin.tours.show', $tour) }}" class="btn btn-primary btn-sm"
-           title="Xem chi tiết">
-            <i class="fas fa-eye"></i>
-        </a>
-
-        <a href="{{ route('admin.tours.edit', $tour) }}" class="btn btn-warning btn-sm"
-           title="Chỉnh sửa">
-            <i class="fas fa-edit"></i>
-        </a>
-
-        @if(($tour->completed_bookings_count ?? 0) == 0)
-            {{-- CHƯA CÓ AI ĐẶT -> ĐƯỢC XÓA --}}
-            <form action="{{ route('admin.tours.destroy', $tour) }}" method="POST"
-                  class="d-inline"
-                  onsubmit="return confirm('Bạn có chắc chắn muốn xóa tour này?')">
-                @csrf
-                @method('DELETE')
-                <button type="submit" class="btn btn-danger btn-sm" title="Xóa">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </form>
-        @else
-            {{-- ĐÃ CÓ NGƯỜI ĐẶT -> CHỈ HIỆN ALERT, KHÔNG GỬI REQUEST XOÁ --}}
-            <button type="button"
-                    class="btn btn-danger btn-sm"
-                    title="Không thể xóa"
-                    onclick="alert('Tour này đã có người đặt, bạn không thể xóa tour');">
-                <i class="fas fa-trash"></i>
-            </button>
-        @endif
-    </div>
-</td>
-
+                            <th>ID</th>
+                            <th>Tour</th>
+                            <th>Danh mục</th>
+                            <th>Giá</th>
+                            <th>Thời gian</th>
+                            <th>Trạng thái</th>
+                            <th>Đặt tour</th>
+                            <th>Hành động</th>
                         </tr>
-                        @empty
+                    </thead>
+                    <tbody>
+                        @forelse ($tours as $tour)
                             <tr>
-                                <td colspan="8" class="text-center py-5">
-                                    <div class="text-muted">
-                                        <i class="fas fa-box-open fa-3x mb-3"></i>
-                                        <h5>Chưa có tour nào</h5>
-                                        <p>Hãy tạo tour đầu tiên để bắt đầu!</p>
-                                        <a href="{{ route('admin.tours.create') }}" class="btn btn-primary">
-                                            <i class="fas fa-plus"></i> Thêm tour mới
-                                        </a>
+                                <td>{{ $tour->id }}</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        @if ($tour->images->count() > 0)
+                                            @php $coverImage = $tour->images->where('is_cover', true)->first() ?? $tour->images->first(); @endphp
+                                            <img src="{{ Storage::url($coverImage->image_url) }}" alt="{{ $tour->title }}"
+                                                class="rounded me-2" style="width: 50px; height: 50px; object-fit: cover;"
+                                                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                            <div class="bg-light rounded me-2 d-flex align-items-center justify-content-center"
+                                                style="width: 50px; height: 50px; display: none;">
+                                                <i class="fas fa-image text-muted"></i>
+                                            </div>
+                                        @else
+                                            <div class="bg-light rounded me-2 d-flex align-items-center justify-content-center"
+                                                style="width: 50px; height: 50px;">
+                                                <i class="fas fa-image text-muted"></i>
+                                            </div>
+                                        @endif
+                                        <div>
+                                            <strong>{{ $tour->title }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ Str::limit($tour->description, 50) }}</small>
+                                        </div>
                                     </div>
                                 </td>
+                                <td>
+                                    <span class="badge bg-primary">{{ $tour->category->name }}</span>
+                                </td>
+                                <td>
+                                    <strong class="text-success">{{ number_format($tour->price) }} VNĐ</strong>
+                                </td>
+                                <td>{{ $tour->duration_days ?? 'N/A' }} ngày</td>
+                                <td>
+                                    @switch($tour->status)
+                                        @case('active')
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check-circle"></i> Hoạt động
+                                            </span>
+                                        @break
+
+                                        @case('inactive')
+                                            <span class="badge bg-secondary">
+                                                <i class="fas fa-pause-circle"></i> Không hoạt động
+                                            </span>
+                                        @break
+
+                                        @case('draft')
+                                            <span class="badge bg-warning">
+                                                <i class="fas fa-edit"></i> Bản nháp
+                                            </span>
+                                        @break
+
+                                        @default
+                                            <span class="badge bg-info">{{ $tour->status }}</span>
+                                    @endswitch
+                                </td>
+                                <td>
+                                    {{-- <span class="badge bg-info">{{ $tour->bookings->count() }}</span> --}}
+                                    <span class="badge bg-info">
+                                        {{ $tour->completed_bookings_count ?? 0 }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ route('admin.schedules.index', $tour->id) }}"
+                                            class="btn btn-info btn-sm">
+                                            <i class="fas fa-calendar-alt"></i> Xem lịch trình
+                                        </a>
+
+                                        <a href="{{ route('admin.tours.show', $tour) }}" class="btn btn-primary btn-sm"
+                                            title="Xem chi tiết">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+
+                                        <a href="{{ route('admin.tours.edit', $tour) }}" class="btn btn-warning btn-sm"
+                                            title="Chỉnh sửa">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+
+                                        @if (($tour->completed_bookings_count ?? 0) == 0)
+                                            {{-- CHƯA CÓ AI ĐẶT -> ĐƯỢC XÓA --}}
+                                            <form action="{{ route('admin.tours.destroy', $tour) }}" method="POST"
+                                                class="d-inline"
+                                                onsubmit="return confirm('Bạn có chắc chắn muốn xóa tour này?')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-danger btn-sm" title="Xóa">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        @else
+                                            {{-- ĐÃ CÓ NGƯỜI ĐẶT -> CHỈ HIỆN ALERT, KHÔNG GỬI REQUEST XOÁ --}}
+                                            <button type="button" class="btn btn-danger btn-sm" title="Không thể xóa"
+                                                onclick="alert('Tour này đã có người đặt, bạn không thể xóa tour');">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        @endif
+                                    </div>
+                                </td>
+
                             </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Pagination -->
-            @if ($tours->hasPages())
-                <div class="d-flex justify-content-center mt-4">
-                    {{ $tours->links() }}
+                            @empty
+                                <tr>
+                                    <td colspan="8" class="text-center py-5">
+                                        <div class="text-muted">
+                                            <i class="fas fa-box-open fa-3x mb-3"></i>
+                                            <h5>Chưa có tour nào</h5>
+                                            <p>Hãy tạo tour đầu tiên để bắt đầu!</p>
+                                            <a href="{{ route('admin.tours.create') }}" class="btn btn-primary">
+                                                <i class="fas fa-plus"></i> Thêm tour mới
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
-            @endif
+
+                <!-- Pagination -->
+                @if ($tours->hasPages())
+                    <div class="d-flex justify-content-center mt-4">
+                        {{ $tours->links() }}
+                    </div>
+                @endif
+            </div>
         </div>
-    </div>
 
-@endsection
-@push('styles')
-    <style>
+    @endsection
+    @push('styles')
+        <style>
+            /* Không cho custom CSS phá layout của table bootstrap */
+            table.table td,
+            table.table th {
+                border-width: 0 !important;
+                border-style: none !important;
+            }
 
-         /* Không cho custom CSS phá layout của table bootstrap */
-    table.table td,
-    table.table th {
-        border-width: 0 !important;
-        border-style: none !important;
-    }
+            table.table tbody tr {
+                position: static !important;
+                transition: none !important;
+            }
 
-    table.table tbody tr {
-        position: static !important;
-        transition: none !important;
-    }
+            /* Set width cột ID cho rõ ràng */
+            table.table th:first-child,
+            table.table td:first-child {
+                width: 60px !important;
+                text-align: center !important;
+                white-space: nowrap;
+            }
 
-    /* Set width cột ID cho rõ ràng */
-    table.table th:first-child,
-    table.table td:first-child {
-        width: 60px !important;
-        text-align: center !important;
-        white-space: nowrap;
-    }
-        /* Custom filter styles */
-        .filter-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .filter-label {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: #374151;
-        }
-
-        .filter-select,
-        .filter-input {
-            padding: 0.5rem 0.75rem;
-            border: 1px solid #d1d5db;
-            border-radius: 0.375rem;
-            font-size: 0.875rem;
-            background: white;
-            transition: all 0.3s ease;
-        }
-
-        .filter-select:focus,
-        .filter-input:focus {
-            outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-
-        .price-range {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .range-separator {
-            color: #6b7280;
-            font-weight: 500;
-        }
-
-        .filter-actions {
-            display: flex;
-            gap: 0.5rem;
-            padding-top: 1rem;
-            border-top: 1px solid #e5e7eb;
-        }
-
-        /* Tour title component styles */
-        .tour-title-cell {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .tour-image {
-            width: 50px;
-            height: 50px;
-            border-radius: 0.5rem;
-            object-fit: cover;
-            background: #f3f4f6;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #9ca3af;
-            font-size: 1.25rem;
-        }
-
-        .tour-info {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .tour-name {
-            font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 0.25rem;
-            line-height: 1.4;
-        }
-
-        .tour-description {
-            font-size: 0.75rem;
-            color: #6b7280;
-            line-height: 1.4;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
+            /* Custom filter styles */
             .filter-grid {
-                grid-template-columns: 1fr;
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 1rem;
+                margin-bottom: 1rem;
+            }
+
+            .filter-group {
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .filter-label {
+                font-size: 0.875rem;
+                font-weight: 600;
+                color: #374151;
+            }
+
+            .filter-select,
+            .filter-input {
+                padding: 0.5rem 0.75rem;
+                border: 1px solid #d1d5db;
+                border-radius: 0.375rem;
+                font-size: 0.875rem;
+                background: white;
+                transition: all 0.3s ease;
+            }
+
+            .filter-select:focus,
+            .filter-input:focus {
+                outline: none;
+                border-color: #3b82f6;
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
             }
 
             .price-range {
-                flex-direction: column;
-                align-items: stretch;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
             }
 
             .range-separator {
-                text-align: center;
+                color: #6b7280;
+                font-weight: 500;
             }
 
             .filter-actions {
-                flex-direction: column;
+                display: flex;
+                gap: 0.5rem;
+                padding-top: 1rem;
+                border-top: 1px solid #e5e7eb;
             }
-        }
-    </style>
-@endpush
+
+            /* Tour title component styles */
+            .tour-title-cell {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+            }
+
+            .tour-image {
+                width: 50px;
+                height: 50px;
+                border-radius: 0.5rem;
+                object-fit: cover;
+                background: #f3f4f6;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #9ca3af;
+                font-size: 1.25rem;
+            }
+
+            .tour-info {
+                flex: 1;
+                min-width: 0;
+            }
+
+            .tour-name {
+                font-weight: 600;
+                color: #1f2937;
+                margin-bottom: 0.25rem;
+                line-height: 1.4;
+            }
+
+            .tour-description {
+                font-size: 0.75rem;
+                color: #6b7280;
+                line-height: 1.4;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+
+            /* Responsive adjustments */
+            @media (max-width: 768px) {
+                .filter-grid {
+                    grid-template-columns: 1fr;
+                }
+
+                .price-range {
+                    flex-direction: column;
+                    align-items: stretch;
+                }
+
+                .range-separator {
+                    text-align: center;
+                }
+
+                .filter-actions {
+                    flex-direction: column;
+                }
+            }
+        </style>
+    @endpush

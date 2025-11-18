@@ -16,6 +16,8 @@ class Notification extends Model
         'message',
         'type',
         'status',
+        'related_id',
+        'related_type',
     ];
 
     /**

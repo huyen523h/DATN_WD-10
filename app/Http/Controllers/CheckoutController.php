@@ -4,11 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use App\Models\Payment;
+use App\Services\NotificationService;
 use Illuminate\Container\Attributes\Log;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log as FacadesLog;
-
-// --------------------
 
 use function Illuminate\Log\log;
 
@@ -30,11 +29,6 @@ class CheckoutController extends Controller
         );
         curl_setopt($ch, CURLOPT_TIMEOUT, 5);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
-
-        // mommo - checkoutController
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        
         //execute post
         $result = curl_exec($ch);
         //close connection
@@ -110,58 +104,70 @@ class CheckoutController extends Controller
             //Tìm payment theo transaction_code (orderId unique lúc tạo)
             $payment = Payment::where('transaction_code', $orderId)->first();
             if ($payment) {
-                
-                // --- SỬA DÒNG 1 ---
-                // (Chỉ cập nhật Payment, không cập nhật Booking ở đây)
                 $payment->update([
-                    'status' => 'completed', // 'completed' cho payment là OK
+                    'status' => 'completed',
                     'transaction_code' => $data['transId'] ?? $orderId,
                     'payment_date' => now(),
                     'raw_response' => json_encode($data, JSON_UNESCAPED_UNICODE),
                 ]);
+                //Cập nhật trạng thái booking
+                $payment->booking()->update(['status' => 'completed']);
 
-                // --- SỬA DÒNG 2 (QUAN TRỌNG) ---
-                // (IPN sẽ xử lý việc cập nhật status. 
-                //  Nhưng nếu IPN thất bại, chúng ta cập nhật ở đây để dự phòng)
-                $payment->booking()->update(['status' => Booking::STATUS_PAID]); // <-- Đổi 'completed' thành 'paid'
+                // Send notification
+                $notificationService = new NotificationService();
+                $notificationService->notifyPaymentSuccess($payment);
 
                 $data['message'] = 'Thanh toán thành công';
+                $booking = $payment->booking;
             } else {
                 $data['message'] = 'Thanh toán thất bại';
+                $booking = null;
             }
 
-           return view('payment.result', ['data' => $data]);
+            return view('payment.result', ['data' => $data, 'booking' => $booking ?? null]);
+        } else {
+            // Thanh toán thất bại
+            $orderId = $data['orderId'] ?? null;
+            if ($orderId) {
+                $payment = Payment::where('transaction_code', $orderId)->first();
+                if ($payment) {
+                    $payment->update([
+                        'status' => 'failed',
+                        'raw_response' => json_encode($data, JSON_UNESCAPED_UNICODE),
+                    ]);
+
+                    // Send notification
+                    $notificationService = new NotificationService();
+                    $notificationService->notifyPaymentFailed($payment, $data['message'] ?? 'Thanh toán không thành công');
+                }
+            }
+
+            $data['message'] = 'Thanh toán thất bại';
+            return view('payment.result', ['data' => $data, 'booking' => null]);
         }
-        
-        // (Xử lý khi thanh toán thất bại)
-        $data['message'] = 'Thanh toán thất bại hoặc đã bị hủy.';
-        return view('payment.result', ['data' => $data]);
     }
-    
     public function momo_ipn(Request $request)
     {
         FacadesLog::info('MoMo IPN hit', $request->all());
         $data = $request->all();
         $secretKey = 'at67qH6mk8w5Y1nAyMoYKMWACiEi2bsa';
 
-        // ... (Code kiểm tra chữ ký của bạn - giữ nguyên) ...
+        // Chuẩn bị chuỗi để kiểm tra chữ ký
         $rawHash = "accessKey=" . $data['accessKey'] .
-           "&amount=" . $data['amount'] .
-           "&extraData=" . $data['extraData'] .
-           "&message=" . $data['message'] .
-           "&orderId=" . $data['orderId'] .
-           "&orderInfo=" . $data['orderInfo'] .
-           "&orderType=" . $data['orderType'] .
-           "&partnerCode=" . $data['partnerCode'] .
-           "&payType=" . $data['payType'] .
-           "&requestId=" . $data['requestId'] .
-           "&responseTime=" . $data['responseTime'] .
-           "&resultCode=" . $data['resultCode'] .
-           "&transId=" . $data['transId'];
+            "&amount=" . $data['amount'] .
+            "&extraData=" . $data['extraData'] .
+            "&message=" . $data['message'] .
+            "&orderId=" . $data['orderId'] .
+            "&orderInfo=" . $data['orderInfo'] .
+            "&orderType=" . $data['orderType'] .
+            "&partnerCode=" . $data['partnerCode'] .
+            "&payType=" . $data['payType'] .
+            "&requestId=" . $data['requestId'] .
+            "&responseTime=" . $data['responseTime'] .
+            "&resultCode=" . $data['resultCode'] .
+            "&transId=" . $data['transId'];
 
         $partnerSignature = hash_hmac("sha256", $rawHash, $secretKey);
-        // ----------------------------------------------------
-
         //Kiểm tra chữ ký và mã kết quả
         if ($partnerSignature == $data['signature'] && $data['resultCode'] == 0) {
             $orderId = $data['orderId']; // ID booking
@@ -169,46 +175,61 @@ class CheckoutController extends Controller
             $payment = Payment::where('transaction_code', $orderId)->first();
 
             if ($payment) {
-                // (Không cần sửa 'completed' của Payment, 'completed' cho payment là đúng)
                 $payment->update([
-                    'status' => 'completed', 
+                    'status' => 'completed',
                     'transaction_code' => $data['transId'],
                     'raw_response' => json_encode($data, JSON_UNESCAPED_UNICODE),
                     'payment_date' => now(),
                 ]);
 
-                // --- SỬA DÒNG 3 (QUAN TRỌNG NHẤT) ---
-                // Update booking status thành 'paid'
-                $payment->booking()->update(['status' => Booking::STATUS_PAID]); // <-- Đổi 'completed' thành 'paid'
+                // Update booking
+                $payment->booking()->update(['status' => 'completed']);
 
+                // Send notification
+                $notificationService = new NotificationService();
+                $notificationService->notifyPaymentSuccess($payment);
             } else {
                 // Nếu vì lý do nào đó chưa có payment pending, tạo mới
-                $bookingId = $this->extractBookingIdFromOrderId($orderId);
-                if ($bookingId) {
-                    Payment::create([
-                        'booking_id' => $bookingId,
-                        'payment_method' => 'momo',
-                        'amount' => $data['amount'],
-                        'status' => 'completed', // payment 'completed'
-                        'transaction_code' => $data['transId'],
-                        'raw_response' => json_encode($data, JSON_UNESCAPED_UNICODE),
-                        'payment_date' => now(),
-                    ]);
-                    
-                    // --- SỬA DÒNG 4 (QUAN TRỌNG) ---
-                    Booking::find($bookingId)->update(['status' => Booking::STATUS_PAID]); // <-- Đổi 'completed' thành 'paid'
-                }
+                $payment = Payment::create([
+                    'booking_id' => $this->extractBookingIdFromOrderId($orderId),
+                    'payment_method' => 'momo',
+                    'amount' => $data['amount'],
+                    'status' => 'completed',
+                    'transaction_code' => $data['transId'],
+                    'raw_response' => json_encode($data, JSON_UNESCAPED_UNICODE),
+                    'payment_date' => now(),
+                ]);
+
+                // Send notification
+                $notificationService = new NotificationService();
+                $notificationService->notifyPaymentSuccess($payment);
             }
 
             return response()->json(['message' => 'Confirm Success', 'status' => 200]);
         } else {
+            // Thanh toán thất bại
+            $orderId = $data['orderId'] ?? null;
+            if ($orderId) {
+                $payment = Payment::where('transaction_code', $orderId)->first();
+                if ($payment) {
+                    $payment->update([
+                        'status' => 'failed',
+                        'raw_response' => json_encode($data, JSON_UNESCAPED_UNICODE),
+                    ]);
+
+                    // Send notification
+                    $notificationService = new NotificationService();
+                    $notificationService->notifyPaymentFailed($payment, $data['message'] ?? 'Thanh toán không thành công');
+                }
+            }
+
             return response()->json(['message' => 'Confirm Failed', 'status' => 400]);
         }
     }
     private function extractBookingIdFromOrderId($orderId)
     {
         if (preg_match('/BOOKING(\d+)_/', $orderId, $matches)) {
-            return (int)$matches[1];
+            return (int) $matches[1];
         }
         return null;
     }

@@ -8,8 +8,6 @@ use App\Http\Controllers\Api\TourImageController; // thêm: controller ảnh
 use App\Http\Controllers\Api\PromotionController;
 use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\InvoiceTestController;
-use App\Http\Controllers\Api\ReviewController;
-use App\Models\Booking;
 
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -21,7 +19,6 @@ Route::prefix('tours')->group(function () {
     Route::get('/featured', [TourController::class, 'getFeatured']); // GET /api/tours/featured
     Route::get('/location/{location}', [TourController::class, 'getByLocation']); // GET /api/tours/location/hanoi
     Route::get('/{id}', [TourController::class, 'show']); // GET /api/tours/1
-    Route::get('/tours/{tour}/reviews', [ReviewController::class, 'index']);  // thêm mới route cho phần đánh giá mới đã fix
 });
 
 // Public Promotion API routes (no authentication required)

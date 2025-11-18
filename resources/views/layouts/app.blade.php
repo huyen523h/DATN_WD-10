@@ -792,6 +792,11 @@
                             <i class="fas fa-moon"></i>
                         </button>
                     </li>
+                    @auth
+                        <li class="nav-item me-2">
+                            @include('components.notification-bell')
+                        </li>
+                    @endauth
                     @guest
                         <li class="nav-item">
                             <a class="nav-link" href="{{ route('login') }}">
