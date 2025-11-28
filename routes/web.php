@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\DepartureController;
 use App\Http\Controllers\Admin\TourScheduleController;
+use App\Http\Controllers\Admin\GuideWebController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\AdminController;
@@ -470,6 +471,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     // Xóa ảnh của tour
     Route::delete('/tours/{tour}/images/{image}', [AdminController::class, 'deleteTourImage'])
         ->name('tours.images.delete');
+
+    // Guides management
+    Route::resource('guides', GuideWebController::class);
 
     // Invoices management
     Route::resource('invoices', \App\Http\Controllers\InvoiceController::class);

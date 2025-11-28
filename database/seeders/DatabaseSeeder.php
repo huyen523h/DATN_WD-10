@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             // RolePermissionSeeder::class, // Bỏ qua vì có lỗi
             CategorySeeder::class,
+            GuideCategorySeeder::class,
             UserSeeder::class,
             TourSeeder::class,
             BannerSeeder::class,

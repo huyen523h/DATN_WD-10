@@ -98,6 +98,14 @@ class Tour extends Model
     }
 
     /**
+     * Get the operations planned for the tour.
+     */
+    public function operations(): HasMany
+    {
+        return $this->hasMany(TourOperation::class);
+    }
+
+    /**
      * Get the reviews for the tour.
      */
     public function reviews(): HasMany
