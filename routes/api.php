@@ -8,6 +8,11 @@ use App\Http\Controllers\Api\TourImageController; // thêm: controller ảnh
 use App\Http\Controllers\Api\PromotionController;
 use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\InvoiceTestController;
+use App\Http\Controllers\Api\Admin\GuideController as AdminGuideController;
+use App\Http\Controllers\Api\Admin\GuideCategoryController;
+use App\Http\Controllers\Api\Admin\TourOperationController;
+use App\Http\Controllers\Api\Admin\OperationStaffController;
+use App\Http\Controllers\Api\Admin\OperationServiceController;
 
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -68,6 +73,19 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('tour-images/{image}', [TourImageController::class, 'update']);   // PATCH /api/tour-images/{image}
         // Xóa 1 ảnh
         Route::delete('tour-images/{image}', [TourImageController::class, 'destroy']); // DELETE /api/tour-images/{image}
+
+        // Guides & operations
+        Route::apiResource('guides', AdminGuideController::class);
+        Route::apiResource('guide-categories', GuideCategoryController::class)->except(['create', 'edit']);
+        Route::apiResource('tour-operations', TourOperationController::class)->except(['create', 'edit']);
+
+        Route::post('tour-operations/{tour_operation}/staff', [OperationStaffController::class, 'store']);
+        Route::put('operation-staff/{assignment}', [OperationStaffController::class, 'update']);
+        Route::delete('operation-staff/{assignment}', [OperationStaffController::class, 'destroy']);
+
+        Route::post('tour-operations/{tour_operation}/services', [OperationServiceController::class, 'store']);
+        Route::put('operation-services/{operation_service}', [OperationServiceController::class, 'update']);
+        Route::delete('operation-services/{operation_service}', [OperationServiceController::class, 'destroy']);
     });
 
     // ============================================
