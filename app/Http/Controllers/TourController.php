@@ -60,5 +60,19 @@ class TourController extends Controller
         ]);
         
         return view('tours.show', compact('tour'));
+
+        $tour = Tour::with(['category', 'images', 'schedules', 'departures', 'publicReviews.user'])->findOrFail($id);
+
+        // Đếm view
+        $tour->increment('views');
+
+        // Lấy các tour liên quan (chỉ lấy tour active)
+        $relatedTours = Tour::where('category_id', $tour->category_id)
+            ->where('id', '!=', $tour->id)
+            ->where('status', 'active') // Tour liên quan thì chỉ hiện tour công khai
+            ->limit(3)
+            ->get();
+
+        return view('tours.show', compact('tour', 'relatedTours'));
     }
 }

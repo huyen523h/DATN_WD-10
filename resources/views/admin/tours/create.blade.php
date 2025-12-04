@@ -202,7 +202,8 @@
                         <select class="form-select" name="status" required>
                             @php $status = old('status','active'); @endphp
                             <option value="active" {{ $status == 'active' ? 'selected' : '' }}>Hoạt động</option>
-                            <option value="inactive" {{ $status == 'inactive' ? 'selected' : '' }}>Không hoạt động</option>
+                            <option value="inactive" {{ $status == 'inactive' ? 'selected' : '' }}>Không hoạt động
+                            </option>
                             <option value="draft" {{ $status == 'draft' ? 'selected' : '' }}>Bản nháp</option>
                         </select>
                         <div class="form-text">Trạng thái hiển thị của tour.</div>
@@ -396,8 +397,7 @@
             </div>
         </div>
     </div>
-    </div>
-    </div>
+
 
     <!-- Lịch khởi hành -->
     <div class="card mt-4">
@@ -409,83 +409,80 @@
         </div>
         <div class="card-body">
             <div id="departure-container">
-                <div class="departure-item mb-3 p-3 border rounded bg-light">
-                    <div class="row g-2">
+                <div class="departure-item mb-3 p-3 shadow-sm rounded-3 bg-white border position-relative">
+
+                    <div class="row g-3">
+
                         <div class="col-md-2">
-                            <div class="form-group">
-                                <label class="form-label">
-                                    <i class="fas fa-calendar text-primary"></i> Ngày khởi hành
-                                </label>
-                                <input type="date" class="form-control" name="departure_date[]"
-                                    value="{{ date('Y-m-d', strtotime('+7 days')) }}">
-                            </div>
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-calendar-alt text-primary"></i> Ngày khởi hành
+                            </label>
+                            <input type="date" class="form-control form-control-sm" name="departure_date[]"
+                                value="{{ date('Y-m-d', strtotime('+7 days')) }}">
                         </div>
+
                         <div class="col-md-2">
-                            <div class="form-group">
-                                <label class="form-label">
-                                    <i class="fas fa-users text-primary"></i> Tổng chỗ
-                                </label>
-                                <input type="number" class="form-control" name="seats_total[]" value="20"
-                                    min="1" max="100">
-                            </div>
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-users text-primary"></i> Tổng chỗ
+                            </label>
+                            <input type="number" class="form-control form-control-sm" name="seats_total[]"
+                                value="20" min="1">
                         </div>
+
                         <div class="col-md-2">
-                            <div class="form-group">
-                                <label class="form-label">
-                                    <i class="fas fa-user-check text-primary"></i> Còn chỗ
-                                </label>
-                                <input type="number" class="form-control" name="seats_available[]" value="20"
-                                    min="0" max="100">
-                            </div>
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-user-check text-primary"></i> Còn chỗ
+                            </label>
+                            <input type="number" class="form-control form-control-sm" name="seats_available[]"
+                                value="20" min="0">
                         </div>
+
                         <div class="col-md-2">
-                            <div class="form-group">
-                                <label class="form-label">
-                                    <i class="fas fa-money-bill-wave text-primary"></i> Giá (ngày)
-                                </label>
-                                <input type="number" class="form-control" name="price_dep[]" step="1000"
-                                    min="0" placeholder="2000000">
-                            </div>
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-money-bill-wave text-primary"></i> Giá (ngày)
+                            </label>
+                            <input type="number" class="form-control form-control-sm" name="price_dep[]"
+                                placeholder="2000000">
                         </div>
+
                         <div class="col-md-2">
-                            <div class="form-group">
-                                <label class="form-label">
-                                    <i class="fas fa-info-circle text-primary"></i> Trạng thái
-                                </label>
-                                <select class="form-select" name="status_dep[]">
-                                    <option value="available">Còn chỗ</option>
-                                    <option value="contact">Liên hệ</option>
-                                    <option value="sold_out">Hết chỗ</option>
-                                </select>
-                            </div>
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-info-circle text-primary"></i> Trạng thái
+                            </label>
+                            <select class="form-select form-select-sm" name="status_dep[]">
+                                <option value="available">Còn chỗ</option>
+                                <option value="contact">Liên hệ</option>
+                                <option value="sold_out">Hết chỗ</option>
+                            </select>
                         </div>
+
                         <div class="col-md-1">
-                            <div class="form-group">
-                                <label class="form-label">
-                                    <i class="fas fa-child text-primary"></i> Giá trẻ em
-                                </label>
-                                <input type="number" class="form-control" name="child_price[]" step="1000"
-                                    min="0" placeholder="1500000">
-                            </div>
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-child text-primary"></i> Trẻ em
+                            </label>
+                            <input type="number" class="form-control form-control-sm" name="child_price[]"
+                                placeholder="1500000">
                         </div>
+
                         <div class="col-md-1">
-                            <div class="form-group">
-                                <label class="form-label">
-                                    <i class="fas fa-baby text-primary"></i> Giá trẻ nhỏ
-                                </label>
-                                <input type="number" class="form-control" name="infant_price[]" step="1000"
-                                    min="0" placeholder="500000">
-                            </div>
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-baby text-primary"></i> Trẻ nhỏ
+                            </label>
+                            <input type="number" class="form-control form-control-sm" name="infant_price[]"
+                                placeholder="500000">
                         </div>
-                        <div class="col-md-12 d-flex justify-content-end">
-                            <button type="button" class="btn btn-outline-danger btn-sm"
-                                onclick="this.closest('.departure-item').remove()">
+
+                        <div class="col-12 text-end pt-2">
+                            <button type="button" class="btn btn-outline-danger btn-sm remove-btn">
                                 <i class="fas fa-trash"></i> Xóa lịch
                             </button>
                         </div>
+
                     </div>
+
                 </div>
             </div>
+
         </div>
     </div>
 
@@ -509,8 +506,6 @@
                 </div>
             </div>
         </div>
-    </div>
-    </div>
     </div>
 @endsection
 

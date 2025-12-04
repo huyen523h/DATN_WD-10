@@ -76,7 +76,7 @@
                             <!-- Tour Information -->
                             <div class="card mb-4 border-0 shadow-sm">
                                 <div class="card-header">
-                                    <h5><i class="fas fa-map-marked-alt"></i> Thông tin tour</h5>
+                                    <h5><i class="fas fa-map-marked-alt"></i> Thông tin khách hàng</h5>
                                 </div>
                                 <div class="card-body">
                                     <div class="row">
@@ -160,6 +160,56 @@
                                             </div>
                                         </div>
                                     </div>
+
+                                    @if($booking->departure && ($booking->departure->guide || $booking->departure->vehicle_details))
+    <div class="card mb-4 border-info">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="fas fa-bus-alt me-2"></i> Thông tin Khởi hành</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <h6 class="fw-bold text-primary"><i class="fas fa-user-tie me-2"></i> Hướng dẫn viên</h6>
+                    @if($booking->departure->guide)
+                        <div class="d-flex align-items-center mt-2">
+                            <div class="bg-secondary text-white rounded-circle d-flex justify-content-center align-items-center me-3" style="width: 50px; height: 50px; font-size: 20px;">
+                                {{ substr($booking->departure->guide->name, 0, 1) }}
+                            </div>
+                            <div>
+                                <p class="mb-0 fw-bold">{{ $booking->departure->guide->name }}</p>
+                                <p class="mb-0 text-muted small">{{ $booking->departure->guide->phone ?? 'Đang cập nhật SĐT' }}</p>
+                                <p class="mb-0 text-muted small">{{ $booking->departure->guide->email }}</p>
+                            </div>
+                        </div>
+                    @else
+                        <p class="text-muted fst-italic">Đang sắp xếp HDV...</p>
+                    @endif
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <h6 class="fw-bold text-primary"><i class="fas fa-shuttle-van me-2"></i> Phương tiện di chuyển</h6>
+                    <ul class="list-unstyled mt-2">
+                        <li class="mb-2">
+                            <strong>Xe:</strong> {{ $booking->departure->vehicle_details ?? 'Đang cập nhật' }}
+                        </li>
+                        <li class="mb-2">
+                            <strong>SĐT Tài xế:</strong> {{ $booking->departure->driver_contact ?? 'Đang cập nhật' }}
+                        </li>
+                    </ul>
+                </div>
+                
+                @if($booking->departure->itinerary_file)
+                <div class="col-12 mt-2 border-top pt-3">
+                    <h6 class="fw-bold text-primary"><i class="fas fa-file-alt me-2"></i> Tài liệu chuyến đi</h6>
+                    <a href="{{ Storage::url($booking->departure->itinerary_file) }}" target="_blank" class="btn btn-outline-primary btn-sm mt-2">
+                        <i class="fas fa-download me-1"></i> Tải xuống Lịch trình chi tiết / Hợp đồng
+                    </a>
+                </div>
+                @endif
+            </div>
+        </div>
+    </div>
+    @endif
 
                                     <!-- Payment Info -->
                                     @if ($booking->payment->count() > 0)
@@ -285,6 +335,8 @@
                             </div>
                         </div>
                     </div>
+
+                    
 
                     @if ($booking->isCompleted() && !$booking->review)
                         <div class="modal fade" id="reviewModal-{{ $booking->id }}" tabindex="-1"

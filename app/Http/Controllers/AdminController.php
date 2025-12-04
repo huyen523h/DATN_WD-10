@@ -391,8 +391,22 @@ class AdminController extends Controller
 
     public function showBooking(Booking $booking): View
     {
-        $booking->load(['tour', 'user', 'departure', 'payment', 'documents', 'chat.messages.sender']);
-        return view('admin.bookings.show', compact('booking'));
+        // code cũ của hàm shoeBooking
+        // $booking->load(['tour', 'user', 'departure', 'payment', 'documents', 'chat.messages.sender']);
+        // return view('admin.bookings.show', compact('booking'));
+
+        $booking->load(['tour', 'user', 'departure.guide', 'payment', 'documents', 'chat.messages.sender']);
+        // Lấy danh sách Hướng dẫn viên (Giả sử là những user có vai trò 'guide' hoặc 'staff')
+        // Nếu bạn chưa phân quyền kỹ, tạm thời lấy tất cả User hoặc Staff
+        // Cách 1: Lấy tất cả user (Đơn giản nhất để test)
+        $guides = \App\Models\User::all(); 
+        
+        // Cách 2 (Chuẩn hơn): Lấy user có quyền guide (Nếu bạn dùng bảng roles)
+        // $guides = \App\Models\User::whereHas('roles', function($q) {
+        //    $q->where('name', 'guide');
+        // })->get();
+
+        return view('admin.bookings.show', compact('booking', 'guides'));
     }
 
     public function customers()

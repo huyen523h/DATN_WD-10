@@ -31,6 +31,8 @@
                     <div class="card-header py-3">
                         <h6 class="m-0 font-weight-bold text-primary">Thông tin tour</h6>
                     </div>
+
+                   
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-8">
@@ -106,6 +108,67 @@
                         </div>
                     </div>
                 </div>
+                 <div class="card shadow mb-4 border-primary">
+    <div class="card-header py-3 bg-primary text-white d-flex justify-content-between align-items-center">
+        <h6 class="m-0 font-weight-bold"><i class="fas fa-bus"></i> Thông tin Điều hành & Hậu cần</h6>
+    </div>
+    <div class="card-body">
+        @if($booking->departure)
+            <form action="{{ route('admin.departures.update_operating', $booking->departure->id) }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                @method('PUT')
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Hướng dẫn viên (HDV)</label>
+                        <select name="guide_id" class="form-select">
+                            <option value="">-- Chưa gán HDV --</option>
+                            @foreach($guides as $guide)
+                                <option value="{{ $guide->id }}" {{ $booking->departure->guide_id == $guide->id ? 'selected' : '' }}>
+                                    {{ $guide->name }} ({{ $guide->email }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Thông tin Xe & Biển số</label>
+                        <input type="text" name="vehicle_details" class="form-control" 
+                               value="{{ $booking->departure->vehicle_details }}" 
+                               placeholder="VD: 45 chỗ - 29B-123.45">
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Liên hệ Tài xế</label>
+                        <input type="text" name="driver_contact" class="form-control" 
+                               value="{{ $booking->departure->driver_contact }}" 
+                               placeholder="Tên & SĐT Tài xế">
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">File Lịch trình / Hợp đồng (PDF/Word)</label>
+                        <input type="file" name="itinerary_file" class="form-control">
+                        @if($booking->departure->itinerary_file)
+                            <div class="mt-2">
+                                <a href="{{ Storage::url($booking->departure->itinerary_file) }}" target="_blank" class="text-primary">
+                                    <i class="fas fa-download"></i> Tải file hiện tại
+                                </a>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="text-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Lưu thông tin điều hành
+                    </button>
+                </div>
+            </form>
+        @else
+            <div class="alert alert-warning">Đơn hàng này chưa được gán vào Lịch khởi hành nào.</div>
+        @endif
+    </div>
+</div>
 
                 <!-- Payment Information -->
                 @if ($booking->payment->count() > 0)

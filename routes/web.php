@@ -17,6 +17,8 @@ use App\Http\Controllers\CheckInOutController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\EmployeeAuthController;
 use App\Http\Controllers\Api\ReviewController;
+use App\Http\Controllers\GroupTourController;
+use App\Http\Controllers\Admin\GroupRequestController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -419,6 +421,10 @@ Route::middleware('auth')->group(function () {
         return view('profile.index');
     })->name('profile.index');
 
+    // Lịch sử yêu cầu tour đoàn
+    Route::get('/profile/group-requests', [GroupTourController::class, 'history'])
+        ->name('profile.group-requests');
+
     // Route để User gửi đánh giá
     Route::post('/bookings/{booking}/reviews', [ReviewController::class, 'store'])
          ->name('bookings.reviews.store'); // <-- Tên route mới
@@ -447,6 +453,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/payment/momo_ipn', [CheckoutController::class, 'momo_ipn'])->name('momo.ipn');
 });
 
+// --- 1. ROUTE CHO KHÁCH (Đặt ở ngoài, không cần đăng nhập cũng xem được) ---
+Route::get('/dat-tour-doan', [GroupTourController::class, 'create'])->name('group-tour.create');
+Route::post('/dat-tour-doan', [GroupTourController::class, 'store'])->name('group-tour.store');
+
 // ============================================
 // ADMIN ROUTES
 // ============================================
@@ -466,6 +476,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     // Xóa ảnh của tour
     Route::delete('/tours/{tour}/images/{image}', [AdminController::class, 'deleteTourImage'])
         ->name('tours.images.delete');
+
+        // route mới
+        Route::put('/departures/{id}/operating', [\App\Http\Controllers\Admin\DepartureController::class, 'updateOperating'])
+        ->name('departures.update_operating');
 
     // Invoices management
     Route::resource('invoices', \App\Http\Controllers\InvoiceController::class);
@@ -504,6 +518,18 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     // Route::post('/reviews/{review}/approve', [AdminController::class, 'approveReview'])->name('reviews.approve');
     // Route::post('/reviews/{review}/hide', [AdminController::class, 'hideReview'])->name('reviews.hide');
     // Route::post('/reviews/{review}/reply', [AdminController::class, 'storeReviewReply'])->name('reviews.reply');
+
+// ============================================
+    // Yêu cầu Tour đoàn (Group Requests) - VIẾT TƯỜNG MINH
+    // ============================================
+    // Route viết tường minh cho Group Requests (như chúng ta đã chốt)
+    Route::get('/group-requests', [GroupRequestController::class, 'index'])->name('group-requests.index');
+    Route::get('/group-requests/{id}', [GroupRequestController::class, 'show'])->name('group-requests.show');
+    Route::put('/group-requests/{id}', [GroupRequestController::class, 'update'])->name('group-requests.update');
+    Route::delete('/group-requests/{id}', [GroupRequestController::class, 'destroy'])->name('group-requests.destroy');
+
+    // --- (THÊM MỚI) Route chuyển đổi thành Booking ---
+    Route::post('/group-requests/{id}/convert', [GroupRequestController::class, 'convertToBooking'])->name('group-requests.convert');
 
     // reviews mới admin có thêm 2 nút sửa - xóa đánh giá 
     Route::get('/reviews', [AdminController::class, 'reviews'])->name('reviews');

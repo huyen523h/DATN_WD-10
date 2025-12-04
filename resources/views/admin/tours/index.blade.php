@@ -188,6 +188,7 @@
             <table class="table">
                 <thead>
                     <tr>
+                        <th></th>
                         <th>ID</th>
                         <th>Tour</th>
                         <th>Danh mục</th>

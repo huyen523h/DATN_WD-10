@@ -18,10 +18,11 @@ class BookingController extends Controller
      */
     public function index(): View
     {
-        $bookings = Booking::with(['tour', 'departure', 'user'])
-            ->where('user_id', Auth::id())
+      // Lấy danh sách đơn hàng của user đang đăng nhập
+        $bookings = Booking::with(['tour', 'payment']) // Eager load để tránh N+1 query
+            ->where('user_id', auth()->id())
             ->orderBy('created_at', 'desc')
-            ->paginate(10);
+            ->paginate(5);
 
         return view('bookings.index', compact('bookings'));
     }

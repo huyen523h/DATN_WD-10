@@ -964,6 +964,15 @@
                 </a>
             </div>
 
+            {{-- Đặt tour theo đoàn --}}
+            <li class="nav-item">
+    <a class="nav-link {{ request()->routeIs('admin.group-requests.*') ? 'active' : '' }}" 
+       href="{{ route('admin.group-requests.index') }}">
+        <i class="fas fa-users-cog"></i>
+        <span>Yêu cầu Tour đoàn</span>
+    </a>
+</li>
+
             <!-- Reviews Management -->
             <div class="nav-item">
                 <a href="{{ route('admin.reviews') }}"

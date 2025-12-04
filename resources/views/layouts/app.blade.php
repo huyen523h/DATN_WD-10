@@ -776,6 +776,14 @@
                             <i class="fas fa-envelope"></i> <span class="d-none d-lg-inline">Liên hệ</span>
                         </a>
                     </li>
+
+                    {{-- đăt tour theo đoàn --}}
+                    <li class="nav-item">
+    <a class="nav-link {{ request()->routeIs('group-tour.create') ? 'active' : '' }}" 
+       href="{{ route('group-tour.create') }}">
+        <i class="fas fa-users"></i> Đặt tour đoàn
+    </a>
+</li>
                     @auth
                         <li class="nav-item">
                             <a class="nav-link" href="{{ route('bookings.index') }}">
