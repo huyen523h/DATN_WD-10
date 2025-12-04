@@ -309,9 +309,10 @@ class AdminController extends Controller
             }
 
             // 4) departures: clear & tạo lại với fallback giá
-            $tour->departures()->delete();
-            if ($request->has('departure_date')) {
-                foreach ($request->departure_date as $i => $date) {
+            if ($tour->status === 'active' && $request->has('departure_date')) {
+                 $tour->departures()->delete();
+                 
+                 foreach ($request->departure_date as $i => $date) {
                     if (!empty($date)) {
                         \App\Models\TourDeparture::create([
                             'tour_id' => $tour->id,
@@ -390,20 +391,16 @@ class AdminController extends Controller
 
     public function showBooking(Booking $booking): View
     {
-        // code cũ của hàm shoeBooking
-        // $booking->load(['tour', 'user', 'departure', 'payment', 'documents', 'chat.messages.sender']);
-        // return view('admin.bookings.show', compact('booking'));
-
+        // Load các quan hệ dữ liệu
         $booking->load(['tour', 'user', 'departure.guide', 'payment', 'documents', 'chat.messages.sender']);
-        // Lấy danh sách Hướng dẫn viên (Giả sử là những user có vai trò 'guide' hoặc 'staff')
-        // Nếu bạn chưa phân quyền kỹ, tạm thời lấy tất cả User hoặc Staff
-        // Cách 1: Lấy tất cả user (Đơn giản nhất để test)
-        $guides = \App\Models\User::all(); 
-        
-        // Cách 2 (Chuẩn hơn): Lấy user có quyền guide (Nếu bạn dùng bảng roles)
-        // $guides = \App\Models\User::whereHas('roles', function($q) {
-        //    $q->where('name', 'guide');
-        // })->get();
+
+        // --- (SỬA LẠI ĐOẠN NÀY) ---
+        // Chỉ lấy những user có quyền là 'staff' (hoặc 'guide')
+        // Giả sử bạn dùng quan hệ 'roles' trong model User
+        $guides = User::whereHas('roles', function($q) {
+            $q->whereIn('name', ['staff', 'guide']); // Lọc tên role là staff hoặc guide
+        })->get();
+        // -------------------------
 
         return view('admin.bookings.show', compact('booking', 'guides'));
     }
@@ -836,5 +833,22 @@ class AdminController extends Controller
         }
 
         return redirect()->route('admin.settings')->with('success', 'Cài đặt đã được cập nhật thành công!');
+    }
+ // hàm upload file tour theo đoàn 4/12/2025
+    public function uploadManifest(Request $request, Booking $booking)
+    {
+        $request->validate([
+            'manifest_file' => 'required|file|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx|max:5120',
+        ]);
+
+        if ($request->hasFile('manifest_file')) {
+            if ($booking->passenger_manifest_file) {
+                Storage::disk('public')->delete($booking->passenger_manifest_file);
+            }
+            $path = $request->file('manifest_file')->store('manifests', 'public');
+            $booking->update(['passenger_manifest_file' => $path]);
+            return back()->with('success', 'Admin đã cập nhật danh sách đoàn thành công!');
+        }
+        return back()->with('error', 'Lỗi upload.');
     }
 }

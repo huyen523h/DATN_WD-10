@@ -187,29 +187,29 @@
     </div>
 </div> --}}
 
-    <!-- Tours Table -->
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0"><i class="fas fa-list"></i> Danh sách Tours</h5>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th></th>
-                            <th>ID</th>
-                            <th>Tour</th>
-                            <th>Danh mục</th>
-                            <th>Giá</th>
-                            <th>Thời gian</th>
-                            <th>Trạng thái</th>
-                            <th>Đặt tour</th>
-                            <th>Hành động</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse ($tours as $tour)
+<!-- Tours Table -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-list"></i> Danh sách Tours</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>ID</th>
+                        <th>Tour</th>
+                        <th>Danh mục</th>
+                        <th>Giá</th>
+                        <th>Thời gian</th>
+                        <th>Trạng thái</th>
+                        <th>Đặt tour</th>
+                        <th>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($tours as $tour)
                             <tr>
                                 <td>{{ $tour->id }}</td>
                                 <td>

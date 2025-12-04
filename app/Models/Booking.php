@@ -23,6 +23,7 @@ class Booking extends Model
         'status',
         'promotion_code',
         'note',
+        'passenger_manifest_file',
     ];
 
     protected $casts = [

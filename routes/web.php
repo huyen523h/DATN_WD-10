@@ -23,6 +23,7 @@ use App\Http\Controllers\GroupTourController;
 use App\Http\Controllers\Admin\GroupRequestController;
 
 
+
 Route::get('/', function () {
     return view('welcome');
 })->name('welcome');
@@ -424,6 +425,10 @@ Route::middleware('auth')->group(function () {
         return view('profile.index');
     })->name('profile.index');
 
+    // Route upload danh sách đoàn 
+    Route::post('/bookings/{booking}/upload-manifest', [BookingController::class, 'uploadManifest'])
+        ->name('bookings.upload-manifest');
+
 
     // Lịch sử yêu cầu tour đoàn
     Route::get('/profile/group-requests', [GroupTourController::class, 'history'])
@@ -490,14 +495,13 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     // Xóa ảnh của tour
     Route::delete('/tours/{tour}/images/{image}', [AdminController::class, 'deleteTourImage'])
         ->name('tours.images.delete');
-
-
-        // route mới
+        
+        // route mới 3/12/2025
         Route::put('/departures/{id}/operating', [\App\Http\Controllers\Admin\DepartureController::class, 'updateOperating'])
         ->name('departures.update_operating');
 
-    // Guides management
-    Route::resource('guides', GuideWebController::class);
+        // route mới 4/12/2025
+        Route::post('/bookings/{booking}/admin-upload-manifest', [AdminController::class, 'uploadManifest'])->name('bookings.upload-manifest');
 
     // Invoices management
     Route::resource('invoices', \App\Http\Controllers\InvoiceController::class);

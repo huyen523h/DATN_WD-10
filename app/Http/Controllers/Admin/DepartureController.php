@@ -6,11 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Tour;
 use App\Models\TourDeparture;
-use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Mail;
-use App\Services\NotificationService;
-
+use Illuminate\Support\Facades\Storage;
 class DepartureController extends Controller
 {
 
@@ -186,6 +182,42 @@ class DepartureController extends Controller
             'vehicle_details' => 'nullable|string|max:255',
             'driver_contact' => 'nullable|string|max:255',
             'itinerary_file' => 'nullable|file|mimes:pdf,doc,docx,jpg,png|max:5120', // Max 5MB
+        ]);
+
+        // Xử lý file upload
+        if ($request->hasFile('itinerary_file')) {
+            // Xóa file cũ nếu có
+            if ($departure->itinerary_file) {
+                Storage::disk('public')->delete($departure->itinerary_file);
+            }
+            // Lưu file mới
+            $path = $request->file('itinerary_file')->store('itineraries', 'public');
+            $validated['itinerary_file'] = $path;
+        }
+
+        $departure->update($validated);
+
+        return back()->with('success', 'Đã cập nhật thông tin điều hành thành công!');
+    }
+
+    // Hàm cập nhật thông tin điều hành (HDV, Xe, Lịch trình)
+    public function updateOperating(Request $request, $id)
+    {
+      $departure = TourDeparture::findOrFail($id);
+
+        $validated = $request->validate([
+            // Sửa 'nullable' thành 'required'
+            'guide_id' => 'required|exists:users,id', 
+            'vehicle_details' => 'required|string|max:255',
+            'driver_contact' => 'required|string|max:255',
+            
+            // File thì vẫn nên để 'nullable' để lần sau sửa SĐT tài xế thì không bắt buộc phải up lại file cũ
+          'itinerary_file' => 'nullable|file|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx|max:10240', // Tăng lên 10MB và thêm đuôi file
+        ], [
+            // Thêm thông báo lỗi tiếng Việt cho thân thiện
+            'guide_id.required' => 'Vui lòng chọn Hướng dẫn viên.',
+            'vehicle_details.required' => 'Vui lòng nhập thông tin Xe & Biển số.',
+            'driver_contact.required' => 'Vui lòng nhập liên hệ Tài xế.',
         ]);
 
         // Xử lý file upload

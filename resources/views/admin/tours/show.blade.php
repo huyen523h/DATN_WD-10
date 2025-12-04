@@ -265,13 +265,13 @@
                         <i class="fas fa-edit"></i> Chỉnh sửa tour
                     </a>
                     
-                    <form action="{{ route('admin.tours.destroy', $tour) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn xóa tour này?')">
+                    {{-- <form action="{{ route('admin.tours.destroy', $tour) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn xóa tour này?')">
                         @csrf
                         @method('DELETE')
                         <button type="submit" class="btn btn-danger w-100">
                             <i class="fas fa-trash"></i> Xóa tour
                         </button>
-                    </form>
+                    </form> --}}
                 </div>
             </div>
         </div>

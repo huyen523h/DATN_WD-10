@@ -82,12 +82,17 @@
                         
                         <div class="mb-3">
                             <label class="form-label fw-bold">Trạng thái xử lý</label>
-                            <select name="status" class="form-select">
-                                <option value="pending" {{ $request->status == 'pending' ? 'selected' : '' }}>🟡 Mới (Chưa gọi)</option>
-                                <option value="contacted" {{ $request->status == 'contacted' ? 'selected' : '' }}>🔵 Đang tư vấn</option>
-                                <option value="contracted" {{ $request->status == 'contracted' ? 'selected' : '' }}>🟢 Đã chốt / Cọc</option>
-                                <option value="cancelled" {{ $request->status == 'cancelled' ? 'selected' : '' }}>🔴 Hủy / Trượt</option>
-                            </select>
+                            <<select name="status" class="form-select">
+    @if($request->status == 'contracted')
+        {{-- Nếu đã chốt thì chỉ hiện trạng thái đã chốt (khóa không cho sửa) --}}
+        <option value="contracted" selected>🟢 Đã chốt / Cọc</option>
+    @else
+        {{-- Nếu chưa chốt thì hiện đủ --}}
+        <option value="pending" {{ $request->status == 'pending' ? 'selected' : '' }}>🟡 Mới</option>
+        <option value="contacted" {{ $request->status == 'contacted' ? 'selected' : '' }}>🔵 Đang tư vấn</option>
+        <option value="cancelled" {{ $request->status == 'cancelled' ? 'selected' : '' }}>🔴 Hủy / Trượt</option>
+    @endif
+</select>
                         </div>
 
                         <div class="mb-3">
@@ -102,20 +107,43 @@
                     </form>
                 </div>
             </div>
-
-            </div> </div> @if($request->status != 'contracted')
-        <div class="card shadow mb-4 border-success">
-            <div class="card-header py-3 bg-success text-white">
-                <h6 class="m-0 font-weight-bold"><i class="fas fa-file-invoice-dollar"></i> Chốt Đơn & Tạo Booking</h6>
             </div>
-            <div class="card-body">
-                <p class="small mb-3">Khi khách đã đồng ý giá, hãy tạo Booking để khách có thể thanh toán online.</p>
-                <button type="button" class="btn btn-success w-100 py-2" data-bs-toggle="modal" data-bs-target="#createBookingModal">
-                    <i class="fas fa-check-circle me-1"></i> Tạo Booking Ngay
-                </button>
-            </div>
+         </div>
+            
+@if($request->status == 'contacted')
+    {{-- TRƯỜNG HỢP 1: Đang tư vấn -> Hiện nút tạo booking --}}
+    <div class="card shadow mb-4 border-success">
+        <div class="card-header py-3 bg-success text-white">
+            <h6 class="m-0 font-weight-bold"><i class="fas fa-file-invoice-dollar"></i> Chốt Đơn & Tạo Booking</h6>
         </div>
-        @endif
+        <div class="card-body">
+            <p class="small mb-3">Khách đã đồng ý giá? Hãy tạo đơn hàng ngay để khách thanh toán.</p>
+            <button type="button" class="btn btn-success w-100 py-2" data-bs-toggle="modal" data-bs-target="#createBookingModal">
+                <i class="fas fa-check-circle me-1"></i> Tạo Booking Ngay
+            </button>
+        </div>
+    </div>
+
+@elseif($request->status == 'contracted')
+    {{-- TRƯỜNG HỢP 2: Đã chốt -> Hiện thông báo thành công (Không hiện nút tạo nữa) --}}
+    <div class="alert alert-success">
+        <i class="fas fa-check-circle"></i> Đã tạo Booking thành công. <br>
+        <a href="{{ route('admin.bookings') }}" class="fw-bold text-success">Xem danh sách đơn hàng</a>
+    </div>
+
+@elseif($request->status == 'cancelled')
+    {{-- TRƯỜNG HỢP 3: Đã hủy -> Hiện thông báo hủy --}}
+    <div class="alert alert-danger">
+        <i class="fas fa-times-circle"></i> Yêu cầu này đã bị hủy.
+    </div>
+
+@else
+    {{-- TRƯỜNG HỢP 4: Mới (Pending) -> Nhắc nhở tư vấn --}}
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-circle"></i> Vui lòng liên hệ khách và chuyển trạng thái sang <strong>"Đang tư vấn"</strong> trước khi tạo đơn.
+    </div>
+@endif
+
         
     </div> </div> <div class="modal fade" id="createBookingModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">

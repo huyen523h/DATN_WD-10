@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class BookingController extends Controller
 {
@@ -137,5 +138,33 @@ class BookingController extends Controller
         }
 
         return redirect()->back()->with('error', 'Không thể hủy tour đã hoàn thành hoặc đã thanh toán.');
+    }
+
+    public function uploadManifest(Request $request, $id)
+    {
+        $booking = Booking::where('user_id', Auth::id())->findOrFail($id);
+
+        $request->validate([
+            // Cho phép: Ảnh, PDF, Word, Excel
+            'manifest_file' => 'required|file|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx|max:5120', // Max 5MB
+        ]);
+
+        if ($request->hasFile('manifest_file')) {
+            // Xóa file cũ nếu có
+            if ($booking->passenger_manifest_file) {
+                Storage::disk('public')->delete($booking->passenger_manifest_file);
+            }
+
+            // Lưu file mới
+            $path = $request->file('manifest_file')->store('manifests', 'public');
+            
+            $booking->update([
+                'passenger_manifest_file' => $path
+            ]);
+
+            return back()->with('success', 'Đã tải lên danh sách đoàn thành công!');
+        }
+
+        return back()->with('error', 'Vui lòng chọn file.');
     }
 }

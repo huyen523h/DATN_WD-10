@@ -153,7 +153,7 @@
             <div class="modal-body">
                 <h6>1. Chính sách trẻ em</h6>
                 <ul>
-                    <li>Trẻ em dưới 5 tuổi: Miễn phí (ngủ chung giường với bố mẹ).</li>
+                    <li>Trẻ em dưới 5 tuổi: Miễn phí (ngồi chung với bố mẹ).</li>
                     <li>Trẻ em từ 5 - 11 tuổi: Tính 50% giá người lớn.</li>
                     <li>Trẻ em trên 11 tuổi: Tính như người lớn.</li>
                 </ul>

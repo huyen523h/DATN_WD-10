@@ -28,9 +28,13 @@
             <div class="col-lg-8">
                 <!-- Tour Information -->
                 <div class="card shadow mb-4">
-                    <div class="card-header py-3">
-                        <h6 class="m-0 font-weight-bold text-primary">Thông tin tour</h6>
-                    </div>
+                   <div class="card-header py-3 d-flex justify-content-between align-items-center">
+    <h6 class="m-0 font-weight-bold text-primary">Thông tin tour</h6>
+    {{-- Nút tắt để sang trang Sửa Tour --}}
+    <a href="{{ route('admin.tours.edit', $booking->tour_id) }}" target="_blank" class="btn btn-sm btn-warning">
+        <i class="fas fa-edit"></i> Cập nhật Lịch trình/Ảnh
+    </a>
+</div>
 
                    
                     <div class="card-body">
@@ -113,16 +117,22 @@
         <h6 class="m-0 font-weight-bold"><i class="fas fa-bus"></i> Thông tin Điều hành & Hậu cần</h6>
     </div>
     <div class="card-body">
-        @if($booking->departure)
-            <form action="{{ route('admin.departures.update_operating', $booking->departure->id) }}" method="POST" enctype="multipart/form-data">
+        {{-- LOGIC KIỂM TRA: Chỉ cho phép điều hành khi đã THANH TOÁN --}}
+        @if($booking->status === 'paid' || $booking->status === 'completed')
+        
+            {{-- TRƯỜNG HỢP 1: Đã thanh toán -> Hiện Form nhập liệu --}}
+            @if($booking->departure)
+               <form action="{{ route('admin.departures.update_operating', $booking->departure->id) }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
                 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold">Hướng dẫn viên (HDV)</label>
-                        <select name="guide_id" class="form-select">
-                            <option value="">-- Chưa gán HDV --</option>
+                        <label class="form-label fw-bold">
+                            Hướng dẫn viên (HDV) <span class="text-danger">*</span>
+                        </label>
+                        <select name="guide_id" class="form-select" required> {{-- Thêm required --}}
+                            <option value="">-- Chọn HDV --</option>
                             @foreach($guides as $guide)
                                 <option value="{{ $guide->id }}" {{ $booking->departure->guide_id == $guide->id ? 'selected' : '' }}>
                                     {{ $guide->name }} ({{ $guide->email }})
@@ -132,40 +142,59 @@
                     </div>
 
                     <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold">Thông tin Xe & Biển số</label>
+                        <label class="form-label fw-bold">
+                            Thông tin Xe & Biển số <span class="text-danger">*</span>
+                        </label>
                         <input type="text" name="vehicle_details" class="form-control" 
                                value="{{ $booking->departure->vehicle_details }}" 
-                               placeholder="VD: 45 chỗ - 29B-123.45">
+                               placeholder="VD: 45 chỗ - 29B-12345" required> {{-- Thêm required --}}
                     </div>
 
                     <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold">Liên hệ Tài xế</label>
+                        <label class="form-label fw-bold">
+                            Liên hệ Tài xế <span class="text-danger">*</span>
+                        </label>
                         <input type="text" name="driver_contact" class="form-control" 
                                value="{{ $booking->departure->driver_contact }}" 
-                               placeholder="Tên & SĐT Tài xế">
+                               placeholder="Tên & SĐT Tài xế" required> {{-- Thêm required --}}
                     </div>
 
                     <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold">File Lịch trình / Hợp đồng (PDF/Word)</label>
-                        <input type="file" name="itinerary_file" class="form-control">
+                        <label class="form-label fw-bold">File Lịch trình / Hợp đồng</label>
+                      <input type="file" name="itinerary_file" class="form-control" 
+       accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx">
                         @if($booking->departure->itinerary_file)
-                            <div class="mt-2">
-                                <a href="{{ Storage::url($booking->departure->itinerary_file) }}" target="_blank" class="text-primary">
-                                    <i class="fas fa-download"></i> Tải file hiện tại
-                                </a>
+                            <div class="mt-2 text-success small">
+                                <i class="fas fa-check-circle"></i> Đã có file. 
+                                <a href="{{ Storage::url($booking->departure->itinerary_file) }}" target="_blank" class="fw-bold text-decoration-underline">Xem</a>
                             </div>
+                        @else
+                            <div class="form-text text-muted">Chưa có file nào được tải lên.</div>
                         @endif
                     </div>
                 </div>
 
                 <div class="text-end">
                     <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i> Lưu thông tin điều hành
+                        <i class="fas fa-save"></i> Lưu & Chốt điều hành
                     </button>
                 </div>
             </form>
+            @else
+                <div class="alert alert-warning">Đơn hàng này chưa được gán vào Lịch khởi hành nào.</div>
+            @endif
+
         @else
-            <div class="alert alert-warning">Đơn hàng này chưa được gán vào Lịch khởi hành nào.</div>
+            {{-- TRƯỜNG HỢP 2: Chưa thanh toán -> Ẩn form, hiện thông báo --}}
+            <div class="text-center py-4">
+                <div class="mb-3">
+                    <i class="fas fa-lock fa-3x text-secondary opacity-50"></i>
+                </div>
+                <h6 class="fw-bold text-secondary">Chức năng bị khóa</h6>
+                <p class="text-muted mb-0">
+                    Khách hàng cần <strong>Thanh toán (Paid)</strong> đơn hàng trước khi bạn có thể cập nhật thông tin Xe và Hướng dẫn viên.
+                </p>
+            </div>
         @endif
     </div>
 </div>
@@ -281,6 +310,37 @@
                     </div>
                 </div>
 
+                <div class="card shadow mb-4 border-warning">
+    <div class="card-header py-3 bg-warning text-dark">
+        <h6 class="m-0 font-weight-bold"><i class="fas fa-file-excel"></i> Danh sách đoàn (Bảo hiểm)</h6>
+    </div>
+    <div class="card-body">
+        @if($booking->passenger_manifest_file)
+            <div class="mb-3">
+                <span class="badge bg-success mb-2">Đã có file</span><br>
+                <a href="{{ Storage::url($booking->passenger_manifest_file) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-download"></i> Tải về / Xem
+                </a>
+            </div>
+            <hr>
+            <p class="small text-muted mb-1">
+    <i class="fas fa-info-circle"></i> Nếu file khách gửi bị lỗi/mờ, bạn có thể upload file chuẩn thay thế tại đây:
+</p>
+        @else
+            <div class="alert alert-danger small">Chưa có danh sách đoàn.</div>
+            <p class="small text-muted mb-1">Upload hộ khách (nếu khách gửi Zalo):</p>
+        @endif
+
+        <form action="{{ route('admin.bookings.upload-manifest', $booking->id) }}" method="POST" enctype="multipart/form-data">
+            @csrf
+            <div class="input-group input-group-sm">
+                <input type="file" name="manifest_file" class="form-control" required>
+                <button class="btn btn-primary" type="submit">Up</button>
+            </div>
+        </form>
+    </div>
+</div>
+
                 <!-- Booking Actions -->
                 <div class="card shadow mb-4">
                     <div class="card-header py-3">
@@ -288,51 +348,53 @@
                     </div>
                     <div class="card-body">
                         <div class="d-grid gap-2">
+
                             @if ($booking->status === 'pending')
-                                <form action="{{ route('admin.bookings.update', $booking) }}" method="POST"
-                                    class="d-inline">
+                                <form action="{{ route('admin.bookings.confirm', $booking) }}" method="POST"
+                                    class="d-inline"
+                                    onsubmit="return confirm('Bạn có chắc chắn muốn XÁC NHẬN đơn hàng này?')">
                                     @csrf
-                                    @method('PUT')
-                                    <input type="hidden" name="status" value="confirmed">
                                     <button type="submit" class="btn btn-success w-100">
-                                        <i class="fas fa-check"></i> Xác nhận đặt tour
+                                        <i class="fas fa-check"></i> Xác nhận đơn
                                     </button>
                                 </form>
                             @endif
 
                             @if ($booking->status === 'confirmed')
-                                <form action="{{ route('admin.bookings.update', $booking) }}" method="POST"
-                                    class="d-inline">
+                                <form action="{{ route('admin.bookings.markAsPaid', $booking) }}" method="POST"
+                                    class="d-inline"
+                                    onsubmit="return confirm('Xác nhận khách đã THANH TOÁN đơn hàng này (thủ công)?')">
                                     @csrf
-                                    @method('PUT')
-                                    <input type="hidden" name="status" value="completed">
                                     <button type="submit" class="btn btn-primary w-100">
-                                        <i class="fas fa-flag-checkered"></i> Hoàn thành
+                                        <i class="fas fa-money-check-alt"></i> Đánh dấu Đã thanh toán
                                     </button>
                                 </form>
                             @endif
 
-                            @if ($booking->status !== 'cancelled')
-                                <form action="{{ route('admin.bookings.update', $booking) }}" method="POST"
-                                    class="d-inline">
+                            @if ($booking->status === 'pending' || $booking->status === 'confirmed')
+                                <form action="{{ route('admin.bookings.cancel', $booking) }}" method="POST"
+                                    class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn HỦY đơn hàng này?')">
                                     @csrf
-                                    @method('PUT')
-                                    <input type="hidden" name="status" value="cancelled">
-                                    <button type="submit" class="btn btn-warning w-100"
-                                        onclick="return confirm('Bạn có chắc chắn muốn hủy đặt tour này?')">
-                                        <i class="fas fa-times"></i> Hủy đặt tour
+                                    <button type="submit" class="btn btn-warning w-100">
+                                        <i class="fas fa-times"></i> Hủy đơn
                                     </button>
                                 </form>
-                            @endif
 
-                            <form action="{{ route('admin.bookings.destroy', $booking) }}" method="POST"
-                                class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa đặt tour này?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-danger w-100">
-                                    <i class="fas fa-trash"></i> Xóa đặt tour
-                                </button>
-                            </form>
+                                <form action="{{ route('admin.bookings.destroy', $booking) }}" method="POST"
+                                    class="d-inline"
+                                    onsubmit="return confirm('HÀNH ĐỘNG NGUY HIỂM: Bạn có chắc chắn muốn XÓA VĨNH VIỄN đơn hàng này?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-danger w-100">
+                                        <i class="fas fa-trash"></i> Xóa đặt tour
+                                    </button>
+                                </form>
+                            @else
+                                <div class="alert alert-info mb-0">
+                                    <i class="fas fa-lock"></i>
+                                    Đơn hàng đã thanh toán (hoặc đã hủy) không thể bị xóa hoặc sửa đổi.
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </div>

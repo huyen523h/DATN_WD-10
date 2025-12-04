@@ -12,6 +12,7 @@
                 <table class="table table-bordered table-hover align-middle">
                     <thead class="table-light">
                         <tr>
+                            <th></th>
                             <th>ID</th>
                             <th>Khách hàng</th>
                             <th>Nhu cầu</th>
