@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\DepartureController;
 use App\Http\Controllers\Admin\TourScheduleController;
+use App\Http\Controllers\Admin\GuideWebController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\AdminController;
@@ -16,9 +17,11 @@ use App\Http\Controllers\StaffController;
 use App\Http\Controllers\CheckInOutController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\EmployeeAuthController;
+
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\GroupTourController;
 use App\Http\Controllers\Admin\GroupRequestController;
+
 
 Route::get('/', function () {
     return view('welcome');
@@ -310,7 +313,7 @@ Route::get('/web/invoices/booking/{bookingId}/pdf', function ($bookingId) {
 Route::get('/web/invoices/booking/{bookingId}/download', function ($bookingId) {
     try {
         $booking = \App\Models\Booking::with(['user', 'tour', 'departure'])->find($bookingId);
-        
+
         if (!$booking) {
             return response()->json([
                 'success' => false,
@@ -421,6 +424,7 @@ Route::middleware('auth')->group(function () {
         return view('profile.index');
     })->name('profile.index');
 
+
     // Lịch sử yêu cầu tour đoàn
     Route::get('/profile/group-requests', [GroupTourController::class, 'history'])
         ->name('profile.group-requests');
@@ -428,6 +432,15 @@ Route::middleware('auth')->group(function () {
     // Route để User gửi đánh giá
     Route::post('/bookings/{booking}/reviews', [ReviewController::class, 'store'])
          ->name('bookings.reviews.store'); // <-- Tên route mới
+
+    // Notifications
+    Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/recent', [\App\Http\Controllers\NotificationController::class, 'recent'])->name('notifications.recent');
+    Route::get('/notifications/unread-count', [\App\Http\Controllers\NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
+    Route::post('/notifications/{notification}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+    Route::post('/notifications/mark-all-read', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+    Route::delete('/notifications/{notification}', [\App\Http\Controllers\NotificationController::class, 'destroy'])->name('notifications.destroy');
+
 
     // Bookings
     Route::get('/bookings', [BookingController::class, 'index'])->name('bookings.index');
@@ -451,6 +464,7 @@ Route::middleware('auth')->group(function () {
 
     // MoMo gửi IPN server → server xác nhận đơn hàng
     Route::post('/payment/momo_ipn', [CheckoutController::class, 'momo_ipn'])->name('momo.ipn');
+
 });
 
 // --- 1. ROUTE CHO KHÁCH (Đặt ở ngoài, không cần đăng nhập cũng xem được) ---
@@ -477,9 +491,13 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::delete('/tours/{tour}/images/{image}', [AdminController::class, 'deleteTourImage'])
         ->name('tours.images.delete');
 
+
         // route mới
         Route::put('/departures/{id}/operating', [\App\Http\Controllers\Admin\DepartureController::class, 'updateOperating'])
         ->name('departures.update_operating');
+
+    // Guides management
+    Route::resource('guides', GuideWebController::class);
 
     // Invoices management
     Route::resource('invoices', \App\Http\Controllers\InvoiceController::class);
@@ -492,10 +510,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     // Bookings management
     Route::get('/bookings', [AdminController::class, 'bookings'])->name('bookings');
     Route::get('/bookings/{booking}', [AdminController::class, 'showBooking'])->name('bookings.show');
-    // Bookings management (THÊM 3 DÒNG MỚI NÀY VÀO - giữ nguyên delete)
-    Route::post('/bookings/{booking}/confirm', [AdminController::class, 'confirmBooking'])->name('bookings.confirm');
-    Route::post('/bookings/{booking}/mark-as-paid', [AdminController::class, 'markAsPaid'])->name('bookings.markAsPaid');
-    Route::post('/bookings/{booking}/cancel', [AdminController::class, 'cancelBooking'])->name('bookings.cancel');
+    Route::put('/bookings/{booking}', [AdminController::class, 'updateBooking'])->name('bookings.update');
     Route::delete('/bookings/{booking}', [AdminController::class, 'deleteBooking'])->name('bookings.destroy');
 
     // Customers management
@@ -512,6 +527,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/categories/{category}/edit', [AdminController::class, 'editCategory'])->name('categories.edit');
     Route::put('/categories/{category}', [AdminController::class, 'updateCategory'])->name('categories.update');
     Route::delete('/categories/{category}', [AdminController::class, 'deleteCategory'])->name('categories.destroy');
+
 
     // Reviews management  - code cũ của đánh giá 14/11  - rep 1-1 chạy ok 
     // Route::get('/reviews', [AdminController::class, 'reviews'])->name('reviews');
@@ -532,12 +548,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/group-requests/{id}/convert', [GroupRequestController::class, 'convertToBooking'])->name('group-requests.convert');
 
     // reviews mới admin có thêm 2 nút sửa - xóa đánh giá 
+
+    // Reviews management
+
     Route::get('/reviews', [AdminController::class, 'reviews'])->name('reviews');
-    Route::post('/reviews/{review}/approve', [AdminController::class, 'approveReview'])->name('reviews.approve');
-    Route::post('/reviews/{review}/hide', [AdminController::class, 'hideReview'])->name('reviews.hide');
-    Route::post('/reviews/{review}/reply', [AdminController::class, 'storeReviewReply'])->name('reviews.reply');
-    Route::put('/reviews/reply/{reply}', [AdminController::class, 'updateReviewReply'])->name('reviews.reply.update');
-    Route::delete('/reviews/reply/{reply}', [AdminController::class, 'destroyReviewReply'])->name('reviews.reply.destroy');
+    Route::put('/reviews/{review}', [AdminController::class, 'updateReview'])->name('reviews.update');
+    Route::delete('/reviews/{review}', [AdminController::class, 'deleteReview'])->name('reviews.destroy');
 
     // Payments management
     Route::get('/payments', [AdminController::class, 'payments'])->name('payments');
@@ -608,6 +624,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::put('/banners/{banner}', [AdminController::class, 'updateBanner'])->name('banners.update');
     Route::delete('/banners/{banner}', [AdminController::class, 'deleteBanner'])->name('banners.destroy');
     Route::post('/banners/{banner}/move', [AdminController::class, 'moveBanner'])->name('banners.move');
+
+    // ============================================
+    // TEST NOTIFICATIONS (Admin Only)
+    // ============================================
+    Route::get('/test/notifications', [\App\Http\Controllers\TestNotificationController::class, 'index'])->name('test.notifications');
+    Route::post('/test/notifications/send', [\App\Http\Controllers\TestNotificationController::class, 'sendTest'])->name('test.notifications.send');
 
     // ============================================
     // INVOICE MANAGEMENT (Admin Only)

@@ -47,11 +47,17 @@
                     <a href="#reviews" class="list-group-item list-group-item-action" data-bs-toggle="tab">
                         <i class="fas fa-star"></i> Đánh giá của tôi
                     </a>
+<<<<<<< HEAD
 
                     <a href="{{ route('profile.group-requests') }}" 
    class="list-group-item list-group-item-action {{ request()->routeIs('profile.group-requests') ? 'active' : '' }}">
     <i class="fas fa-users me-2"></i> Yêu cầu tour đoàn
 </a>
+=======
+                    <a href="#notifications" class="list-group-item list-group-item-action" data-bs-toggle="tab">
+                        <i class="fas fa-bell"></i> Thông báo
+                    </a>
+>>>>>>> 6da3bae40f64179f9fec977ec77c7990c6a73126
                     <a href="#settings" class="list-group-item list-group-item-action" data-bs-toggle="tab">
                         <i class="fas fa-cog"></i> Cài đặt
                     </a>
@@ -197,6 +203,27 @@
                                     <p class="text-muted">Chưa có đánh giá nào</p>
                                 </div>
                             @endif
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notifications Tab -->
+                <div class="tab-pane fade" id="notifications">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-bell"></i> Thông báo</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="text-center mb-3">
+                                <a href="{{ route('notifications.index') }}" class="btn btn-primary">
+                                    <i class="fas fa-bell"></i> Xem tất cả thông báo
+                                </a>
+                            </div>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> 
+                                Bạn có thể xem và quản lý tất cả thông báo tại trang 
+                                <a href="{{ route('notifications.index') }}">Thông báo</a>
+                            </div>
                         </div>
                     </div>
                 </div>
