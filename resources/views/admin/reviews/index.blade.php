@@ -55,9 +55,10 @@
         <div class="card shadow">
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="   table-hover" id="reviewsTable">
+                    <table class=" table  table-hover" id="reviewsTable">
                         <thead>
                             <tr>
+                                <th></th>
                                 <th>Khách hàng</th>
                                 <th>Tour</th>
                                 <th>Đánh giá</th>

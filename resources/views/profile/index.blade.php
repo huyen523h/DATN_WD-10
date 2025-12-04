@@ -47,6 +47,11 @@
                     <a href="#reviews" class="list-group-item list-group-item-action" data-bs-toggle="tab">
                         <i class="fas fa-star"></i> Đánh giá của tôi
                     </a>
+
+                    <a href="{{ route('profile.group-requests') }}" 
+   class="list-group-item list-group-item-action {{ request()->routeIs('profile.group-requests') ? 'active' : '' }}">
+    <i class="fas fa-users me-2"></i> Yêu cầu tour đoàn
+</a>
                     <a href="#settings" class="list-group-item list-group-item-action" data-bs-toggle="tab">
                         <i class="fas fa-cog"></i> Cài đặt
                     </a>

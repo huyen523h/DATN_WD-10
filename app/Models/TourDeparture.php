@@ -20,7 +20,17 @@ class TourDeparture extends Model
         'child_price',
         'infant_price',
         'status', // string: available|contact|sold_out
+        // THÊM CÁC TRƯỜNG MỚI VÀO ĐÂY:
+    'guide_id',
+    'vehicle_details',
+    'driver_contact',
+    'itinerary_file'
     ];
+    // THÊM QUAN HỆ VỚI USER (GUIDE)
+public function guide()
+{
+    return $this->belongsTo(User::class, 'guide_id');
+}
 
     protected $casts = [
         'departure_date' => 'date',

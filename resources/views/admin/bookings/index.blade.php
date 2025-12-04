@@ -181,89 +181,95 @@
     </div>
 
     <!-- Modern Bookings Table -->
-    <x-admin.table :headers="[
-        ['key' => 'id', 'label' => 'Mã đặt tour', 'sortable' => true, 'component' => 'admin.table.booking-id'],
-        ['key' => 'customer', 'label' => 'Khách hàng', 'sortable' => true, 'component' => 'admin.table.avatar'],
-        ['key' => 'tour', 'label' => 'Tour', 'sortable' => true],
-        ['key' => 'departure_date', 'label' => 'Ngày khởi hành', 'sortable' => true, 'component' => 'admin.table.date'],
-        ['key' => 'guests', 'label' => 'Số khách', 'sortable' => true, 'component' => 'admin.table.guests'],
-        ['key' => 'total_amount', 'label' => 'Tổng tiền', 'sortable' => true, 'component' => 'admin.table.price'],
-        ['key' => 'status', 'label' => 'Trạng thái', 'sortable' => true, 'component' => 'admin.table.status-badge'],
-        ['key' => 'created_at', 'label' => 'Ngày đặt', 'sortable' => true, 'component' => 'admin.table.date'],
-    ]" :data="$bookings->map(function ($booking) {
-        return [
-            'id' => $booking->id,
-            'customer' => [
-                'name' => $booking->user->name,
-                'email' => $booking->user->email,
-            ],
-            'tour' => $booking->tour->title,
-            'departure_date' => $booking->departure->departure_date ?? 'N/A',
-            'guests' => [
-                'adults' => $booking->adults,
-                'children' => $booking->children,
-                'infants' => $booking->infants,
-            ],
-            'total_amount' => $booking->total_amount,
-            'status' => $booking->status,
-            'created_at' => $booking->created_at,
-        ];
-    })" :actions="[
-        ['action' => 'view', 'icon' => 'fas fa-eye', 'class' => 'btn-primary', 'title' => 'Xem chi tiết'],
-        ['action' => 'status', 'icon' => 'fas fa-edit', 'class' => 'btn-info', 'title' => 'Cập nhật trạng thái'],
-        ['action' => 'email', 'icon' => 'fas fa-envelope', 'class' => 'btn-warning', 'title' => 'Gửi email'],
-        ['action' => 'delete', 'icon' => 'fas fa-trash', 'class' => 'btn-danger', 'title' => 'Xóa'],
-    ]" :searchable="true" :sortable="true"
-        :filterable="true" :pagination="$bookings" empty-message="Chưa có đặt tour nào" id="bookings-table">
-        <!-- Custom Filters -->
-        <x-slot name="filters">
-            <div class="filter-grid">
-                <div class="filter-group">
-                    <label class="filter-label">Trạng thái</label>
-                    <select name="status" class="filter-select">
-                        <option value="">Tất cả trạng thái</option>
-                        <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Chờ xác nhận
-                        </option>
-                        <option value="confirmed" {{ request('status') == 'confirmed' ? 'selected' : '' }}>Đã xác nhận
-                        </option>
-                        <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Đã hủy</option>
-                        <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Hoàn thành
-                        </option>
-                    </select>
-                </div>
-
-                <div class="filter-group">
-                    <label class="filter-label">Từ ngày</label>
-                    <input type="date" name="date_from" class="filter-input" value="{{ request('date_from') }}">
-                </div>
-
-                <div class="filter-group">
-                    <label class="filter-label">Đến ngày</label>
-                    <input type="date" name="date_to" class="filter-input" value="{{ request('date_to') }}">
-                </div>
-
-                <div class="filter-group">
-                    <label class="filter-label">Khoảng tiền</label>
-                    <div class="price-range">
-                        <input type="number" name="min_amount" class="filter-input" placeholder="Từ"
-                            value="{{ request('min_amount') }}">
-                        <span class="range-separator">-</span>
-                        <input type="number" name="max_amount" class="filter-input" placeholder="Đến"
-                            value="{{ request('max_amount') }}">
-                    </div>
-                </div>
-            </div>
-
-            <div class="filter-actions">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-search"></i> Áp dụng bộ lọc
-                </button>
-                <a href="{{ route('admin.bookings') }}" class="btn btn-secondary">
-                    <i class="fas fa-times"></i> Xóa bộ lọc
-                </a>
-            </div>
-        </x-slot>
-    </x-admin.table>
+    <div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th></th>
+                        <th class="border-0 py-3 ps-4">Mã đơn</th>
+                        <th class="border-0 py-3">Khách hàng</th>
+                        <th class="border-0 py-3">Tour</th>
+                        <th class="border-0 py-3">Ngày đi</th>
+                        <th class="border-0 py-3">Tổng tiền</th>
+                        <th class="border-0 py-3">Trạng thái</th>
+                        <th class="border-0 py-3 text-end pe-4">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($bookings as $booking)
+                        <tr>
+                            <td class="ps-4 fw-bold">#{{ $booking->id }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-circle bg-primary text-white me-2">
+                                        {{ substr($booking->user->name, 0, 1) }}
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold">{{ $booking->user->name }}</div>
+                                        <small class="text-muted">{{ $booking->user->email }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ Str::limit($booking->tour->title, 30) }}</td>
+                            <td>
+                                @if($booking->departure)
+                                    {{ \Carbon\Carbon::parse($booking->departure->departure_date)->format('d/m/Y') }}
+                                @else
+                                    <span class="text-muted">N/A</span>
+                                @endif
+                            </td>
+                            <td class="fw-bold text-primary">
+                                {{ number_format($booking->total_amount, 0, ',', '.') }}đ
+                            </td>
+                            <td>
+                                @if($booking->status == 'pending')
+                                    <span class="badge bg-warning text-dark">Chờ xác nhận</span>
+                                @elseif($booking->status == 'confirmed')
+                                    <span class="badge bg-info text-dark">Đã xác nhận</span>
+                                @elseif($booking->status == 'paid')
+                                    <span class="badge bg-success">Đã thanh toán</span>
+                                @elseif($booking->status == 'completed')
+                                    <span class="badge bg-secondary">Hoàn thành</span>
+                                @else
+                                    <span class="badge bg-danger">Đã hủy</span>
+                                @endif
+                            </td>
+                            <td class="text-end pe-4">
+                                <div class="btn-group">
+                                    <a href="{{ route('admin.bookings.show', $booking->id) }}" 
+                                       class="btn btn-sm btn-outline-primary" 
+                                       title="Xem chi tiết & Điều hành">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    
+                                    <form action="{{ route('admin.bookings.destroy', $booking->id) }}" method="POST" 
+                                          onsubmit="return confirm('Bạn có chắc muốn xóa đơn này?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">
+                                Không tìm thấy đơn hàng nào.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer bg-white border-0 py-3">
+        {{ $bookings->links() }}
+    </div>
+</div>
 @endsection
 
 @section('styles')
