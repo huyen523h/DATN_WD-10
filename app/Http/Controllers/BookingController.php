@@ -6,6 +6,7 @@ use App\Models\Booking;
 use App\Models\Tour;
 use App\Models\TourDeparture;
 use App\Models\Promotion;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -28,28 +29,14 @@ class BookingController extends Controller
         return view('bookings.index', compact('bookings'));
     }
 
+    /**
+     * Show the form for creating a new booking.
+     */
     public function create(Request $request): View
     {
-        // code cũ chỉ được tạo ngày > ngày hiện tại . khôg được tạo  ngày trong quá khứ
-        // $tour = Tour::with(['departures', 'images'])->findOrFail($request->tour_id);
-        // $departures = $tour->departures()->where('seats_available', '>', 0)->whereDate('departure_date', '>=', now())->get();
-        // // dd($departures);
-        // $promotions = Promotion::where('status', 'active')
-        //     ->where('start_date', '<=', now())
-        //     ->where('end_date', '>=', now())
-        //     ->get();
-
-        // return view('bookings.create', compact('tour', 'departures', 'promotions'));
-
-        $tour = Tour::with(['images'])->findOrFail($request->tour_id);
-
-// ...........................CODE CHAT 4/11/2025 test Load cả ngày quá khứ 
-        // Chúng ta sẽ tải TẤT CẢ các ngày khởi hành, bao gồm cả ngày quá khứ (để test) và ngày tương lai.
-        $departures = $tour->departures()
-                           ->where('seats_available', '>', 0)
-                           // ->whereDate('departure_date', '>=', now()) // <-- TẠM TẮT DÒNG NÀY
-                           ->get();
-
+        $tour = Tour::with(['departures', 'images'])->findOrFail($request->tour_id);
+        $departures = $tour->departures()->where('seats_available', '>', 0)->whereDate('departure_date', '>=', now())->get();
+        // dd($departures);
         $promotions = Promotion::where('status', 'active')
             ->where('start_date', '<=', now())
             ->where('end_date', '>=', now())
@@ -75,14 +62,18 @@ class BookingController extends Controller
 
         $tour = Tour::findOrFail($validated['tour_id']);
         $departure = TourDeparture::findOrFail($validated['departure_id']);
-        // kiểm tra ngày khởi hành hợp lệ  --- comment 4/11/2025
-        // if ($departure->departure_date < now()->toDateString()) {
-        //     return back()->withErrors(['departure_id' => 'Ngày khởi hành đã qua, vui lòng chọn ngày khác.']);
-        // }
+        // kiểm tra ngày khởi hành hợp lệ
+        if ($departure->departure_date < now()->toDateString()) {
+            return back()->withErrors(['departure_id' => 'Ngày khởi hành đã qua, vui lòng chọn ngày khác.']);
+        }
 
+        // Check seat availability
         if ($departure->seats_available < $validated['adults'] + $validated['children']) {
             return back()->withErrors(['seats' => 'Không đủ chỗ trống cho số lượng khách đã chọn.']);
         }
+
+
+        //Tính tổng tiền dựa theo giá của lịch khởi hành (TourDeparture)
         $totalAmount = ($departure->price * $validated['adults']) +
             ($departure->child_price * ($validated['children'] ?? 0)) +
             ($departure->infant_price * ($validated['infants'] ?? 0));
@@ -114,6 +105,10 @@ class BookingController extends Controller
         $totalPassengers = ($validated['adults'] ?? 0) + ($validated['children'] ?? 0) + ($validated['infants'] ?? 0);
         $departure->decrement('seats_available', $totalPassengers);
 
+        // Send notification
+        $notificationService = new NotificationService();
+        $notificationService->notifyBookingSuccess($booking);
+
         return redirect()->route('bookings.show', $booking)
             ->with('success', 'Đặt tour thành công! Vui lòng thanh toán để hoàn tất.');
     }
@@ -134,6 +129,11 @@ class BookingController extends Controller
         // Chỉ cho phép huỷ nếu chưa thanh toán hoặc đang chờ
         if (in_array($booking->status, ['pending', 'confirmed'])) {
             $booking->update(['status' => 'cancelled']);
+            
+            // Send notification
+            $notificationService = new NotificationService();
+            $notificationService->notifyBookingCancelled($booking, 'Người dùng tự hủy');
+
             return redirect()->route('bookings.index')->with('success', 'Đã hủy đặt tour thành công.');
         }
 

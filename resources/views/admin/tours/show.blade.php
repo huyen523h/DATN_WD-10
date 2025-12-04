@@ -291,6 +291,7 @@
             <table class="table">
                 <thead>
                     <tr>
+                        <th></th>
                         <th>ID</th>
                         <th>Khách hàng</th>
                         <th>Số người</th>

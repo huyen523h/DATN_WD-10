@@ -202,7 +202,8 @@
                         <select class="form-select" name="status" required>
                             @php $status = old('status','active'); @endphp
                             <option value="active" {{ $status == 'active' ? 'selected' : '' }}>Hoạt động</option>
-                            <option value="inactive" {{ $status == 'inactive' ? 'selected' : '' }}>Không hoạt động</option>
+                            <option value="inactive" {{ $status == 'inactive' ? 'selected' : '' }}>Không hoạt động
+                            </option>
                             <option value="draft" {{ $status == 'draft' ? 'selected' : '' }}>Bản nháp</option>
                         </select>
                         <div class="form-text">Trạng thái hiển thị của tour.</div>
@@ -490,8 +491,6 @@
                 </div>
             </div>
         </div>
-    </div>
-    </div>
     </div>
 @endsection
 

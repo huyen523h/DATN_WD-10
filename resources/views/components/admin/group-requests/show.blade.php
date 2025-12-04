@@ -107,7 +107,6 @@
                     </form>
                 </div>
             </div>
-
             </div>
          </div>
             
@@ -144,6 +143,7 @@
         <i class="fas fa-exclamation-circle"></i> Vui lòng liên hệ khách và chuyển trạng thái sang <strong>"Đang tư vấn"</strong> trước khi tạo đơn.
     </div>
 @endif
+
         
     </div> </div> <div class="modal fade" id="createBookingModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">

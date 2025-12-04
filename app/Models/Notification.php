@@ -16,6 +16,13 @@ class Notification extends Model
         'message',
         'type',
         'status',
+        'related_type',
+        'related_id',
+        'data',
+    ];
+
+    protected $casts = [
+        'data' => 'array',
     ];
 
     /**

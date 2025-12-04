@@ -14,11 +14,14 @@ class TourDeparture extends Model
     protected $fillable = [
         'tour_id',
         'departure_date',
+        'start_time',
+        'end_time',
         'seats_total',
         'seats_available',
         'price',
         'child_price',
         'infant_price',
+        'meeting_point',
         'status', // string: available|contact|sold_out
         // THÊM CÁC TRƯỜNG MỚI VÀO ĐÂY:
     'guide_id',
@@ -34,17 +37,32 @@ public function guide()
 
     protected $casts = [
         'departure_date' => 'date',
+        'start_time'     => 'datetime:H:i',
+        'end_time'       => 'datetime:H:i',
         'price'         => 'decimal:2',
         'child_price'   => 'decimal:2',
         'infant_price'  => 'decimal:2',
     ];
 
     /**
+     * status edit
+     */
+
+    public function getStatusAttribute($value)
+    {
+        if ($this->seats_available <= 0) {
+            return 'sold_out';
+        }
+
+        return $value;
+    }
+
+    /**
      * Get the tour that owns the departure.
      */
     public function tour(): BelongsTo
     {
-        return $this->belongsTo(Tour::class , 'tour_id');
+        return $this->belongsTo(Tour::class, 'tour_id');
     }
 
     /**
@@ -53,6 +71,14 @@ public function guide()
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);
+    }
+
+    /**
+     * The operations linked to this departure.
+     */
+    public function operations(): HasMany
+    {
+        return $this->hasMany(TourOperation::class, 'tour_departure_id');
     }
 
     /**
