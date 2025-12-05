@@ -828,12 +828,19 @@
                                             <i class="fas fa-tachometer-alt"></i> Admin Dashboard
                                         </a></li>
                                 @endif
+                                @if (Auth::user()->isGuide())
+                                    <li><a class="dropdown-item" href="{{ route('guide.dashboard') }}">
+                                            <i class="fas fa-user-tie"></i> HDV Dashboard
+                                        </a></li>
+                                @endif
                                 <li><a class="dropdown-item" href="{{ route('profile.index') }}">
                                         <i class="fas fa-user"></i> Thông tin cá nhân
                                     </a></li>
+                                @if (!Auth::user()->isGuide())
                                 <li><a class="dropdown-item" href="{{ route('bookings.index') }}">
                                         <i class="fas fa-calendar-check"></i> Đặt tour của tôi
                                     </a></li>
+                                @endif
                                 <li>
                                     <hr class="dropdown-divider">
                                 </li>

@@ -73,9 +73,29 @@
                             </div>
 
                             <!-- Passenger Count -->
-                            <div class="row mb-4">
-                                <div class="col-md-4">
-                                    <label for="adults" class="form-label">Người lớn <span
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Số lượng khách <span class="text-danger">*</span></label>
+                                
+                                <!-- Info Box -->
+                                <div class="alert alert-info mb-3">
+                                    <h6 class="alert-heading mb-2">
+                                        <i class="fas fa-info-circle"></i> Quy định số lượng khách:
+                                    </h6>
+                                    <ul class="mb-0 small">
+                                        <li><strong>Người lớn:</strong> Trên 9 tuổi</li>
+                                        <li><strong>Trẻ em:</strong> Từ 2 đến 9 tuổi</li>
+                                        <li><strong>Em bé:</strong> Dưới 2 tuổi</li>
+                                    </ul>
+                                    <hr class="my-2">
+                                    <p class="mb-0 small">
+                                        <i class="fas fa-exclamation-triangle text-warning"></i>
+                                        <strong>Lưu ý:</strong> Mỗi người lớn có thể đi kèm tối đa <strong>2 trẻ em</strong> và tối đa <strong>1 em bé</strong>.
+                                    </p>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label for="adults" class="form-label">Người lớn (>9 tuổi) <span
                                             class="text-danger">*</span></label>
                                     <input type="number" class="form-control @error('adults') is-invalid @enderror"
                                         id="adults" name="adults" value="{{ old('adults', 1) }}" min="1"
@@ -84,21 +104,30 @@
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
-                                <div class="col-md-4">
-                                    <label for="children" class="form-label">Trẻ em</label>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="children" class="form-label">Trẻ em (2-9 tuổi)</label>
                                     <input type="number" class="form-control @error('children') is-invalid @enderror"
                                         id="children" name="children" value="{{ old('children', 0) }}" min="0">
                                     @error('children')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
+                                        <small class="text-muted">Tối đa 2 trẻ/người lớn</small>
                                 </div>
-                                <div class="col-md-4">
-                                    <label for="infants" class="form-label">Em bé</label>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="infants" class="form-label">Em bé (<2 tuổi)</label>
                                     <input type="number" class="form-control @error('infants') is-invalid @enderror"
                                         id="infants" name="infants" value="{{ old('infants', 0) }}" min="0">
                                     @error('infants')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
+                                        <small class="text-muted">Tối đa 1 em bé/người lớn</small>
+                                    </div>
+                                </div>
+                                
+                                <!-- Error message container -->
+                                <div id="passengerError" class="alert alert-danger d-none" role="alert">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <span id="passengerErrorMessage"></span>
                                 </div>
                             </div>
 
@@ -340,16 +369,87 @@
         `;
             }
 
+            // Validation function for passenger limits
+            function validatePassengers() {
+                const adults = parseInt(adultsInput.value) || 0;
+                const children = parseInt(childrenInput.value) || 0;
+                const infants = parseInt(infantsInput.value) || 0;
+                const errorDiv = document.getElementById('passengerError');
+                const errorMessage = document.getElementById('passengerErrorMessage');
+                
+                // Clear previous errors
+                errorDiv.classList.add('d-none');
+                childrenInput.classList.remove('is-invalid');
+                infantsInput.classList.remove('is-invalid');
+                
+                if (adults === 0) {
+                    return true; // Will be validated by required attribute
+                }
+                
+                const maxChildren = adults * 2;
+                const maxInfants = adults * 1;
+                
+                let hasError = false;
+                let errorMsg = '';
+                
+                if (children > maxChildren) {
+                    hasError = true;
+                    errorMsg = `${adults} người lớn chỉ có thể đi kèm tối đa ${maxChildren} trẻ em. Vui lòng tăng số người lớn hoặc giảm số trẻ em.`;
+                    childrenInput.classList.add('is-invalid');
+                }
+                
+                if (infants > maxInfants) {
+                    hasError = true;
+                    if (errorMsg) errorMsg += '<br>';
+                    errorMsg += `${adults} người lớn chỉ có thể đi kèm tối đa ${maxInfants} em bé. Vui lòng tăng số người lớn hoặc giảm số em bé.`;
+                    infantsInput.classList.add('is-invalid');
+                }
+                
+                if (hasError) {
+                    errorMessage.innerHTML = errorMsg;
+                    errorDiv.classList.remove('d-none');
+                    return false;
+                }
+                
+                return true;
+            }
+            
+            // Validate on form submit
+            const bookingForm = document.querySelector('form[method="POST"]');
+            if (bookingForm) {
+                bookingForm.addEventListener('submit', function(e) {
+                    if (!validatePassengers()) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        // Scroll to error
+                        document.getElementById('passengerError').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        return false;
+                    }
+                });
+            }
+
             //Gắn sự kiện
             [departureSelect, adultsInput, childrenInput, infantsInput, promotionInput].forEach(el => {
-                if (el) el.addEventListener('input', updateBookingSummary);
-                if (el && el.tagName === 'SELECT') el.addEventListener('change', updateBookingSummary);
+                if (el) {
+                    el.addEventListener('input', function() {
+                        validatePassengers();
+                        updateBookingSummary();
+                    });
+                    if (el.tagName === 'SELECT') {
+                        el.addEventListener('change', function() {
+                            validatePassengers();
+                            updateBookingSummary();
+                        });
+                    }
+                }
             });
 
             document.querySelectorAll('input[name="additional_services[]"]').forEach(cb => {
                 cb.addEventListener('change', updateBookingSummary);
             });
 
+            // Initial validation
+            validatePassengers();
             updateBookingSummary();
         });
     </script>

@@ -19,6 +19,7 @@
         'formAction' => route('admin.guides.update', $guide),
         'guide' => $guide,
         'categories' => $categories,
+        'guideUsers' => $guideUsers ?? collect(),
     ])
 @endsection
 

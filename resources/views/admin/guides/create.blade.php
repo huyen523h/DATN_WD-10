@@ -14,6 +14,7 @@
         'formAction' => route('admin.guides.store'),
         'guide' => $guide,
         'categories' => $categories,
+        'guideUsers' => $guideUsers ?? collect(),
     ])
 @endsection
 

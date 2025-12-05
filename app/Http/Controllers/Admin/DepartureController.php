@@ -184,6 +184,30 @@ class DepartureController extends Controller
             'itinerary_file' => 'nullable|file|mimes:pdf,doc,docx,jpg,png|max:5120', // Max 5MB
         ]);
 
+        // Nếu chọn HDV, kiểm tra:
+        // 1) Tài khoản đó có role "guide"
+        // 2) Không bị trùng lịch với các ngày khởi hành khác
+        if (!empty($validated['guide_id'])) {
+            $guideUser = \App\Models\User::find($validated['guide_id']);
+
+            if (!$guideUser || !$guideUser->isGuide()) {
+                return back()
+                    ->withErrors(['guide_id' => 'Tài khoản được chọn không phải là hướng dẫn viên.'])
+                    ->withInput();
+            }
+
+            $conflict = TourDeparture::where('guide_id', $validated['guide_id'])
+                ->whereDate('departure_date', $departure->departure_date)
+                ->where('id', '!=', $departure->id)
+                ->exists();
+
+            if ($conflict) {
+                return back()
+                    ->withErrors(['guide_id' => 'Hướng dẫn viên này đã được phân công cho tour khác trong cùng ngày.'])
+                    ->withInput();
+            }
+        }
+
         // Xử lý file upload
         if ($request->hasFile('itinerary_file')) {
             // Xóa file cũ nếu có

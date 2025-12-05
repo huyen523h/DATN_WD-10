@@ -20,7 +20,12 @@ class BookingController extends Controller
      */
     public function index(): View
     {
-      // Lấy danh sách đơn hàng của user đang đăng nhập
+        // Chặn guide truy cập route booking của khách hàng
+        if (auth()->user()->isGuide()) {
+            abort(403, 'Hướng dẫn viên không thể truy cập trang đặt tour của khách hàng. Vui lòng sử dụng trang quản lý lịch khởi hành.');
+        }
+
+        // Lấy danh sách đơn hàng của user đang đăng nhập
         $bookings = Booking::with(['tour', 'payment']) // Eager load để tránh N+1 query
             ->where('user_id', auth()->id())
             ->orderBy('created_at', 'desc')
@@ -34,6 +39,11 @@ class BookingController extends Controller
      */
     public function create(Request $request): View
     {
+        // Chặn guide truy cập route booking của khách hàng
+        if (auth()->user()->isGuide()) {
+            abort(403, 'Hướng dẫn viên không thể đặt tour. Vui lòng sử dụng trang quản lý lịch khởi hành.');
+        }
+
         $tour = Tour::with(['departures', 'images'])->findOrFail($request->tour_id);
         $departures = $tour->departures()->where('seats_available', '>', 0)->whereDate('departure_date', '>=', now())->get();
         // dd($departures);
@@ -50,6 +60,11 @@ class BookingController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        // Chặn guide truy cập route booking của khách hàng
+        if (auth()->user()->isGuide()) {
+            abort(403, 'Hướng dẫn viên không thể đặt tour. Vui lòng sử dụng trang quản lý lịch khởi hành.');
+        }
+
         $validated = $request->validate([
             'tour_id' => 'required|exists:tours,id',
             'departure_id' => 'required|exists:tour_departures,id',
@@ -59,6 +74,26 @@ class BookingController extends Controller
             'promotion_code' => 'nullable|exists:promotions,code',
             'note' => 'nullable|string|max:1000',
         ]);
+
+        // Validate passenger limits: Mỗi người lớn tối đa 2 trẻ em và 1 em bé
+        $adults = $validated['adults'];
+        $children = $validated['children'] ?? 0;
+        $infants = $validated['infants'] ?? 0;
+        
+        $maxChildren = $adults * 2;
+        $maxInfants = $adults * 1;
+        
+        if ($children > $maxChildren) {
+            return back()->withErrors([
+                'children' => "{$adults} người lớn chỉ có thể đi kèm tối đa {$maxChildren} trẻ em. Vui lòng tăng số người lớn hoặc giảm số trẻ em."
+            ])->withInput();
+        }
+        
+        if ($infants > $maxInfants) {
+            return back()->withErrors([
+                'infants' => "{$adults} người lớn chỉ có thể đi kèm tối đa {$maxInfants} em bé. Vui lòng tăng số người lớn hoặc giảm số em bé."
+            ])->withInput();
+        }
 
         $tour = Tour::findOrFail($validated['tour_id']);
         $departure = TourDeparture::findOrFail($validated['departure_id']);
@@ -99,6 +134,7 @@ class BookingController extends Controller
             'total_amount' => $totalAmount,
             'status' => 'pending',
             'note' => $validated['note'],
+            'expires_at' => now()->addMinutes(15), // Giữ chỗ 15 phút để thanh toán
         ]);
 
         // Update available seats
@@ -118,13 +154,33 @@ class BookingController extends Controller
      */
     public function show(Booking $booking): View
     {
-        $booking->load(['tour.images', 'departure', 'payment']);
+        // Chặn guide truy cập route booking của khách hàng
+        if (auth()->user()->isGuide()) {
+            abort(403, 'Hướng dẫn viên không thể xem đặt tour của khách hàng. Vui lòng sử dụng trang quản lý lịch khởi hành.');
+        }
+
+        // Kiểm tra user chỉ xem được booking của chính mình
+        if ($booking->user_id !== auth()->id()) {
+            abort(403, 'Bạn không có quyền xem đặt tour này.');
+        }
+
+        $booking->load(['tour.images', 'departure.guide', 'payment']);
 
         return view('bookings.show', compact('booking'));
     }
     public function destroy($id)
     {
+        // Chặn guide truy cập route booking của khách hàng
+        if (auth()->user()->isGuide()) {
+            abort(403, 'Hướng dẫn viên không thể hủy đặt tour của khách hàng. Vui lòng sử dụng trang quản lý lịch khởi hành.');
+        }
+
         $booking = Booking::findOrFail($id);
+
+        // Kiểm tra user chỉ hủy được booking của chính mình
+        if ($booking->user_id !== auth()->id()) {
+            abort(403, 'Bạn không có quyền hủy đặt tour này.');
+        }
 
         // Chỉ cho phép huỷ nếu chưa thanh toán hoặc đang chờ
         if (in_array($booking->status, ['pending', 'confirmed'])) {

@@ -2,19 +2,41 @@
 
 @section('content')
 <div class="container text-center mt-5">
-    <h2>Thông tin thanh toán MoMo</h2>
+    @php
+        $paymentMethod = $method ?? 'MoMo';
+        $isMoMo = ($paymentMethod === 'MoMo');
+        $isVNPay = ($paymentMethod === 'VNPay');
+        
+        // Xác định trạng thái thanh toán
+        $isSuccess = false;
+        if ($isMoMo) {
+            $isSuccess = isset($data['resultCode']) && $data['resultCode'] == 0;
+        } elseif ($isVNPay) {
+            $isSuccess = ($success ?? false) || (isset($data['responseCode']) && $data['responseCode'] == '00');
+        } else {
+            $isSuccess = $success ?? false;
+        }
+        
+        // Lấy mã giao dịch
+        $transactionCode = $isMoMo ? ($data['transId'] ?? 'N/A') : ($data['transactionNo'] ?? $data['vnp_TransactionNo'] ?? 'N/A');
+        
+        // Lấy mã phản hồi
+        $responseCode = $isMoMo ? ($data['resultCode'] ?? 'N/A') : ($data['responseCode'] ?? $data['vnp_ResponseCode'] ?? 'N/A');
+    @endphp
+    
+    <h2>Thông tin thanh toán {{ $paymentMethod }}</h2>
 
     <div class="card shadow-sm p-4 mt-4 mx-auto" style="max-width: 500px;">
-        <p><strong>Mã đơn hàng:</strong> {{ $data['orderId'] ?? 'N/A' }}</p>
+        <p><strong>Mã đơn hàng:</strong> {{ $data['orderId'] ?? $data['vnp_TxnRef'] ?? 'N/A' }}</p>
         <p><strong>Số tiền:</strong> {{ number_format($data['amount'] ?? 0, 0, ',', '.') }} VND</p>
-        <p><strong>Mã giao dịch MoMo:</strong> {{ $data['transId'] ?? 'N/A' }}</p>
-        <p><strong>Mã phản hồi:</strong> {{ $data['resultCode'] ?? 'N/A' }}</p>
-        <p><strong>Thông điệp:</strong> {{ $data['message'] ?? 'Không có thông tin' }}</p>
+        <p><strong>Mã giao dịch {{ $paymentMethod }}:</strong> {{ $transactionCode }}</p>
+        <p><strong>Mã phản hồi:</strong> {{ $responseCode }}</p>
+        <p><strong>Thông điệp:</strong> {{ $data['message'] ?? $data['vnp_ResponseMessage'] ?? 'Không có thông tin' }}</p>
 
-        @if(isset($data['resultCode']) && $data['resultCode'] == 0)
+        @if($isSuccess)
             <h3 class="text-success mt-4">Thanh toán thành công</h3>
             
-            @if($booking)
+            @if($booking ?? null)
                 <div class="d-grid gap-2 mt-4">
                     <button type="button" class="btn btn-primary" onclick="generateInvoice({{ $booking->id }}, this)">
                         <i class="fas fa-print"></i> In hóa đơn

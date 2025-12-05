@@ -24,16 +24,27 @@ class TourDeparture extends Model
         'meeting_point',
         'status', // string: available|contact|sold_out
         // THÊM CÁC TRƯỜNG MỚI VÀO ĐÂY:
-    'guide_id',
-    'vehicle_details',
-    'driver_contact',
-    'itinerary_file'
+        'guide_id',
+        'vehicle_details',
+        'driver_contact',
+        'itinerary_file',
+        'status_notes',
+        
+        // B2: Chốt đoàn
+        'group_confirmed',
+        'confirmed_guests_count',
+        'group_confirmed_at',
+        'group_confirmed_by',
+        
+        // B4: Loại xe
+        'vehicle_type',
     ];
+    
     // THÊM QUAN HỆ VỚI USER (GUIDE)
-public function guide()
-{
-    return $this->belongsTo(User::class, 'guide_id');
-}
+    public function guide()
+    {
+        return $this->belongsTo(User::class, 'guide_id');
+    }
 
     protected $casts = [
         'departure_date' => 'date',
@@ -70,7 +81,7 @@ public function guide()
      */
     public function bookings(): HasMany
     {
-        return $this->hasMany(Booking::class);
+        return $this->hasMany(Booking::class, 'departure_id');
     }
 
     /**

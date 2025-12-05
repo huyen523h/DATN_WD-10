@@ -17,6 +17,7 @@ use App\Http\Controllers\StaffController;
 use App\Http\Controllers\CheckInOutController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\EmployeeAuthController;
+use App\Http\Controllers\GuideDashboardController;
 
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\GroupTourController;
@@ -470,6 +471,18 @@ Route::middleware('auth')->group(function () {
     // MoMo gửi IPN server → server xác nhận đơn hàng
     Route::post('/payment/momo_ipn', [CheckoutController::class, 'momo_ipn'])->name('momo.ipn');
 
+    // Thanh toán VNPay
+    Route::post('/vnpay_payment/{id}', [CheckoutController::class, 'vnpay_payment'])->name('vnpay_payment');
+    // Route GET để xử lý trường hợp truy cập trực tiếp (redirect về form)
+    Route::get('/vnpay_payment/{id}', function($id) {
+        return redirect()->route('bookings.index')->with('error', 'Vui lòng sử dụng form thanh toán.');
+    });
+    // VNPay redirect user về sau khi thanh toán (hiển thị kết quả)
+    Route::get('/payment/vnpay_return', [CheckoutController::class, 'vnpay_return'])->name('vnpay.return');
+
+    // VNPay gửi IPN server → server xác nhận đơn hàng
+    Route::post('/payment/vnpay_ipn', [CheckoutController::class, 'vnpay_ipn'])->name('vnpay.ipn');
+
 });
 
 // --- 1. ROUTE CHO KHÁCH (Đặt ở ngoài, không cần đăng nhập cũng xem được) ---
@@ -516,6 +529,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/bookings/{booking}', [AdminController::class, 'showBooking'])->name('bookings.show');
     Route::put('/bookings/{booking}', [AdminController::class, 'updateBooking'])->name('bookings.update');
     Route::delete('/bookings/{booking}', [AdminController::class, 'deleteBooking'])->name('bookings.destroy');
+
+    // B2-B5: Group management operations
+    Route::post('/bookings/confirm-group', [AdminController::class, 'confirmGroup'])->name('bookings.confirm-group');
+    Route::post('/bookings/assign-guide', [AdminController::class, 'assignGuide'])->name('bookings.assign-guide');
+    Route::post('/bookings/assign-vehicle', [AdminController::class, 'assignVehicle'])->name('bookings.assign-vehicle');
+    Route::post('/bookings/send-pre-tour-info', [AdminController::class, 'sendPreTourInfo'])->name('bookings.send-pre-tour-info');
 
     // Customers management
     Route::get('/customers', [AdminController::class, 'customers'])->name('customers');
@@ -678,3 +697,20 @@ Route::middleware(['auth', 'staff'])->prefix('staff')->name('staff.')->group(fun
     Route::get('/profile', [StaffController::class, 'profile'])->name('profile');
     Route::post('/profile', [StaffController::class, 'updateProfile'])->name('profile.update');
 });
+
+// ============================================
+// GUIDE ROUTES
+// ============================================
+
+Route::middleware(['auth', 'role:guide'])->prefix('guide')->name('guide.')->group(function () {
+    Route::get('/', [GuideDashboardController::class, 'dashboard'])->name('dashboard');
+    Route::get('/departures', [GuideDashboardController::class, 'departures'])->name('departures');
+    Route::get('/departures/{departure}', [GuideDashboardController::class, 'showDeparture'])->name('departures.show');
+    
+    // Check-in/Check-out routes
+    Route::get('/check-in-out', [GuideDashboardController::class, 'checkInOuts'])->name('check-in-out.index');
+    Route::post('/departures/{departure}/check-in-out', [GuideDashboardController::class, 'checkInOut'])->name('departures.check-in-out');
+    Route::post('/check-in-out/{checkInOut}/confirm', [GuideDashboardController::class, 'confirmCheckInOut'])->name('check-in-out.confirm');
+    Route::post('/check-in-out/{checkInOut}/cancel', [GuideDashboardController::class, 'cancelCheckInOut'])->name('check-in-out.cancel');
+})
+;

@@ -64,6 +64,12 @@ class StoreGuideRequest extends FormRequest
             'health_records.*.hospital' => ['nullable', 'string', 'max:255'],
             'health_records.*.notes' => ['nullable', 'string'],
             'health_records.*.attachments' => ['nullable', 'array'],
+
+            // Liên kết tài khoản user cho HDV
+            'user_id' => ['nullable', 'integer', 'exists:users,id'],
+            'create_user_account' => ['nullable', 'boolean'],
+            'user_email' => ['nullable', 'email', 'max:255'],
+            'user_password' => ['nullable', 'string', 'min:6', 'max:100'],
         ];
     }
 }
