@@ -83,8 +83,11 @@
                     <input type="text" name="phone" class="form-control" value="{{ old('phone', $guide->phone) }}">
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label">Email</label>
-                    <input type="email" name="email" class="form-control" value="{{ old('email', $guide->email) }}">
+                    <label class="form-label">Email * <small class="text-muted">(Dùng để tạo tài khoản đăng nhập)</small></label>
+                    <input type="email" name="email" class="form-control" value="{{ old('email', $guide->email) }}" {{ $isEdit ? '' : 'required' }}>
+                    @if(!$isEdit)
+                        <small class="text-muted">Email này sẽ được dùng để tạo tài khoản đăng nhập cho HDV</small>
+                    @endif
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Ngôn ngữ chính</label>

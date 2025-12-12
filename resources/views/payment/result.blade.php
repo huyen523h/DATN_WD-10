@@ -2,19 +2,50 @@
 
 @section('content')
 <div class="container text-center mt-5">
-    <h2>Thông tin thanh toán MoMo</h2>
+    @php
+        $method = $method ?? 'MoMo';
+        $isMoMo = ($method === 'MoMo');
+        $isVNPay = ($method === 'VNPay');
+    @endphp
+    
+    <h2>Thông tin thanh toán {{ $method }}</h2>
 
     <div class="card shadow-sm p-4 mt-4 mx-auto" style="max-width: 500px;">
-        <p><strong>Mã đơn hàng:</strong> {{ $data['orderId'] ?? 'N/A' }}</p>
-        <p><strong>Số tiền:</strong> {{ number_format($data['amount'] ?? 0, 0, ',', '.') }} VND</p>
-        <p><strong>Mã giao dịch MoMo:</strong> {{ $data['transId'] ?? 'N/A' }}</p>
-        <p><strong>Mã phản hồi:</strong> {{ $data['resultCode'] ?? 'N/A' }}</p>
-        <p><strong>Thông điệp:</strong> {{ $data['message'] ?? 'Không có thông tin' }}</p>
+        @if($isMoMo)
+            <p><strong>Mã đơn hàng:</strong> {{ $data['orderId'] ?? 'N/A' }}</p>
+            <p><strong>Số tiền:</strong> {{ number_format($data['amount'] ?? 0, 0, ',', '.') }} VND</p>
+            <p><strong>Mã giao dịch MoMo:</strong> {{ $data['transId'] ?? 'N/A' }}</p>
+            <p><strong>Mã phản hồi:</strong> {{ $data['resultCode'] ?? 'N/A' }}</p>
+            <p><strong>Thông điệp:</strong> {{ $data['message'] ?? 'Không có thông tin' }}</p>
+            
+            @php
+                $isSuccess = isset($data['resultCode']) && $data['resultCode'] == 0;
+            @endphp
+        @elseif($isVNPay)
+            <p><strong>Mã đơn hàng:</strong> {{ $data['vnp_TxnRef'] ?? 'N/A' }}</p>
+            @if(isset($booking))
+                <p><strong>Số tiền:</strong> {{ number_format($booking->total_amount ?? 0, 0, ',', '.') }} VND</p>
+            @elseif(isset($data['vnp_Amount']))
+                <p><strong>Số tiền:</strong> {{ number_format(($data['vnp_Amount'] ?? 0) / 100, 0, ',', '.') }} VND</p>
+            @endif
+            <p><strong>Mã giao dịch VNPay:</strong> {{ $data['vnp_TransactionNo'] ?? 'N/A' }}</p>
+            <p><strong>Mã phản hồi:</strong> {{ $data['vnp_ResponseCode'] ?? 'N/A' }}</p>
+            <p><strong>Thông điệp:</strong> {{ $data['message'] ?? ($data['vnp_ResponseMessage'] ?? 'Không có thông tin') }}</p>
+            
+            @php
+                $isSuccess = isset($data['vnp_ResponseCode']) && $data['vnp_ResponseCode'] == '00';
+            @endphp
+        @else
+            <p><strong>Thông điệp:</strong> {{ $data['message'] ?? 'Không có thông tin' }}</p>
+            @php
+                $isSuccess = $success ?? false;
+            @endphp
+        @endif
 
-        @if(isset($data['resultCode']) && $data['resultCode'] == 0)
+        @if($isSuccess)
             <h3 class="text-success mt-4">Thanh toán thành công</h3>
             
-            @if($booking)
+            @if($booking ?? null)
                 <div class="d-grid gap-2 mt-4">
                     <button type="button" class="btn btn-primary" onclick="generateInvoice({{ $booking->id }}, this)">
                         <i class="fas fa-print"></i> In hóa đơn

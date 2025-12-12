@@ -134,7 +134,24 @@
                     @if ($booking->status === 'paid' || $booking->status === 'completed')
                         <div class="alert alert-success text-center mb-0 p-2"><i class="fas fa-check-circle"></i> Đã thanh toán</div>
                     @else
-                         <div class="alert alert-warning text-center mb-0 p-2">Chưa thanh toán</div>
+                        <div class="alert alert-warning text-center mb-3 p-2">Chưa thanh toán</div>
+                        
+                        <!-- Các nút thanh toán -->
+                        <div class="d-grid gap-2">
+                            <form action="{{ route('momo_payment', $booking->id) }}" method="POST" class="d-inline">
+                                @csrf
+                                <button type="submit" class="btn w-100" style="background: linear-gradient(135deg, #A50064 0%, #FF007F 100%); border: none; color: white; padding: 12px;">
+                                    <i class="fas fa-mobile-alt me-2"></i>Thanh toán với MoMo
+                                </button>
+                            </form>
+                            
+                            <form action="{{ route('payment.vnpay', $booking->id) }}" method="POST" class="d-inline">
+                                @csrf
+                                <button type="submit" class="btn btn-primary w-100" style="background: linear-gradient(135deg, #1E88E5 0%, #1565C0 100%); border: none; padding: 12px;">
+                                    <i class="fas fa-credit-card me-2"></i>Thanh toán với VNPay
+                                </button>
+                            </form>
+                        </div>
                     @endif
                 </div>
             </div>
@@ -161,26 +178,10 @@
 </div>
 @endsection
 
-                {{-- JS xử lý thanh toán --}}
+                {{-- JS xử lý review --}}
                     @section('scripts')
                     <script>
                         document.addEventListener('DOMContentLoaded', function() {
-                            // --- (CODE CŨ CỦA BẠN - GIỮ NGUYÊN) ---
-                            const payBtn = document.getElementById('payNowBtn');
-                            const select = document.getElementById('paymentMethod');
-
-                            if (payBtn) {
-                                payBtn.addEventListener('click', function() {
-                                    const method = select.value;
-                                    const bookingId = {{ $booking->id }};
-                                    const url = "{{ url('/payment') }}/" + bookingId + "?method=" + method;
-                                    console.log('Redirecting to:', url);
-                                    window.location.href = url;
-                                });
-                            } else {
-                                console.warn('Không tìm thấy nút thanh toán!');
-                            }
-                            // --- (HẾT CODE CŨ CỦA BẠN) ---
 
 
                             // --- (BẮT ĐẦU CODE MỚI - GỬI REVIEW BẰNG AJAX) ---

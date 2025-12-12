@@ -164,4 +164,12 @@ class User extends Authenticatable
     {
         return $this->hasRole('customer');
     }
+
+    /**
+     * Check if user is guide.
+     */
+    public function isGuide(): bool
+    {
+        return $this->hasRole('guide');
+    }
 }

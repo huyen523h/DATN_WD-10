@@ -470,7 +470,14 @@ Route::middleware('auth')->group(function () {
     // MoMo gửi IPN server → server xác nhận đơn hàng
     Route::post('/payment/momo_ipn', [CheckoutController::class, 'momo_ipn'])->name('momo.ipn');
 
+    // Thanh toán VNPay
+    Route::post('/payment/vnpay/{id}', [CheckoutController::class, 'vnpay_payment'])->name('payment.vnpay');
+
 });
+
+// VNPay callback routes (không cần auth)
+Route::get('/payment/vnpay/return', [CheckoutController::class, 'vnpay_return'])->name('payment.vnpay.return');
+Route::get('/payment/vnpay_return', [CheckoutController::class, 'vnpay_return'])->name('payment.vnpay_return');
 
 // --- 1. ROUTE CHO KHÁCH (Đặt ở ngoài, không cần đăng nhập cũng xem được) ---
 Route::get('/dat-tour-doan', [GroupTourController::class, 'create'])->name('group-tour.create');
@@ -503,6 +510,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         // route mới 4/12/2025
         Route::post('/bookings/{booking}/admin-upload-manifest', [AdminController::class, 'uploadManifest'])->name('bookings.upload-manifest');
 
+    // Guides management
+    Route::resource('guides', GuideWebController::class);
+
     // Invoices management
     Route::resource('invoices', \App\Http\Controllers\InvoiceController::class);
     Route::get('/invoices/{invoice}/pdf', [\App\Http\Controllers\InvoiceController::class, 'generatePdf'])->name('invoices.pdf');
@@ -515,7 +525,16 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/bookings', [AdminController::class, 'bookings'])->name('bookings');
     Route::get('/bookings/{booking}', [AdminController::class, 'showBooking'])->name('bookings.show');
     Route::put('/bookings/{booking}', [AdminController::class, 'updateBooking'])->name('bookings.update');
+    Route::post('/bookings/{booking}/confirm', [AdminController::class, 'confirmBooking'])->name('bookings.confirm');
+    Route::post('/bookings/{booking}/mark-as-paid', [AdminController::class, 'markAsPaid'])->name('bookings.markAsPaid');
+    Route::post('/bookings/{booking}/cancel', [AdminController::class, 'cancelBooking'])->name('bookings.cancel');
     Route::delete('/bookings/{booking}', [AdminController::class, 'deleteBooking'])->name('bookings.destroy');
+
+    //  Group management operations
+    Route::post('/bookings/confirm-group', [AdminController::class, 'confirmGroup'])->name('bookings.confirm-group');
+    Route::post('/bookings/assign-guide', [AdminController::class, 'assignGuide'])->name('bookings.assign-guide');
+    Route::post('/bookings/assign-vehicle', [AdminController::class, 'assignVehicle'])->name('bookings.assign-vehicle');
+    Route::post('/bookings/send-pre-tour-info', [AdminController::class, 'sendPreTourInfo'])->name('bookings.send-pre-tour-info');
 
     // Customers management
     Route::get('/customers', [AdminController::class, 'customers'])->name('customers');
@@ -657,6 +676,49 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 // ============================================
 // STAFF ROUTES
 // ============================================
+
+// Guide routes
+Route::middleware(['auth', 'guide'])->prefix('guide')->name('guide.')->group(function () {
+    // Dashboard
+    Route::get('/dashboard', [\App\Http\Controllers\Guide\GuideDashboardController::class, 'index'])->name('dashboard');
+    
+    // Departures
+    Route::get('/departures/{id}', [\App\Http\Controllers\Guide\GuideDashboardController::class, 'showDeparture'])->name('departures.show');
+    Route::get('/departures/{departureId}/customers', [\App\Http\Controllers\Guide\GuideDashboardController::class, 'showCustomers'])->name('departures.customers');
+    
+    // Tour Logs (Nhật ký tour)
+    Route::get('/departures/{departureId}/logs', [\App\Http\Controllers\Guide\TourLogController::class, 'index'])->name('tour-logs.index');
+    Route::get('/departures/{departureId}/logs/create', [\App\Http\Controllers\Guide\TourLogController::class, 'create'])->name('tour-logs.create');
+    Route::post('/departures/{departureId}/logs', [\App\Http\Controllers\Guide\TourLogController::class, 'store'])->name('tour-logs.store');
+    Route::get('/departures/{departureId}/logs/{logId}', [\App\Http\Controllers\Guide\TourLogController::class, 'show'])->name('tour-logs.show');
+    Route::get('/departures/{departureId}/logs/{logId}/edit', [\App\Http\Controllers\Guide\TourLogController::class, 'edit'])->name('tour-logs.edit');
+    Route::put('/departures/{departureId}/logs/{logId}', [\App\Http\Controllers\Guide\TourLogController::class, 'update'])->name('tour-logs.update');
+    Route::delete('/departures/{departureId}/logs/{logId}', [\App\Http\Controllers\Guide\TourLogController::class, 'destroy'])->name('tour-logs.destroy');
+    
+    // Check-ins (Điểm danh)
+    Route::get('/departures/{departureId}/check-ins', [\App\Http\Controllers\Guide\CheckInController::class, 'index'])->name('check-ins.index');
+    Route::get('/departures/{departureId}/check-ins/{checkInId}', [\App\Http\Controllers\Guide\CheckInController::class, 'show'])->name('check-ins.show');
+    Route::post('/departures/{departureId}/check-ins', [\App\Http\Controllers\Guide\CheckInController::class, 'store'])->name('check-ins.store');
+    Route::put('/departures/{departureId}/check-ins/{checkInId}', [\App\Http\Controllers\Guide\CheckInController::class, 'update'])->name('check-ins.update');
+    Route::delete('/departures/{departureId}/check-ins/{checkInId}', [\App\Http\Controllers\Guide\CheckInController::class, 'destroy'])->name('check-ins.destroy');
+    
+    // Special Requests (Yêu cầu đặc biệt)
+    Route::get('/departures/{departureId}/special-requests', [\App\Http\Controllers\Guide\SpecialRequestController::class, 'index'])->name('special-requests.index');
+    Route::get('/departures/{departureId}/special-requests/create', [\App\Http\Controllers\Guide\SpecialRequestController::class, 'create'])->name('special-requests.create');
+    Route::post('/departures/{departureId}/special-requests', [\App\Http\Controllers\Guide\SpecialRequestController::class, 'store'])->name('special-requests.store');
+    Route::get('/departures/{departureId}/special-requests/{requestId}', [\App\Http\Controllers\Guide\SpecialRequestController::class, 'show'])->name('special-requests.show');
+    Route::put('/departures/{departureId}/special-requests/{requestId}', [\App\Http\Controllers\Guide\SpecialRequestController::class, 'update'])->name('special-requests.update');
+    Route::delete('/departures/{departureId}/special-requests/{requestId}', [\App\Http\Controllers\Guide\SpecialRequestController::class, 'destroy'])->name('special-requests.destroy');
+    
+    // Feedback (Phản hồi đánh giá)
+    Route::get('/feedback', [\App\Http\Controllers\Guide\TourFeedbackController::class, 'index'])->name('feedback.index');
+    Route::get('/departures/{departureId}/feedback/create', [\App\Http\Controllers\Guide\TourFeedbackController::class, 'create'])->name('feedback.create');
+    Route::post('/departures/{departureId}/feedback', [\App\Http\Controllers\Guide\TourFeedbackController::class, 'store'])->name('feedback.store');
+    Route::get('/feedback/{id}', [\App\Http\Controllers\Guide\TourFeedbackController::class, 'show'])->name('feedback.show');
+    Route::get('/feedback/{id}/edit', [\App\Http\Controllers\Guide\TourFeedbackController::class, 'edit'])->name('feedback.edit');
+    Route::put('/feedback/{id}', [\App\Http\Controllers\Guide\TourFeedbackController::class, 'update'])->name('feedback.update');
+    Route::delete('/feedback/{id}', [\App\Http\Controllers\Guide\TourFeedbackController::class, 'destroy'])->name('feedback.destroy');
+});
 
 Route::middleware(['auth', 'staff'])->prefix('staff')->name('staff.')->group(function () {
     Route::get('/', [StaffController::class, 'dashboard'])->name('dashboard');

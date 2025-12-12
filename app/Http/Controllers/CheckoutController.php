@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Booking;
 use App\Models\Payment;
 use App\Services\NotificationService;
+use App\Services\VnpayService;
 use Illuminate\Container\Attributes\Log;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log as FacadesLog;
@@ -232,5 +233,24 @@ class CheckoutController extends Controller
             return (int) $matches[1];
         }
         return null;
+    }
+
+    /**
+     * Xử lý thanh toán VNPay
+     */
+    public function vnpay_payment(Request $request, $id)
+    {
+        $booking = Booking::findOrFail($id);
+        $vnpayService = new VnpayService();
+        return $vnpayService->createPayment($booking);
+    }
+
+    /**
+     * Xử lý callback từ VNPay
+     */
+    public function vnpay_return(Request $request)
+    {
+        $vnpayService = new VnpayService();
+        return $vnpayService->handleReturn($request);
     }
 }

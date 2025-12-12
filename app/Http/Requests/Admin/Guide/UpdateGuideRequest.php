@@ -17,6 +17,9 @@ class UpdateGuideRequest extends StoreGuideRequest
             'max:50',
             Rule::unique('guides', 'code')->ignore($guideId),
         ];
+        
+        // Email không bắt buộc khi edit, nhưng nếu có thì phải unique
+        $rules['email'] = ['nullable', 'email', 'max:255', Rule::unique('users', 'email')];
 
         return $rules;
     }

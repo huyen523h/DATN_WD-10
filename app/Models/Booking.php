@@ -103,6 +103,22 @@ class Booking extends Model
     }
 
     /**
+     * Get check-ins for the booking.
+     */
+    public function checkIns(): HasMany
+    {
+        return $this->hasMany(CheckIn::class);
+    }
+
+    /**
+     * Get special requests for the booking.
+     */
+    public function specialRequests(): HasMany
+    {
+        return $this->hasMany(GuestSpecialRequest::class);
+    }
+
+    /**
      * Get total passengers.
      */
     public function getTotalPassengersAttribute(): int

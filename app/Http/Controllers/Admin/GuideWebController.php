@@ -57,9 +57,35 @@ class GuideWebController extends Controller
     public function store(StoreGuideRequest $request): RedirectResponse
     {
         $guide = $this->guideService->create($request->validated());
+        
+        // Reload guide để lấy metadata đầy đủ
+        $guide->refresh();
+        
+        // Lấy thông tin password và email
+        $email = $guide->email ?? 'N/A';
+        $password = null;
+        
+        if ($guide->metadata) {
+            $metadata = is_string($guide->metadata) ? json_decode($guide->metadata, true) : $guide->metadata;
+            if (is_array($metadata) && isset($metadata['initial_password'])) {
+                $password = $metadata['initial_password'];
+            }
+        }
+        
+        // Tạo message với HTML để hiển thị đẹp
+        $message = "Đã tạo hồ sơ hướng dẫn viên <strong>{$guide->full_name}</strong>";
+        
+        if ($password) {
+            $message .= "<br><br><strong>Thông tin đăng nhập:</strong>";
+            $message .= "<br>📧 Email: <code>{$email}</code>";
+            $message .= "<br>🔑 Mật khẩu: <code>{$password}</code>";
+            $message .= "<br><br><small class='text-warning'>⚠️ Vui lòng lưu lại thông tin đăng nhập này để cấp cho HDV.</small>";
+        } else {
+            $message .= "<br><br>Email: <code>{$email}</code>";
+        }
 
         return redirect()->route('admin.guides.index')
-            ->with('success', "Đã tạo hồ sơ hướng dẫn viên {$guide->full_name}");
+            ->with('success', $message);
     }
 
     public function show(Guide $guide): View

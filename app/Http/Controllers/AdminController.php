@@ -11,6 +11,7 @@ use App\Models\Promotion;
 use App\Models\TourImage;
 use App\Models\TourSchedule;
 use App\Models\TourDeparture;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -381,12 +382,85 @@ class AdminController extends Controller
 
     public function bookings()
     {
+        // Lấy tất cả bookings với relationships
         $bookings = Booking::with(['tour', 'user', 'departure'])
+            ->whereHas('departure') // Chỉ lấy bookings có departure
             ->orderBy('created_at', 'desc')
-            ->paginate(10);
+            ->get();
 
+        // Gom booking theo ngày khởi hành
+        $groupedBookings = collect();
+        $groupsWithDate = collect();
+        $groupsWithoutDate = collect();
+        
+        foreach ($bookings as $booking) {
+            $date = null;
+            if ($booking->departure && $booking->departure->departure_date) {
+                $date = $booking->departure->departure_date->format('Y-m-d');
+            }
+            
+            $key = $date ?? 'no-date';
+            
+            if ($date) {
+                if (!$groupsWithDate->has($key)) {
+                    $groupsWithDate->put($key, collect());
+                }
+                $groupsWithDate->get($key)->push($booking);
+            } else {
+                if (!$groupsWithoutDate->has($key)) {
+                    $groupsWithoutDate->put($key, collect());
+                }
+                $groupsWithoutDate->get($key)->push($booking);
+            }
+        }
 
-        return view('admin.bookings.index', compact('bookings'));
+        // Sắp xếp nhóm có ngày theo thứ tự tăng dần (ngày gần nhất trước)
+        $groupsWithDate = $groupsWithDate->sortKeys();
+
+        // Gộp lại: nhóm có ngày trước, nhóm không có ngày sau
+        foreach ($groupsWithDate as $key => $value) {
+            $groupedBookings->put($key, $value);
+        }
+        foreach ($groupsWithoutDate as $key => $value) {
+            $groupedBookings->put($key, $value);
+        }
+
+        // Tính toán thống kê cho mỗi nhóm và sắp xếp bookings trong mỗi nhóm
+        $groupedBookings = $groupedBookings->map(function ($group, $date) {
+            // Sắp xếp bookings trong nhóm theo thời gian tạo (mới nhất trước)
+            $sortedBookings = $group->sortByDesc('created_at')->values();
+            
+            // Lấy departure đầu tiên để lấy thông tin chung
+            $firstBooking = $sortedBookings->first();
+            $departure = $firstBooking->departure ?? null;
+            
+            return [
+                'date' => $date === 'no-date' ? null : \Carbon\Carbon::parse($date),
+                'bookings' => $sortedBookings,
+                'total_guests' => $sortedBookings->sum(function ($booking) {
+                    return $booking->adults + $booking->children + $booking->infants;
+                }),
+                'total_adults' => $sortedBookings->sum('adults'),
+                'total_children' => $sortedBookings->sum('children'),
+                'total_infants' => $sortedBookings->sum('infants'),
+                'total_amount' => $sortedBookings->sum('total_amount'),
+                'count' => $sortedBookings->count(),
+                'departure' => $departure,
+                'group_confirmed' => $departure ? $departure->group_confirmed : false,
+                'confirmed_guests_count' => $departure ? $departure->confirmed_guests_count : null,
+                'guide' => $departure && $departure->guide ? $departure->guide : null,
+                'vehicle_type' => $departure ? $departure->vehicle_type : null,
+                'vehicle_details' => $departure ? $departure->vehicle_details : null,
+                'driver_contact' => $departure ? $departure->driver_contact : null,
+            ];
+        });
+
+        // Lấy danh sách guides
+        $guides = User::whereHas('roles', function($q) {
+            $q->where('name', 'guide');
+        })->orderBy('name')->get();
+
+        return view('admin.bookings.index', compact('groupedBookings', 'bookings', 'guides'));
     }
 
     public function showBooking(Booking $booking): View
@@ -834,6 +908,69 @@ class AdminController extends Controller
 
         return redirect()->route('admin.settings')->with('success', 'Cài đặt đã được cập nhật thành công!');
     }
+    /**
+     * Xác nhận booking đơn lẻ
+     */
+    public function confirmBooking(Request $request, Booking $booking): RedirectResponse
+    {
+        $booking->update(['status' => 'confirmed']);
+        
+        // Gửi thông báo
+        $notificationService = new NotificationService();
+        $notificationService->sendNotification(
+            $booking->user,
+            'booking_confirmed',
+            'Đặt tour đã được xác nhận',
+            "Đặt tour \"{$booking->tour->title}\" của bạn đã được xác nhận. Ngày khởi hành: " . 
+            ($booking->departure ? $booking->departure->departure_date->format('d/m/Y') : 'N/A'),
+            $booking->id,
+            'booking',
+            true
+        );
+
+        return redirect()->route('admin.bookings.show', $booking)
+            ->with('success', 'Đặt tour đã được xác nhận thành công!');
+    }
+
+    /**
+     * Đánh dấu đã thanh toán
+     */
+    public function markAsPaid(Request $request, Booking $booking): RedirectResponse
+    {
+        $booking->update(['status' => 'paid']);
+        
+        // Gửi thông báo
+        $notificationService = new NotificationService();
+        $notificationService->sendNotification(
+            $booking->user,
+            'payment_success',
+            'Thanh toán thành công',
+            "Đơn hàng \"{$booking->tour->title}\" của bạn đã được thanh toán thành công. Tổng tiền: " . 
+            number_format($booking->total_amount, 0, ',', '.') . " VNĐ",
+            $booking->id,
+            'booking',
+            true
+        );
+
+        return redirect()->route('admin.bookings.show', $booking)
+            ->with('success', 'Đã đánh dấu đơn hàng đã thanh toán!');
+    }
+
+    /**
+     * Hủy booking
+     */
+    public function cancelBooking(Request $request, Booking $booking): RedirectResponse
+    {
+        $booking->update(['status' => 'cancelled']);
+        
+        // Gửi thông báo
+        $notificationService = new NotificationService();
+        $notificationService->notifyBookingCancelled($booking, 'Admin hủy đơn');
+
+        return redirect()->route('admin.bookings.show', $booking)
+            ->with('success', 'Đặt tour đã được hủy thành công!');
+    }
+
  // hàm upload file tour theo đoàn 4/12/2025
     public function uploadManifest(Request $request, Booking $booking)
     {
@@ -850,5 +987,195 @@ class AdminController extends Controller
             return back()->with('success', 'Admin đã cập nhật danh sách đoàn thành công!');
         }
         return back()->with('error', 'Lỗi upload.');
+    }
+
+    /**
+     * B2: Chốt đoàn (chốt số lượng khách)
+     */
+    public function confirmGroup(Request $request)
+    {
+        $request->validate([
+            'departure_date' => 'required|date',
+            'confirmed_guests_count' => 'required|integer|min:1',
+        ]);
+
+        // Lấy tất cả departures có cùng ngày khởi hành
+        $departures = TourDeparture::whereDate('departure_date', $request->departure_date)->get();
+        
+        if ($departures->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không tìm thấy lịch khởi hành cho ngày này.'
+            ], 404);
+        }
+
+        // Cập nhật trạng thái chốt đoàn cho tất cả departures cùng ngày
+        foreach ($departures as $departure) {
+            $departure->update([
+                'group_confirmed' => true,
+                'confirmed_guests_count' => $request->confirmed_guests_count,
+                'group_confirmed_at' => now(),
+                'group_confirmed_by' => auth()->id(),
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã chốt đoàn thành công!',
+            'data' => [
+                'departure_date' => $request->departure_date,
+                'confirmed_guests_count' => $request->confirmed_guests_count,
+            ]
+        ]);
+    }
+
+    /**
+     * B3: Gán hướng dẫn viên (HDV)
+     */
+    public function assignGuide(Request $request)
+    {
+        $request->validate([
+            'departure_date' => 'required|date',
+            'guide_id' => 'required|exists:users,id',
+        ]);
+
+        // Kiểm tra user có phải là guide không
+        $guide = User::findOrFail($request->guide_id);
+        if (!$guide->hasRole('guide')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Người dùng này không phải là hướng dẫn viên.'
+            ], 422);
+        }
+
+        // Lấy tất cả departures có cùng ngày khởi hành
+        $departures = TourDeparture::whereDate('departure_date', $request->departure_date)->get();
+        
+        if ($departures->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không tìm thấy lịch khởi hành cho ngày này.'
+            ], 404);
+        }
+
+        // Gán guide cho tất cả departures cùng ngày
+        foreach ($departures as $departure) {
+            $departure->update([
+                'guide_id' => $request->guide_id,
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã gán hướng dẫn viên thành công!',
+            'data' => [
+                'departure_date' => $request->departure_date,
+                'guide_id' => $request->guide_id,
+                'guide_name' => $guide->name,
+            ]
+        ]);
+    }
+
+    /**
+     * B4: Gán xe (xe 16-29-45 chỗ)
+     */
+    public function assignVehicle(Request $request)
+    {
+        $request->validate([
+            'departure_date' => 'required|date',
+            'vehicle_type' => 'required|in:16,29,45',
+            'vehicle_details' => 'nullable|string|max:255',
+            'driver_contact' => 'nullable|string|max:255',
+        ]);
+
+        // Lấy tất cả departures có cùng ngày khởi hành
+        $departures = TourDeparture::whereDate('departure_date', $request->departure_date)->get();
+        
+        if ($departures->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không tìm thấy lịch khởi hành cho ngày này.'
+            ], 404);
+        }
+
+        // Gán xe cho tất cả departures cùng ngày
+        foreach ($departures as $departure) {
+            $departure->update([
+                'vehicle_type' => $request->vehicle_type,
+                'vehicle_details' => $request->vehicle_details,
+                'driver_contact' => $request->driver_contact,
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã gán xe thành công!',
+            'data' => [
+                'departure_date' => $request->departure_date,
+                'vehicle_type' => $request->vehicle_type,
+                'vehicle_details' => $request->vehicle_details,
+                'driver_contact' => $request->driver_contact,
+            ]
+        ]);
+    }
+
+    /**
+     * B5: Gửi thông tin trước tour cho khách
+     */
+    public function sendPreTourInfo(Request $request)
+    {
+        $request->validate([
+            'departure_date' => 'required|date',
+            'message' => 'nullable|string',
+            'send_email' => 'boolean',
+        ]);
+
+        // Lấy tất cả bookings có cùng ngày khởi hành
+        $bookings = Booking::whereHas('departure', function($query) use ($request) {
+            $query->whereDate('departure_date', $request->departure_date);
+        })->with(['user', 'tour', 'departure'])->get();
+
+        if ($bookings->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không tìm thấy đặt tour nào cho ngày này.'
+            ], 404);
+        }
+
+        $notificationService = new \App\Services\NotificationService();
+        $sentCount = 0;
+        $errors = [];
+
+        foreach ($bookings as $booking) {
+            try {
+                $title = 'Thông tin trước tour - ' . $booking->tour->title;
+                $message = $request->message ?? "Tour của bạn sẽ khởi hành vào ngày " . 
+                    $booking->departure->departure_date->format('d/m/Y') . 
+                    ". Vui lòng chuẩn bị sẵn sàng!";
+
+                $notificationService->sendNotification(
+                    $booking->user,
+                    \App\Services\NotificationService::TYPE_DEPARTURE_UPCOMING,
+                    $title,
+                    $message,
+                    $booking->id,
+                    'booking',
+                    $request->send_email ?? true
+                );
+                $sentCount++;
+            } catch (\Exception $e) {
+                $errors[] = "Lỗi gửi thông tin cho khách hàng {$booking->user->name}: " . $e->getMessage();
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Đã gửi thông tin cho {$sentCount} khách hàng.",
+            'data' => [
+                'sent_count' => $sentCount,
+                'total_count' => $bookings->count(),
+                'errors' => $errors,
+            ]
+        ]);
     }
 }

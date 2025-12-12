@@ -60,6 +60,26 @@ class BookingController extends Controller
             'note' => 'nullable|string|max:1000',
         ]);
 
+        $adults = $validated['adults'];
+        $children = $validated['children'] ?? 0;
+        $infants = $validated['infants'] ?? 0;
+
+        // Quy tắc kèm trẻ/em bé
+        $childLimit = $adults * 2;
+        $infantLimit = $adults * 1;
+
+        if ($children > $childLimit) {
+            return back()->withInput()->withErrors([
+                'children' => "{$adults} người lớn chỉ có thể đi kèm tối đa {$childLimit} trẻ em. Vui lòng tăng số người lớn hoặc giảm số trẻ.",
+            ]);
+        }
+
+        if ($infants > $infantLimit) {
+            return back()->withInput()->withErrors([
+                'infants' => "{$adults} người lớn chỉ có thể đi kèm tối đa {$infantLimit} em bé. Vui lòng tăng số người lớn hoặc giảm số em bé.",
+            ]);
+        }
+
         $tour = Tour::findOrFail($validated['tour_id']);
         $departure = TourDeparture::findOrFail($validated['departure_id']);
         // kiểm tra ngày khởi hành hợp lệ
@@ -67,16 +87,18 @@ class BookingController extends Controller
             return back()->withErrors(['departure_id' => 'Ngày khởi hành đã qua, vui lòng chọn ngày khác.']);
         }
 
-        // Check seat availability
-        if ($departure->seats_available < $validated['adults'] + $validated['children']) {
-            return back()->withErrors(['seats' => 'Không đủ chỗ trống cho số lượng khách đã chọn.']);
+        // Check seat availability (em bé ngồi chung, không trừ chỗ)
+        $seatPassengers = $adults + $children; // chỉ tính người lớn + trẻ em
+        $totalPassengers = $seatPassengers + $infants;
+        if ($departure->seats_available < $seatPassengers) {
+            return back()->withInput()->withErrors(['seats' => 'Không đủ chỗ trống cho số lượng người lớn và trẻ em đã chọn.']);
         }
 
 
         //Tính tổng tiền dựa theo giá của lịch khởi hành (TourDeparture)
-        $totalAmount = ($departure->price * $validated['adults']) +
-            ($departure->child_price * ($validated['children'] ?? 0)) +
-            ($departure->infant_price * ($validated['infants'] ?? 0));
+        $totalAmount = ($departure->price * $adults) +
+            ($departure->child_price * $children) +
+            ($departure->infant_price * $infants);
 
         // Apply promotion if provided
         $promotion = null;
@@ -93,17 +115,17 @@ class BookingController extends Controller
             'tour_id' => $validated['tour_id'],
             'departure_id' => $validated['departure_id'],
             'promotion_id' => $promotion?->id,
-            'adults' => $validated['adults'],
-            'children' => $validated['children'] ?? 0,
-            'infants' => $validated['infants'] ?? 0,
+            'adults' => $adults,
+            'children' => $children,
+            'infants' => $infants,
             'total_amount' => $totalAmount,
             'status' => 'pending',
             'note' => $validated['note'],
         ]);
 
         // Update available seats
-        $totalPassengers = ($validated['adults'] ?? 0) + ($validated['children'] ?? 0) + ($validated['infants'] ?? 0);
-        $departure->decrement('seats_available', $totalPassengers);
+        // Giảm chỗ trống theo số ghế cần (người lớn + trẻ em)
+        $departure->decrement('seats_available', $seatPassengers);
 
         // Send notification
         $notificationService = new NotificationService();

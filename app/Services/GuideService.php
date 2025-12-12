@@ -3,7 +3,11 @@
 namespace App\Services;
 
 use App\Models\Guide;
+use App\Models\User;
+use App\Models\Role;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class GuideService
 {
@@ -17,6 +21,56 @@ class GuideService
 
             // Tạm thời không ghi đè cột status gốc trong DB (tránh xung đột schema cũ)
             unset($data['status']);
+            
+            // Tạo tài khoản User cho hướng dẫn viên - BẮT BUỘC khi thêm mới
+            // Email đã được validate là required và unique trong StoreGuideRequest
+            $user = null;
+            $initialPassword = null;
+            
+            if (!empty($data['email'])) {
+                // Kiểm tra xem email đã tồn tại chưa (phòng trường hợp validation bị bypass)
+                $existingUser = User::where('email', $data['email'])->first();
+                
+                if (!$existingUser) {
+                    // Tạo password mặc định (có thể thay đổi sau)
+                    $initialPassword = $data['password'] ?? Str::random(12);
+                    
+                    $user = User::create([
+                        'name' => $data['full_name'] ?? $data['name'] ?? 'Guide',
+                        'email' => $data['email'],
+                        'password' => Hash::make($initialPassword),
+                        'phone' => $data['phone'] ?? null,
+                        'address' => $data['address'] ?? null,
+                    ]);
+                    
+                    // Gán role 'guide' cho user
+                    $guideRole = Role::where('name', 'guide')->first();
+                    if ($guideRole) {
+                        $user->roles()->attach($guideRole->id);
+                    }
+                } else {
+                    // Nếu user đã tồn tại, gán role guide nếu chưa có
+                    $guideRole = Role::where('name', 'guide')->first();
+                    if ($guideRole && !$existingUser->hasRole('guide')) {
+                        $existingUser->roles()->attach($guideRole->id);
+                    }
+                    $user = $existingUser;
+                }
+                
+                // Lưu user_id vào metadata
+                $currentMetadata = $data['metadata'] ?? [];
+                if (is_string($currentMetadata)) {
+                    $currentMetadata = json_decode($currentMetadata, true) ?? [];
+                }
+                if (!is_array($currentMetadata)) {
+                    $currentMetadata = [];
+                }
+                $currentMetadata['user_id'] = $user->id;
+                if ($initialPassword) {
+                    $currentMetadata['initial_password'] = $initialPassword;
+                }
+                $data['metadata'] = $currentMetadata;
+            }
             
             $guide = Guide::create($data);
             $this->syncRelations($guide, $data);
