@@ -11,8 +11,10 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('notifications', function (Blueprint $table) {
-            $table->unsignedBigInteger('related_id')->nullable()->after('type');
-            $table->string('related_type', 50)->nullable()->after('related_id');
+            if (!Schema::hasColumn('notifications', 'related_id')) {
+                $table->unsignedBigInteger('related_id')->nullable()->after('type');
+                $table->string('related_type', 50)->nullable()->after('related_id');
+            }
         });
     }
 

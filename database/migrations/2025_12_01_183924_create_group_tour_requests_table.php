@@ -8,6 +8,11 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Nếu bảng đã tồn tại (do import SQL trước đó) thì bỏ qua, tránh lỗi 1050.
+        if (Schema::hasTable('group_tour_requests')) {
+            return;
+        }
+
         Schema::create('group_tour_requests', function (Blueprint $table) {
             $table->id();
             

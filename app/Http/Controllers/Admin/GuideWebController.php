@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\Guide\StoreGuideRequest;
 use App\Http\Requests\Admin\Guide\UpdateGuideRequest;
 use App\Models\Guide;
 use App\Models\GuideCategory;
+use App\Models\User;
 use App\Services\GuideService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -48,9 +49,13 @@ class GuideWebController extends Controller
     public function create(): View
     {
         $categories = GuideCategory::orderBy('name')->get();
+        $guideUsers = User::whereHas('roles', fn($q) => $q->where('name', 'guide'))
+            ->orderBy('name')
+            ->get();
         return view('admin.guides.create', [
             'guide' => new Guide(),
             'categories' => $categories,
+            'guideUsers' => $guideUsers,
         ]);
     }
 
@@ -98,8 +103,11 @@ class GuideWebController extends Controller
     {
         $guide->load(['categories', 'languages', 'documents', 'healthRecords']);
         $categories = GuideCategory::orderBy('name')->get();
+        $guideUsers = User::whereHas('roles', fn($q) => $q->where('name', 'guide'))
+            ->orderBy('name')
+            ->get();
 
-        return view('admin.guides.edit', compact('guide', 'categories'));
+        return view('admin.guides.edit', compact('guide', 'categories', 'guideUsers'));
     }
 
     public function update(UpdateGuideRequest $request, Guide $guide): RedirectResponse
