@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\Admin\GuideCategoryController;
 use App\Http\Controllers\Api\Admin\TourOperationController;
 use App\Http\Controllers\Api\Admin\OperationStaffController;
 use App\Http\Controllers\Api\Admin\OperationServiceController;
+use App\Http\Controllers\TourScheduleController;
 
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -24,7 +25,40 @@ Route::prefix('tours')->group(function () {
     Route::get('/featured', [TourController::class, 'getFeatured']); // GET /api/tours/featured
     Route::get('/location/{location}', [TourController::class, 'getByLocation']); // GET /api/tours/location/hanoi
     Route::get('/{id}', [TourController::class, 'show']); // GET /api/tours/1
+    
+    // Tour schedule routes (public - khách có thể xem lịch trình)
+    Route::get('/{tourId}/schedules', [TourScheduleController::class, 'getScheduleDetails']); // GET /api/tours/1/schedules
 });
+
+// Public Guides API (for dropdown selection)
+Route::get('/guides/available', [TourScheduleController::class, 'getAvailableGuides']); // GET /api/guides/available
+
+// Departure management endpoints
+Route::get('/departures/{id}', [TourScheduleController::class, 'getDeparture']);
+Route::put('/departures/{id}', [TourScheduleController::class, 'updateDeparture']);
+Route::put('/departures/{id}/draft', [TourScheduleController::class, 'saveDepartureAsDraft']);
+Route::post('/departures/create', [TourScheduleController::class, 'createDeparture']);
+Route::get('/tours/{tourId}/departures', [TourScheduleController::class, 'getTourDepartures']);
+Route::get('/departures/by-date', [TourScheduleController::class, 'getDeparturesByDate']);
+
+// Test route
+Route::post('/test-schedule', function(Request $request) {
+    return response()->json([
+        'success' => true,
+        'message' => 'Test route works',
+        'data' => $request->all()
+    ]);
+});
+
+// Schedule management endpoints (public for testing)
+Route::post('/schedule-create/{tourId}', [TourScheduleController::class, 'createSchedule']);
+Route::put('/schedule-update/{tourId}/{scheduleId}', [TourScheduleController::class, 'updateSchedule']);
+Route::delete('/schedule-delete/{tourId}/{scheduleId}', [TourScheduleController::class, 'deleteSchedule']);
+
+// Notification endpoints
+Route::get('/notifications/recent', [TourScheduleController::class, 'getRecentNotifications']);
+Route::get('/notifications/new', [TourScheduleController::class, 'getNewNotifications']);
+Route::post('/notifications/mark-all-read', [TourScheduleController::class, 'markAllNotificationsAsRead']);
 
 // Public Promotion API routes (no authentication required)
 Route::prefix('promotions')->group(function () {
@@ -86,6 +120,19 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('tour-operations/{tour_operation}/services', [OperationServiceController::class, 'store']);
         Route::put('operation-services/{operation_service}', [OperationServiceController::class, 'update']);
         Route::delete('operation-services/{operation_service}', [OperationServiceController::class, 'destroy']);
+
+        // Tour Schedule Management (Admin only)
+        Route::prefix('tours/{tourId}/schedules')->group(function () {
+            Route::post('/', [TourScheduleController::class, 'createSchedule']); // POST /api/tours/1/schedules
+            Route::put('/{scheduleId}', [TourScheduleController::class, 'updateSchedule']); // PUT /api/tours/1/schedules/1
+            Route::delete('/{scheduleId}', [TourScheduleController::class, 'deleteSchedule']); // DELETE /api/tours/1/schedules/1
+        });
+
+        // Tour Departure Management (Admin only)
+        Route::prefix('departures')->group(function () {
+            Route::put('/{departureId}', [TourScheduleController::class, 'updateDeparture']); // PUT /api/departures/1
+        });
+
     });
 
     // ============================================

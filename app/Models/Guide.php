@@ -14,7 +14,6 @@ class Guide extends Model
 
     protected $fillable = [
         'user_id',
-        'name', // legacy column to keep DB schema compatible
         'code',
         'full_name',
         'date_of_birth',
@@ -46,6 +45,12 @@ class Guide extends Model
         'rating_average' => 'decimal:2',
         'rating_count' => 'integer',
         'experience_years' => 'integer',
+    ];
+
+    protected $attributes = [
+        'experience_years' => 0,
+        'rating_average' => 0.0,
+        'rating_count' => 0,
     ];
 
     public function categories(): BelongsToMany

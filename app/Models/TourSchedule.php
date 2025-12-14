@@ -15,6 +15,22 @@ class TourSchedule extends Model
         'day_number',
         'title',
         'description',
+        'location',
+        'start_time',
+        'end_time',
+        'meeting_point',
+        'activities',
+        'meals',
+        'accommodation',
+        'transportation',
+        'notes',
+        'images',
+    ];
+
+    protected $casts = [
+        'start_time' => 'datetime:H:i',
+        'end_time' => 'datetime:H:i',
+        'images' => 'array',
     ];
 
     /**

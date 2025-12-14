@@ -14,10 +14,22 @@ class GuideService
     public function create(array $data): Guide
     {
         return DB::transaction(function () use ($data) {
-            // Map full_name -> name cho schema cũ (bảng guides đang dùng cột name)
-            if (!empty($data['full_name']) && empty($data['name'])) {
-                $data['name'] = $data['full_name'];
+            // Đảm bảo có full_name
+            if (empty($data['full_name']) && !empty($data['name'])) {
+                $data['full_name'] = $data['name'];
             }
+            
+            // Nếu vẫn không có full_name, tạo từ email hoặc tạo mặc định
+            if (empty($data['full_name'])) {
+                if (!empty($data['email'])) {
+                    $data['full_name'] = explode('@', $data['email'])[0];
+                } else {
+                    $data['full_name'] = 'Hướng dẫn viên';
+                }
+            }
+            
+            // Xóa trường name nếu có (không cần thiết)
+            unset($data['name']);
 
             // Tạm thời không ghi đè cột status gốc trong DB (tránh xung đột schema cũ)
             unset($data['status']);
@@ -41,15 +53,24 @@ class GuideService
                         'password' => Hash::make($initialPassword),
                         'phone' => $data['phone'] ?? null,
                         'address' => $data['address'] ?? null,
+                        'role' => 'guide', // CRITICAL: Set role directly in users table
                     ]);
                     
-                    // Gán role 'guide' cho user
+                    // Gán role 'guide' cho user trong bảng user_roles (nếu có)
+                        'role' => 'guide', // CRITICAL: Set role directly in users table
+                    ]);
+                    
+                    // Gán role 'guide' cho user trong bảng user_roles (nếu có)
                     $guideRole = Role::where('name', 'guide')->first();
                     if ($guideRole) {
                         $user->roles()->attach($guideRole->id);
                     }
                 } else {
                     // Nếu user đã tồn tại, gán role guide nếu chưa có
+                    if ($existingUser->role !== 'guide') {
+                        $existingUser->update(['role' => 'guide']);
+                    }
+                    
                     $guideRole = Role::where('name', 'guide')->first();
                     if ($guideRole && !$existingUser->hasRole('guide')) {
                         $existingUser->roles()->attach($guideRole->id);
@@ -57,7 +78,8 @@ class GuideService
                     $user = $existingUser;
                 }
                 
-                // Lưu user_id vào metadata
+                // Lưu user_id vào trường user_id và metadata
+                $data['user_id'] = $user->id;
                 $currentMetadata = $data['metadata'] ?? [];
                 if (is_string($currentMetadata)) {
                     $currentMetadata = json_decode($currentMetadata, true) ?? [];
@@ -72,7 +94,34 @@ class GuideService
                 $data['metadata'] = $currentMetadata;
             }
             
-            $guide = Guide::create($data);
+            // Đảm bảo các trường bắt buộc có giá trị mặc định
+            $data['experience_years'] = $data['experience_years'] ?? 0;
+            $data['rating_average'] = $data['rating_average'] ?? 0.0;
+            $data['rating_count'] = $data['rating_count'] ?? 0;
+            
+            // Tạo code tự động nếu chưa có
+            if (empty($data['code'])) {
+                $data['code'] = 'HDV' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+                
+                // Đảm bảo code là unique
+                while (Guide::where('code', $data['code'])->exists()) {
+                    $data['code'] = 'HDV' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+                }
+            }
+            
+            // Debug: Log data before creating guide
+            \Log::info('Creating guide with data:', $data);
+            
+            try {
+                $guide = Guide::create($data);
+                \Log::info('Guide created successfully:', ['id' => $guide->id]);
+            } catch (\Exception $e) {
+                \Log::error('Failed to create guide:', [
+                    'error' => $e->getMessage(),
+                    'data' => $data
+                ]);
+                throw $e;
+            }
             $this->syncRelations($guide, $data);
 
             return $guide->load(['categories', 'languages', 'documents', 'healthRecords']);
@@ -82,10 +131,13 @@ class GuideService
     public function update(Guide $guide, array $data): Guide
     {
         return DB::transaction(function () use ($guide, $data) {
-            // Map full_name -> name cho schema cũ
-            if (!empty($data['full_name'])) {
-                $data['name'] = $data['full_name'];
+            // Đảm bảo có full_name
+            if (empty($data['full_name']) && !empty($data['name'])) {
+                $data['full_name'] = $data['name'];
             }
+            
+            // Xóa trường name nếu có (không cần thiết)
+            unset($data['name']);
 
             // Không cập nhật cột status để tránh lỗi với schema cũ
             unset($data['status']);

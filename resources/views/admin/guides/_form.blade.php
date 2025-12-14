@@ -61,7 +61,7 @@
                 </div>
                 <div class="col-md-8">
                     <label class="form-label">Họ tên *</label>
-                    <input type="text" name="full_name" class="form-control" value="{{ old('full_name', $guide->full_name) }}" required>
+                    <input type="text" name="full_name" class="form-control" value="{{ old('full_name', $guide->full_name ?? '') }}" required placeholder="Nhập họ tên hướng dẫn viên">
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Ngày sinh</label>
@@ -109,7 +109,7 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Số năm kinh nghiệm</label>
-                    <input type="number" min="0" name="experience_years" class="form-control" value="{{ old('experience_years', $guide->experience_years) }}">
+                    <input type="number" min="0" name="experience_years" class="form-control" value="{{ old('experience_years', $guide->experience_years ?? 0) }}" placeholder="0">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Điểm đánh giá</label>
