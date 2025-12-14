@@ -44,16 +44,17 @@ class TourScheduleController extends Controller
             ->with('success', 'Thêm lịch trình thành công.');
     }
 
-    public function edit($id)
+    public function edit($tourId, $scheduleId)
     {
-        $schedule = TourSchedule::findOrFail($id);
-        $tour = $schedule->tour; // Lấy tour liên quan
+        $tour = Tour::findOrFail($tourId);
+        $schedule = TourSchedule::where('tour_id', $tourId)->where('id', $scheduleId)->firstOrFail();
         return view('admin.tour_schedules.edit', compact('tour', 'schedule'));
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, $tourId, $scheduleId)
     {
-        $schedule = TourSchedule::findOrFail($id);
+        $tour = Tour::findOrFail($tourId);
+        $schedule = TourSchedule::where('tour_id', $tourId)->where('id', $scheduleId)->firstOrFail();
 
         $request->validate([
             'day_number' => 'required|integer|min:1',
@@ -63,14 +64,14 @@ class TourScheduleController extends Controller
 
         $schedule->update($request->only(['day_number', 'title', 'description']));
 
-        return redirect()->route('admin.schedules.index', $schedule->tour_id)
+        return redirect()->route('admin.schedules.index', $tourId)
             ->with('success', 'Cập nhật lịch trình thành công.');
     }
 
-    public function destroy($id)
+    public function destroy($tourId, $scheduleId)
     {
-        $schedule = TourSchedule::findOrFail($id);
-        $tourId = $schedule->tour_id;
+        $tour = Tour::findOrFail($tourId);
+        $schedule = TourSchedule::where('tour_id', $tourId)->where('id', $scheduleId)->firstOrFail();
         $schedule->delete();
 
         return redirect()->route('admin.schedules.index', $tourId)

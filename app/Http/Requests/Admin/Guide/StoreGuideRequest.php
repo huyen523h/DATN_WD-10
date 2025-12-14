@@ -14,13 +14,14 @@ class StoreGuideRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'code' => ['required', 'string', 'max:50', 'unique:guides,code'],
+            'code' => ['nullable', 'string', 'max:50', 'unique:guides,code'],
             'full_name' => ['required', 'string', 'max:255'],
             'date_of_birth' => ['nullable', 'date'],
             'gender' => ['nullable', 'in:male,female,other'],
             'avatar_url' => ['nullable', 'string', 'max:500'],
             'phone' => ['nullable', 'string', 'max:50'],
-            'email' => ['nullable', 'email', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['nullable', 'string', 'min:8'],
             'address' => ['nullable', 'string', 'max:500'],
             'emergency_contact_name' => ['nullable', 'string', 'max:255'],
             'emergency_contact_phone' => ['nullable', 'string', 'max:50'],
@@ -64,6 +65,12 @@ class StoreGuideRequest extends FormRequest
             'health_records.*.hospital' => ['nullable', 'string', 'max:255'],
             'health_records.*.notes' => ['nullable', 'string'],
             'health_records.*.attachments' => ['nullable', 'array'],
+
+            // Liên kết tài khoản user cho HDV
+            'user_id' => ['nullable', 'integer', 'exists:users,id'],
+            'create_user_account' => ['nullable', 'boolean'],
+            'user_email' => ['nullable', 'email', 'max:255'],
+            'user_password' => ['nullable', 'string', 'min:6', 'max:100'],
         ];
     }
 }

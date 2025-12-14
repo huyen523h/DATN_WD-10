@@ -100,7 +100,19 @@ class RolePermissionSeeder extends Seeder
                     'tours.view',
                     'bookings.view', 'bookings.create'
                 ]
-            ]
+            ],
+            [
+                'name' => 'guide',
+                'display_name' => 'Hướng dẫn viên',
+                'description' => 'Tài khoản hướng dẫn viên, chỉ xem lịch được phân công',
+                'is_active' => true,
+                'permissions' => [
+                    // Cho phép xem tour & booking liên quan tới mình (phần API/web sẽ tự lọc theo user)
+                    'tours.view',
+                    'bookings.view',
+                    'reports.view',
+                ]
+            ],
         ];
 
         foreach ($roles as $roleData) {

@@ -746,50 +746,63 @@
                             <i class="fas fa-home"></i> Trang chủ
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ route('tours.index') }}">
-                            <i class="fas fa-map-marked-alt"></i> Tours
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ route('wishlists.index') }}" title="Yêu thích">
-                            <i class="fas fa-heart text-danger"></i> <span class="d-none d-lg-inline">Yêu thích</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ route('about') }}" title="Về chúng tôi">
-                            <i class="fas fa-info-circle"></i> <span class="d-none d-lg-inline">Về chúng tôi</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ route('blog.index') }}">
-                            <i class="fas fa-newspaper"></i> Blog
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ route('promotions.index') }}" title="Ưu đãi">
-                            <i class="fas fa-gift"></i> <span class="d-none d-lg-inline">Ưu đãi</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ route('contact') }}" title="Liên hệ">
-                            <i class="fas fa-envelope"></i> <span class="d-none d-lg-inline">Liên hệ</span>
-                        </a>
-                    </li>
-
-                    {{-- đăt tour theo đoàn --}}
-                    <li class="nav-item">
-    <a class="nav-link {{ request()->routeIs('group-tour.create') ? 'active' : '' }}" 
-       href="{{ route('group-tour.create') }}">
-        <i class="fas fa-users"></i> Đặt tour đoàn
-    </a>
-</li>
-                    @auth
+                    @if(!Auth::check() || !Auth::user()->isGuide())
+                        {{-- Menu cho khách hàng và guest --}}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ route('bookings.index') }}">
-                                <i class="fas fa-calendar-check"></i> Đặt tour
+                            <a class="nav-link" href="{{ route('tours.index') }}">
+                                <i class="fas fa-map-marked-alt"></i> Tours
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('wishlists.index') }}" title="Yêu thích">
+                                <i class="fas fa-heart text-danger"></i> <span class="d-none d-lg-inline">Yêu thích</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('about') }}" title="Về chúng tôi">
+                                <i class="fas fa-info-circle"></i> <span class="d-none d-lg-inline">Về chúng tôi</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('blog.index') }}">
+                                <i class="fas fa-newspaper"></i> Blog
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('promotions.index') }}" title="Ưu đãi">
+                                <i class="fas fa-gift"></i> <span class="d-none d-lg-inline">Ưu đãi</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('contact') }}" title="Liên hệ">
+                                <i class="fas fa-envelope"></i> <span class="d-none d-lg-inline">Liên hệ</span>
+                            </a>
+                        </li>
+                    @endif
+
+                    @auth
+                        @if(Auth::user()->isGuide())
+                            {{-- Menu riêng cho HDV --}}
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('guide.*') ? 'active' : '' }}" href="{{ route('guide.dashboard') }}">
+                                    <i class="fas fa-user-tie"></i> <span class="d-none d-lg-inline">Dashboard HDV</span>
+                                </a>
+                            </li>
+                        @else
+                            {{-- Menu cho khách hàng --}}
+                            {{-- đăt tour theo đoàn --}}
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('group-tour.create') ? 'active' : '' }}" 
+                                   href="{{ route('group-tour.create') }}">
+                                    <i class="fas fa-users"></i> Đặt tour đoàn
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('bookings.index') }}">
+                                    <i class="fas fa-calendar-check"></i> Đặt tour
+                                </a>
+                            </li>
+                        @endif
                     @endauth
                 </ul>
 
@@ -827,13 +840,32 @@
                                     <li><a class="dropdown-item" href="{{ route('admin.dashboard') }}">
                                             <i class="fas fa-tachometer-alt"></i> Admin Dashboard
                                         </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                @elseif (Auth::user()->isStaff())
+                                    <li><a class="dropdown-item" href="{{ route('staff.dashboard') }}">
+                                            <i class="fas fa-tachometer-alt"></i> Staff Dashboard
+                                        </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                @elseif (Auth::user()->isGuide())
+                                    <li><a class="dropdown-item" href="{{ route('guide.dashboard') }}">
+                                            <i class="fas fa-user-tie"></i> Dashboard HDV
+                                        </a></li>
+                                    <li><hr class="dropdown-divider"></li>
                                 @endif
-                                <li><a class="dropdown-item" href="{{ route('profile.index') }}">
-                                        <i class="fas fa-user"></i> Thông tin cá nhân
-                                    </a></li>
-                                <li><a class="dropdown-item" href="{{ route('bookings.index') }}">
-                                        <i class="fas fa-calendar-check"></i> Đặt tour của tôi
-                                    </a></li>
+                                
+                                @if (!Auth::user()->isGuide())
+                                    <li><a class="dropdown-item" href="{{ route('profile.index') }}">
+                                            <i class="fas fa-user"></i> Thông tin cá nhân
+                                        </a></li>
+                                    <li><a class="dropdown-item" href="{{ route('bookings.index') }}">
+                                            <i class="fas fa-calendar-check"></i> Đặt tour của tôi
+                                        </a></li>
+                                @else
+                                    <li><a class="dropdown-item" href="{{ route('profile.index') }}">
+                                            <i class="fas fa-user"></i> Thông tin cá nhân
+                                        </a></li>
+                                @endif
+                                
                                 <li>
                                     <hr class="dropdown-divider">
                                 </li>

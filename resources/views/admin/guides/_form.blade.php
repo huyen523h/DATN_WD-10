@@ -27,6 +27,8 @@
             ['check_date' => '', 'status' => '', 'doctor_name' => '', 'hospital' => '', 'notes' => ''],
         ];
     }
+    $currentUserId = old('user_id', $guide->user_id ?? null);
+    $guideUsersList = $guideUsers ?? collect();
 @endphp
 
 @if ($errors->any())
@@ -59,7 +61,7 @@
                 </div>
                 <div class="col-md-8">
                     <label class="form-label">Họ tên *</label>
-                    <input type="text" name="full_name" class="form-control" value="{{ old('full_name', $guide->full_name) }}" required>
+                    <input type="text" name="full_name" class="form-control" value="{{ old('full_name', $guide->full_name ?? '') }}" required placeholder="Nhập họ tên hướng dẫn viên">
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Ngày sinh</label>
@@ -83,8 +85,11 @@
                     <input type="text" name="phone" class="form-control" value="{{ old('phone', $guide->phone) }}">
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label">Email</label>
-                    <input type="email" name="email" class="form-control" value="{{ old('email', $guide->email) }}">
+                    <label class="form-label">Email * <small class="text-muted">(Dùng để tạo tài khoản đăng nhập)</small></label>
+                    <input type="email" name="email" class="form-control" value="{{ old('email', $guide->email) }}" {{ $isEdit ? '' : 'required' }}>
+                    @if(!$isEdit)
+                        <small class="text-muted">Email này sẽ được dùng để tạo tài khoản đăng nhập cho HDV</small>
+                    @endif
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Ngôn ngữ chính</label>
@@ -104,7 +109,7 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Số năm kinh nghiệm</label>
-                    <input type="number" min="0" name="experience_years" class="form-control" value="{{ old('experience_years', $guide->experience_years) }}">
+                    <input type="number" min="0" name="experience_years" class="form-control" value="{{ old('experience_years', $guide->experience_years ?? 0) }}" placeholder="0">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Điểm đánh giá</label>
@@ -141,6 +146,61 @@
                 <div class="col-12">
                     <label class="form-label">Tiểu sử / ghi chú</label>
                     <textarea name="biography" rows="3" class="form-control">{{ old('biography', $guide->biography) }}</textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">Tài khoản đăng nhập (HDV)</div>
+        <div class="card-body">
+            <div class="row g-3">
+                @if ($guide->user)
+                    <div class="col-12">
+                        <div class="alert alert-info py-2 mb-2">
+                            Tài khoản hiện tại: <strong>{{ $guide->user->email }}</strong>
+                        </div>
+                    </div>
+                @endif
+
+                <div class="col-md-6">
+                    <label class="form-label">Chọn tài khoản hướng dẫn viên đã có</label>
+                    <select name="user_id" class="form-select">
+                        <option value="">-- Không gán / giữ nguyên --</option>
+                        @foreach ($guideUsersList as $user)
+                            <option value="{{ $user->id }}" @selected($currentUserId == $user->id)>
+                                {{ $user->name }} ({{ $user->email }})
+                            </option>
+                        @endforeach
+                    </select>
+                    <small class="text-muted">
+                        Chọn user có role <code>guide</code> nếu đã tạo tài khoản trước đó.
+                    </small>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="create_user_account" value="1"
+                            id="createUserAccountCheckbox" @checked(old('create_user_account'))>
+                        <label class="form-check-label" for="createUserAccountCheckbox">
+                            Tạo mới tài khoản đăng nhập cho HDV này
+                        </label>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-12">
+                            <label class="form-label">Email đăng nhập</label>
+                            <input type="email" name="user_email" class="form-control"
+                                   value="{{ old('user_email', $guide->user->email ?? $guide->email) }}">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Mật khẩu ban đầu</label>
+                            <input type="password" name="user_password" class="form-control"
+                                   placeholder="{{ $isEdit ? 'Để trống nếu không đổi mật khẩu' : '' }}">
+                        </div>
+                    </div>
+                    <small class="text-muted d-block mt-1">
+                        Nếu tick tạo tài khoản mới, hệ thống sẽ tạo (hoặc dùng lại) user theo email trên và gán role <code>guide</code>.
+                    </small>
                 </div>
             </div>
         </div>
@@ -228,7 +288,7 @@
         </div>
     </div>
 
-    <div class="card mb-4">
+    {{-- <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
             <span>Tài liệu & giấy tờ</span>
             <button type="button" class="btn btn-sm btn-outline-primary" data-add-row data-target="#documentRows" data-template="#documentTemplate">
@@ -278,7 +338,7 @@
                 </div>
             @endforeach
         </div>
-    </div>
+    </div> --}}
 
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
@@ -328,7 +388,7 @@
     </div>
 </form>
 
-<template id="certificationTemplate">
+{{-- <template id="certificationTemplate">
     <div class="row g-3 align-items-end repeat-row mb-3">
         <div class="col-md-10">
             <label class="form-label">Tên chứng chỉ</label>
@@ -338,9 +398,9 @@
             <button type="button" class="btn btn-outline-danger w-100" data-remove-row>Xoá</button>
         </div>
     </div>
-</template>
+</template> --}}
 
-<template id="languageTemplate">
+{{-- <template id="languageTemplate">
     <div class="border rounded p-3 mb-3 repeat-row">
         <div class="row g-3">
             <div class="col-md-4">
@@ -369,9 +429,9 @@
             <button type="button" class="btn btn-outline-danger btn-sm" data-remove-row>Xoá</button>
         </div>
     </div>
-</template>
+</template> --}}
 
-<template id="documentTemplate">
+{{-- <template id="documentTemplate">
     <div class="border rounded p-3 mb-3 repeat-row">
         <div class="row g-3">
             <div class="col-md-3">
@@ -412,9 +472,9 @@
             <button type="button" class="btn btn-outline-danger btn-sm" data-remove-row>Xoá</button>
         </div>
     </div>
-</template>
+</template> --}}
 
-<template id="healthTemplate">
+{{-- <template id="healthTemplate">
     <div class="border rounded p-3 mb-3 repeat-row">
         <div class="row g-3">
             <div class="col-md-3">
@@ -442,5 +502,5 @@
             <button type="button" class="btn btn-outline-danger btn-sm" data-remove-row>Xoá</button>
         </div>
     </div>
-</template>
+</template> --}}
 

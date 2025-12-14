@@ -6,13 +6,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Guide extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'name', // legacy column to keep DB schema compatible
+        'user_id',
         'code',
         'full_name',
         'date_of_birth',
@@ -46,6 +47,12 @@ class Guide extends Model
         'experience_years' => 'integer',
     ];
 
+    protected $attributes = [
+        'experience_years' => 0,
+        'rating_average' => 0.0,
+        'rating_count' => 0,
+    ];
+
     public function categories(): BelongsToMany
     {
         return $this->belongsToMany(GuideCategory::class, 'guide_guide_category')
@@ -70,6 +77,11 @@ class Guide extends Model
     public function staffAssignments(): HasMany
     {
         return $this->hasMany(OperationStaffAssignment::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 }
 

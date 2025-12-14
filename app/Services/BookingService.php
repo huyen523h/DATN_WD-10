@@ -51,6 +51,7 @@ class BookingService
                 'total_amount' => $totalAmount,
                 'status' => 'pending',
                 'note' => $data['note'] ?? null,
+                'expires_at' => now()->addMinutes(15), // Giữ chỗ 15 phút để thanh toán
             ]);
 
             // Update available seats

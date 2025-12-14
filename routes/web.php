@@ -28,203 +28,25 @@ Route::get('/', function () {
     return view('welcome');
 })->name('welcome');
 
-// ============================================
-// DEBUG ROUTES - Test & Development
-// ============================================
 
-// Simple debug route
-Route::get('/debug-simple', function () {
-    try {
-        $tour = App\Models\Tour::first();
-        $departures = App\Models\TourDeparture::where('tour_id', $tour->id)->get();
 
-        return response()->json([
-            'success' => true,
-            'tour_id' => $tour->id,
-            'tour_title' => $tour->title,
-            'departures_count' => $departures->count(),
-            'departures' => $departures->map(function ($dep) {
-                return [
-                    'id' => $dep->id,
-                    'date' => $dep->departure_date,
-                    'seats' => $dep->seats_available . '/' . $dep->seats_total
-                ];
-            })
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'error' => $e->getMessage()
-        ]);
-    }
-});
 
-// Debug route to check what's happening in test-booking
-Route::get('/debug-test-booking', function () {
-    $tour = App\Models\Tour::first();
-    $departures = App\Models\TourDeparture::where('tour_id', $tour->id)
-        ->orderBy('departure_date', 'asc')
-        ->get();
 
-    return response()->json([
-        'tour_id' => $tour->id,
-        'tour_title' => $tour->title,
-        'departures_count' => $departures->count(),
-        'departures' => $departures->map(function ($dep) {
-            return [
-                'id' => $dep->id,
-                'date' => $dep->departure_date,
-                'seats' => $dep->seats_available . '/' . $dep->seats_total
-            ];
-        })
-    ]);
-});
 
-// Test route with hardcoded data
-Route::get('/test-hardcoded', function () {
-    $tour = (object) [
-        'id' => 1,
-        'title' => 'Test Tour',
-        'price' => 1000000
-    ];
 
-    $departures = collect([
-        (object) ['id' => 1, 'departure_date' => '2025-10-19', 'seats_available' => 15, 'seats_total' => 20],
-        (object) ['id' => 2, 'departure_date' => '2025-10-26', 'seats_available' => 18, 'seats_total' => 20],
-        (object) ['id' => 3, 'departure_date' => '2025-11-02', 'seats_available' => 12, 'seats_total' => 20],
-    ]);
 
-    $promotions = collect();
 
-    return view('bookings.create', compact('tour', 'departures', 'promotions'));
-});
 
-// Debug route to check data
-Route::get('/debug-departures', function () {
-    $tour = App\Models\Tour::first();
-    $departures = App\Models\TourDeparture::where('tour_id', $tour->id)->get();
 
-    $output = "Tour ID: " . $tour->id . "\n";
-    $output .= "Tour Title: " . $tour->title . "\n";
-    $output .= "Departures count: " . $departures->count() . "\n\n";
 
-    foreach ($departures as $dep) {
-        $output .= "Departure ID: " . $dep->id . "\n";
-        $output .= "Date: " . $dep->departure_date . "\n";
-        $output .= "Seats: " . $dep->seats_available . "/" . $dep->seats_total . "\n";
-        $output .= "---\n";
-    }
 
-    return response($output, 200, ['Content-Type' => 'text/plain']);
-});
 
-// ============================================
-// INVOICE DEBUG & TEST ROUTES
-// ============================================
 
-// Test Invoice API
-Route::get('/test-invoice', function () {
-    return view('test-invoice');
-});
 
-// Debug API endpoint
-Route::get('/debug-invoice/{bookingId}', function ($bookingId) {
-    try {
-        $booking = \App\Models\Booking::with(['user', 'tour'])->find($bookingId);
 
-        if (!$booking) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Booking not found',
-                'booking_id' => $bookingId
-            ], 404);
-        }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Booking found',
-            'data' => [
-                'booking_id' => $booking->id,
-                'user_name' => $booking->user->name,
-                'tour_title' => $booking->tour->title,
-                'total_amount' => $booking->total_amount,
-                'has_invoice' => $booking->invoice ? true : false
-            ]
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Error: ' . $e->getMessage()
-        ], 500);
-    }
-});
 
-// Test route to check if we have any bookings
-Route::get('/test-bookings', function () {
-    try {
-        $bookings = \App\Models\Booking::with(['user', 'tour'])->take(5)->get();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Bookings found',
-            'count' => $bookings->count(),
-            'data' => $bookings->map(function ($booking) {
-                return [
-                    'id' => $booking->id,
-                    'user_name' => $booking->user->name ?? 'No user',
-                    'tour_title' => $booking->tour->title ?? 'No tour',
-                    'total_amount' => $booking->total_amount ?? 0,
-                    'status' => $booking->status ?? 'unknown'
-                ];
-            })
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Error: ' . $e->getMessage()
-        ], 500);
-    }
-});
-
-// Simple test route
-Route::get('/simple-test', function () {
-    return response()->json([
-        'success' => true,
-        'message' => 'Simple test route working!',
-        'timestamp' => now()
-    ]);
-});
-
-// Debug invoice route (simple version)
-Route::get('/debug-invoice-simple/{bookingId}', function ($bookingId) {
-    try {
-        $booking = \App\Models\Booking::with(['user', 'tour'])->find($bookingId);
-
-        if (!$booking) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Booking not found'
-            ], 404);
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Booking found',
-            'data' => [
-                'booking_id' => $booking->id,
-                'user_name' => $booking->user->name ?? 'No user',
-                'tour_title' => $booking->tour->title ?? 'No tour',
-                'total_amount' => $booking->total_amount ?? 0
-            ]
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Error: ' . $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ], 500);
-    }
-});
 
 // ============================================
 // INVOICE GENERATION ROUTE (Web Interface)
@@ -470,11 +292,144 @@ Route::middleware('auth')->group(function () {
     // MoMo gửi IPN server → server xác nhận đơn hàng
     Route::post('/payment/momo_ipn', [CheckoutController::class, 'momo_ipn'])->name('momo.ipn');
 
+    // Thanh toán VNPay
+    Route::post('/payment/vnpay/{id}', [CheckoutController::class, 'vnpay_payment'])->name('payment.vnpay');
+
 });
+
+// VNPay callback routes (không cần auth)
+Route::get('/payment/vnpay/return', [CheckoutController::class, 'vnpay_return'])->name('payment.vnpay.return');
+Route::get('/payment/vnpay_return', [CheckoutController::class, 'vnpay_return'])->name('payment.vnpay_return');
 
 // --- 1. ROUTE CHO KHÁCH (Đặt ở ngoài, không cần đăng nhập cũng xem được) ---
 Route::get('/dat-tour-doan', [GroupTourController::class, 'create'])->name('group-tour.create');
 Route::post('/dat-tour-doan', [GroupTourController::class, 'store'])->name('group-tour.store');
+
+// ============================================
+// TOUR SCHEDULE DEMO ROUTES
+// ============================================
+
+// Customer tour schedule page
+Route::get('/customer/tour-schedule', function () {
+    return view('customer.tour-schedule');
+})->name('customer.tour-schedule');
+
+// Tour system demo page
+Route::get('/tour-system-demo', function () {
+    return view('tour-system-demo');
+})->name('tour-system-demo');
+
+// Guide backup demo page
+Route::get('/guide-backup-demo', function () {
+    return view('guide-backup-demo');
+})->name('guide-backup-demo');
+
+// Features dashboard
+Route::get('/features-dashboard', function () {
+    return view('features-dashboard');
+})->name('features-dashboard');
+
+// Admin System Test
+Route::get('/admin-system-test', function () {
+    return view('admin-system-test');
+})->name('admin-system-test');
+
+// Schedule Test
+Route::get('/schedule-test', function () {
+    return view('schedule-test');
+})->name('schedule-test');
+
+// System Dashboard
+Route::get('/system-dashboard', function () {
+    return view('system-dashboard');
+})->name('system-dashboard');
+
+// Quick Test
+Route::get('/quick-test', function () {
+    return view('quick-test');
+})->name('quick-test');
+
+// Test Hub
+Route::get('/test-hub', function () {
+    return view('test-hub');
+})->name('test-hub');
+
+// Guide Assignment Test
+Route::get('/guide-assignment-test', function () {
+    return view('guide-assignment-test');
+})->name('guide-assignment-test');
+
+// Departure Sync Test
+Route::get('/departure-sync-test', function () {
+    return view('departure-sync-test');
+})->name('departure-sync-test');
+
+// Create Departure Test
+Route::get('/create-departure-test', function () {
+    return view('create-departure-test');
+})->name('create-departure-test');
+
+// Status Update Test
+Route::get('/status-update-test', function () {
+    return view('status-update-test');
+})->name('status-update-test');
+
+// Guide Conflict Test
+Route::get('/guide-conflict-test', function () {
+    return view('guide-conflict-test');
+})->name('guide-conflict-test');
+
+// Date Sync Test
+Route::get('/date-sync-test', function () {
+    return view('date-sync-test');
+})->name('date-sync-test');
+
+// Departure Comparison Test
+Route::get('/departure-comparison-test', function () {
+    return view('departure-comparison-test');
+})->name('departure-comparison-test');
+
+// Departure Date Debug
+Route::get('/departure-date-debug', function () {
+    return view('departure-date-debug');
+})->name('departure-date-debug');
+
+// Departure Update Test
+Route::get('/departure-update-test', function () {
+    return view('departure-update-test');
+})->name('departure-update-test');
+
+// Guide Conflict Debug
+Route::get('/guide-conflict-debug', function () {
+    return view('guide-conflict-debug');
+})->name('guide-conflict-debug');
+
+// Same Guide Test
+Route::get('/same-guide-test', function () {
+    return view('same-guide-test');
+})->name('same-guide-test');
+
+// Test Create Guide
+Route::get('/test-create-guide', function () {
+    return view('test-create-guide');
+})->name('test-create-guide');
+
+// Debug Guides
+Route::get('/debug-guides', function () {
+    return view('debug-guides');
+})->name('debug-guides');
+
+// Sync Guides with Users
+Route::get('/sync-guides-users', function () {
+    Artisan::call('guides:sync-users');
+    $output = Artisan::output();
+    return response('<pre>' . $output . '</pre><br><a href="/debug-guides">View Debug Page</a>');
+})->name('sync-guides-users');
+
+// Redirect old admin schedule routes to new tour schedule management
+Route::get('/admin/schedules/{tourId}', function ($tourId) {
+    return redirect("/admin/tour-schedule-management?tour_id={$tourId}");
+})->name('admin.schedules.index');
 
 // ============================================
 // ADMIN ROUTES
@@ -492,6 +447,14 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::put('/tours/{tour}', [AdminController::class, 'updateTour'])->name('tours.update');
     Route::delete('/tours/{tour}', [AdminController::class, 'deleteTour'])->name('tours.destroy');
 
+    // Tour Schedules management
+    Route::get('/tours/{tour}/schedules', [\App\Http\Controllers\Admin\TourScheduleController::class, 'index'])->name('schedules.index');
+    Route::get('/tours/{tour}/schedules/create', [\App\Http\Controllers\Admin\TourScheduleController::class, 'create'])->name('schedules.create');
+    Route::post('/tours/{tour}/schedules', [\App\Http\Controllers\Admin\TourScheduleController::class, 'store'])->name('schedules.store');
+    Route::get('/tours/{tour}/schedules/{schedule}/edit', [\App\Http\Controllers\Admin\TourScheduleController::class, 'edit'])->name('schedules.edit');
+    Route::put('/tours/{tour}/schedules/{schedule}', [\App\Http\Controllers\Admin\TourScheduleController::class, 'update'])->name('schedules.update');
+    Route::delete('/tours/{tour}/schedules/{schedule}', [\App\Http\Controllers\Admin\TourScheduleController::class, 'destroy'])->name('schedules.destroy');
+
     // Xóa ảnh của tour
     Route::delete('/tours/{tour}/images/{image}', [AdminController::class, 'deleteTourImage'])
         ->name('tours.images.delete');
@@ -502,6 +465,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
         // route mới 4/12/2025
         Route::post('/bookings/{booking}/admin-upload-manifest', [AdminController::class, 'uploadManifest'])->name('bookings.upload-manifest');
+
+    // Guides management
+    Route::resource('guides', GuideWebController::class);
 
     // Invoices management
     Route::resource('invoices', \App\Http\Controllers\InvoiceController::class);
@@ -515,7 +481,16 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/bookings', [AdminController::class, 'bookings'])->name('bookings');
     Route::get('/bookings/{booking}', [AdminController::class, 'showBooking'])->name('bookings.show');
     Route::put('/bookings/{booking}', [AdminController::class, 'updateBooking'])->name('bookings.update');
+    Route::post('/bookings/{booking}/confirm', [AdminController::class, 'confirmBooking'])->name('bookings.confirm');
+    Route::post('/bookings/{booking}/mark-as-paid', [AdminController::class, 'markAsPaid'])->name('bookings.markAsPaid');
+    Route::post('/bookings/{booking}/cancel', [AdminController::class, 'cancelBooking'])->name('bookings.cancel');
     Route::delete('/bookings/{booking}', [AdminController::class, 'deleteBooking'])->name('bookings.destroy');
+
+    //  Group management operations
+    Route::post('/bookings/confirm-group', [AdminController::class, 'confirmGroup'])->name('bookings.confirm-group');
+    Route::post('/bookings/assign-guide', [AdminController::class, 'assignGuide'])->name('bookings.assign-guide');
+    Route::post('/bookings/assign-vehicle', [AdminController::class, 'assignVehicle'])->name('bookings.assign-vehicle');
+    Route::post('/bookings/send-pre-tour-info', [AdminController::class, 'sendPreTourInfo'])->name('bookings.send-pre-tour-info');
 
     // Customers management
     Route::get('/customers', [AdminController::class, 'customers'])->name('customers');
@@ -627,15 +602,14 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/banners/{banner}/edit', [AdminController::class, 'editBanner'])->name('banners.edit');
     Route::put('/banners/{banner}', [AdminController::class, 'updateBanner'])->name('banners.update');
     Route::delete('/banners/{banner}', [AdminController::class, 'deleteBanner'])->name('banners.destroy');
-    Route::post('/banners/{banner}/move', [AdminController::class, 'moveBanner'])->name('banners.move');
 
-    // ============================================
-    // TEST NOTIFICATIONS (Admin Only)
-    // ============================================
-    Route::get('/test/notifications', [\App\Http\Controllers\TestNotificationController::class, 'index'])->name('test.notifications');
-    Route::post('/test/notifications/send', [\App\Http\Controllers\TestNotificationController::class, 'sendTest'])->name('test.notifications.send');
+    // Tour Schedule Management Routes
+    Route::get('/tour-schedule-management', function () {
+        return view('admin.tour-schedule-management');
+    })->name('tour-schedule-management');
+});
 
-    // ============================================
+
     // INVOICE MANAGEMENT (Admin Only)
     // ============================================
     Route::get('/invoices', function () {
@@ -645,6 +619,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/invoices', [App\Http\Controllers\InvoiceWebController::class, 'createInvoice']);
     Route::put('/invoices/{invoice}/status', [App\Http\Controllers\InvoiceWebController::class, 'updateStatus']);
     Route::get('/invoices/{invoice}', [App\Http\Controllers\InvoiceWebController::class, 'show']);
+    
     // Quản lý lịch trình
     Route::get('tours/{tour}/schedules', [TourScheduleController::class, 'index'])->name('schedules.index');
     Route::get('tours/{tour}/schedules/create', [TourScheduleController::class, 'create'])->name('schedules.create');
@@ -652,11 +627,61 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('schedules/{id}/edit', [TourScheduleController::class, 'edit'])->name('schedules.edit');
     Route::put('schedules/{id}', [TourScheduleController::class, 'update'])->name('schedules.update');
     Route::delete('schedules/{id}', [TourScheduleController::class, 'destroy'])->name('schedules.destroy');
-});
+
+    // Tour Schedule Management Routes
+// Trang quản lý lịch trình cho admin
+Route::get('/admin/tour-schedule-management', function () {
+    return view('admin.tour-schedule-management');
+})->name('admin.tour-schedule-management')->middleware(['auth', 'admin']);
+
+
 
 // ============================================
 // STAFF ROUTES
 // ============================================
+
+// Guide routes
+Route::middleware(['auth', 'guide'])->prefix('guide')->name('guide.')->group(function () {
+    // Dashboard
+    Route::get('/dashboard', [\App\Http\Controllers\Guide\GuideDashboardController::class, 'index'])->name('dashboard');
+    
+    // Departures
+    Route::get('/departures/{id}', [\App\Http\Controllers\Guide\GuideDashboardController::class, 'showDeparture'])->name('departures.show');
+    Route::get('/departures/{departureId}/customers', [\App\Http\Controllers\Guide\GuideDashboardController::class, 'showCustomers'])->name('departures.customers');
+    
+    // Tour Logs (Nhật ký tour)
+    Route::get('/departures/{departureId}/logs', [\App\Http\Controllers\Guide\TourLogController::class, 'index'])->name('tour-logs.index');
+    Route::get('/departures/{departureId}/logs/create', [\App\Http\Controllers\Guide\TourLogController::class, 'create'])->name('tour-logs.create');
+    Route::post('/departures/{departureId}/logs', [\App\Http\Controllers\Guide\TourLogController::class, 'store'])->name('tour-logs.store');
+    Route::get('/departures/{departureId}/logs/{logId}', [\App\Http\Controllers\Guide\TourLogController::class, 'show'])->name('tour-logs.show');
+    Route::get('/departures/{departureId}/logs/{logId}/edit', [\App\Http\Controllers\Guide\TourLogController::class, 'edit'])->name('tour-logs.edit');
+    Route::put('/departures/{departureId}/logs/{logId}', [\App\Http\Controllers\Guide\TourLogController::class, 'update'])->name('tour-logs.update');
+    Route::delete('/departures/{departureId}/logs/{logId}', [\App\Http\Controllers\Guide\TourLogController::class, 'destroy'])->name('tour-logs.destroy');
+    
+    // Check-ins (Điểm danh)
+    Route::get('/departures/{departureId}/check-ins', [\App\Http\Controllers\Guide\CheckInController::class, 'index'])->name('check-ins.index');
+    Route::get('/departures/{departureId}/check-ins/{checkInId}', [\App\Http\Controllers\Guide\CheckInController::class, 'show'])->name('check-ins.show');
+    Route::post('/departures/{departureId}/check-ins', [\App\Http\Controllers\Guide\CheckInController::class, 'store'])->name('check-ins.store');
+    Route::put('/departures/{departureId}/check-ins/{checkInId}', [\App\Http\Controllers\Guide\CheckInController::class, 'update'])->name('check-ins.update');
+    Route::delete('/departures/{departureId}/check-ins/{checkInId}', [\App\Http\Controllers\Guide\CheckInController::class, 'destroy'])->name('check-ins.destroy');
+    
+    // Special Requests (Yêu cầu đặc biệt)
+    Route::get('/departures/{departureId}/special-requests', [\App\Http\Controllers\Guide\SpecialRequestController::class, 'index'])->name('special-requests.index');
+    Route::get('/departures/{departureId}/special-requests/create', [\App\Http\Controllers\Guide\SpecialRequestController::class, 'create'])->name('special-requests.create');
+    Route::post('/departures/{departureId}/special-requests', [\App\Http\Controllers\Guide\SpecialRequestController::class, 'store'])->name('special-requests.store');
+    Route::get('/departures/{departureId}/special-requests/{requestId}', [\App\Http\Controllers\Guide\SpecialRequestController::class, 'show'])->name('special-requests.show');
+    Route::put('/departures/{departureId}/special-requests/{requestId}', [\App\Http\Controllers\Guide\SpecialRequestController::class, 'update'])->name('special-requests.update');
+    Route::delete('/departures/{departureId}/special-requests/{requestId}', [\App\Http\Controllers\Guide\SpecialRequestController::class, 'destroy'])->name('special-requests.destroy');
+    
+    // Feedback (Phản hồi đánh giá)
+    Route::get('/feedback', [\App\Http\Controllers\Guide\TourFeedbackController::class, 'index'])->name('feedback.index');
+    Route::get('/departures/{departureId}/feedback/create', [\App\Http\Controllers\Guide\TourFeedbackController::class, 'create'])->name('feedback.create');
+    Route::post('/departures/{departureId}/feedback', [\App\Http\Controllers\Guide\TourFeedbackController::class, 'store'])->name('feedback.store');
+    Route::get('/feedback/{id}', [\App\Http\Controllers\Guide\TourFeedbackController::class, 'show'])->name('feedback.show');
+    Route::get('/feedback/{id}/edit', [\App\Http\Controllers\Guide\TourFeedbackController::class, 'edit'])->name('feedback.edit');
+    Route::put('/feedback/{id}', [\App\Http\Controllers\Guide\TourFeedbackController::class, 'update'])->name('feedback.update');
+    Route::delete('/feedback/{id}', [\App\Http\Controllers\Guide\TourFeedbackController::class, 'destroy'])->name('feedback.destroy');
+});
 
 Route::middleware(['auth', 'staff'])->prefix('staff')->name('staff.')->group(function () {
     Route::get('/', [StaffController::class, 'dashboard'])->name('dashboard');
@@ -677,4 +702,8 @@ Route::middleware(['auth', 'staff'])->prefix('staff')->name('staff.')->group(fun
     // Profile
     Route::get('/profile', [StaffController::class, 'profile'])->name('profile');
     Route::post('/profile', [StaffController::class, 'updateProfile'])->name('profile.update');
+});
+// Test route for guide auto sync
+Route::get('/test-guide-auto-sync', function () {
+    return view('test-guide-auto-sync');
 });

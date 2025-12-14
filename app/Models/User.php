@@ -32,6 +32,7 @@ class User extends Authenticatable
         'password',
         'phone',
         'address',
+        'role',
     ];
 
     /**
@@ -163,5 +164,13 @@ class User extends Authenticatable
     public function isCustomer(): bool
     {
         return $this->hasRole('customer');
+    }
+
+    /**
+     * Check if user is guide.
+     */
+    public function isGuide(): bool
+    {
+        return $this->hasRole('guide');
     }
 }

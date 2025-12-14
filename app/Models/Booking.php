@@ -24,10 +24,12 @@ class Booking extends Model
         'promotion_code',
         'note',
         'passenger_manifest_file',
+        'expires_at',
     ];
 
     protected $casts = [
         'total_amount' => 'decimal:2',
+        'expires_at' => 'datetime',
     ];
 
     /**
@@ -103,10 +105,97 @@ class Booking extends Model
     }
 
     /**
+     * Get check-ins for the booking.
+     */
+    public function checkIns(): HasMany
+    {
+        return $this->hasMany(CheckIn::class);
+    }
+
+    /**
+     * Get special requests for the booking.
+     */
+    public function specialRequests(): HasMany
+    {
+        return $this->hasMany(GuestSpecialRequest::class);
+    }
+
+    /**
      * Get total passengers.
      */
     public function getTotalPassengersAttribute(): int
     {
         return $this->adults + $this->children + $this->infants;
+    }
+
+    /**
+     * Check if booking can be paid.
+     * 
+     * @return array{can_pay: bool, message: string}
+     */
+    public function canPay(): array
+    {
+        // Kiểm tra nếu booking đã EXPIRED
+        if ($this->status === 'expired') {
+            return [
+                'can_pay' => false,
+                'message' => 'Đặt tour này đã hết hạn thanh toán. Vui lòng đặt lại tour mới.'
+            ];
+        }
+
+        // Kiểm tra nếu booking PENDING nhưng đã hết hạn
+        if ($this->status === 'pending' && $this->expires_at && $this->expires_at->isPast()) {
+            // Tự động chuyển sang EXPIRED
+            $this->update(['status' => 'expired']);
+            return [
+                'can_pay' => false,
+                'message' => 'Đặt tour này đã hết hạn thanh toán. Vui lòng đặt lại tour mới.'
+            ];
+        }
+
+        // Booking phải ở trạng thái 'confirmed' hoặc 'pending' để có thể thanh toán
+        if (!in_array($this->status, ['confirmed', 'pending'])) {
+            return [
+                'can_pay' => false,
+                'message' => 'Đặt tour này không thể thanh toán. Trạng thái: ' . $this->status
+            ];
+        }
+
+        // Kiểm tra xem đã có payment completed chưa
+        $hasCompletedPayment = $this->payment()
+            ->where('status', 'completed')
+            ->exists();
+
+        if ($hasCompletedPayment) {
+            return [
+                'can_pay' => false,
+                'message' => 'Đặt tour này đã được thanh toán thành công.'
+            ];
+        }
+
+        // Kiểm tra departure có còn hợp lệ không
+        if ($this->departure) {
+            $departureDate = $this->departure->departure_date;
+            if ($departureDate && $departureDate->isPast()) {
+                return [
+                    'can_pay' => false,
+                    'message' => 'Không thể thanh toán vì ngày khởi hành đã qua.'
+                ];
+            }
+        }
+
+        // Trường hợp bình thường: có thể thanh toán
+        return [
+            'can_pay' => true,
+            'message' => 'Bạn có thể thanh toán cho đặt tour này.'
+        ];
+    }
+
+    /**
+     * Check if booking is completed.
+     */
+    public function isCompleted(): bool
+    {
+        return $this->status === 'completed';
     }
 }

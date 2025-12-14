@@ -34,6 +34,8 @@ class AuthController extends Controller
                 return redirect()->intended(route('admin.dashboard'));
             } elseif (Auth::user()->isStaff()) {
                 return redirect()->intended(route('staff.dashboard'));
+            } elseif (Auth::user()->isGuide()) {
+                return redirect()->intended(route('guide.dashboard'));
             } else {
                 return redirect()->intended('/tours');
             }
