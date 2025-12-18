@@ -197,6 +197,12 @@
                                     <strong>Chưa có ngày</strong>
                                 @endif
                             </h5>
+                            @if(!empty($group['tour']))
+                                <div class="mt-1">
+                                    <small class="text-white-50">Tour:</small>
+                                    <strong>{{ $group['tour']->title }}</strong>
+                                </div>
+                            @endif
                         </div>
                         <div class="col-md-6 text-end">
                             <div class="d-flex justify-content-end gap-3">
@@ -245,7 +251,7 @@
                                         <i class="fas fa-user-tie me-1"></i>HDV: {{ $group['guide']->name }}
                                     </span>
                                 @else
-                                    <button class="btn btn-sm btn-info" onclick="openAssignGuideModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}')">
+                                    <button class="btn btn-sm btn-info" onclick="openAssignGuideModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}', {{ $group['tour_id'] ?? 'null' }})">
                                         <i class="fas fa-user-tie me-1"></i> Gán HDV
                                     </button>
                                 @endif
@@ -253,9 +259,14 @@
                                 @if($group['vehicle_type'])
                                     <span class="badge bg-warning text-dark">
                                         <i class="fas fa-bus me-1"></i>Xe {{ $group['vehicle_type'] }} chỗ
+                                        @if($group['vehicle'] && $group['vehicle']->license_plate)
+                                            - {{ $group['vehicle']->license_plate }}
+                                        @elseif($group['vehicle_details'])
+                                            - {{ $group['vehicle_details'] }}
+                                        @endif
                                     </span>
                                 @else
-                                    <button class="btn btn-sm btn-warning" onclick="openAssignVehicleModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}')">
+                                    <button class="btn btn-sm btn-warning" onclick="openAssignVehicleModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}', {{ $group['tour_id'] ?? 'null' }})">
                                         <i class="fas fa-bus me-1"></i> Gán xe
                                     </button>
                                 @endif
@@ -1027,13 +1038,8 @@
         }
 
         // B3: Gán HDV
-        function openAssignGuideModal(departureDate) {
-            const guides = @json($guides ?? []);
-            let optionsHtml = '<option value="">-- Chọn hướng dẫn viên --</option>';
-            guides.forEach(guide => {
-                optionsHtml += `<option value="${guide.id}">${guide.name} (${guide.email})</option>`;
-            });
-            
+        async function openAssignGuideModal(departureDate, tourId) {
+            // Hiển thị modal với loading state
             const modalHtml = `
                 <div class="modal fade" id="assignGuideModal" tabindex="-1">
                     <div class="modal-dialog">
@@ -1045,11 +1051,13 @@
                             <form id="assignGuideForm">
                                 <div class="modal-body">
                                     <input type="hidden" name="departure_date" value="${departureDate}">
+                                    <input type="hidden" name="tour_id" value="${tourId}">
                                     <div class="mb-3">
                                         <label for="guide_id" class="form-label">Chọn hướng dẫn viên *</label>
                                         <select class="form-select" id="guide_id" name="guide_id" required>
-                                            ${optionsHtml}
+                                            <option value="">Đang tải danh sách...</option>
                                         </select>
+                                        <small class="text-muted">Chỉ hiển thị các HDV chưa được gán cho tour khác cùng ngày.</small>
                                     </div>
                                 </div>
                                 <div class="modal-footer">
@@ -1065,6 +1073,34 @@
             document.body.insertAdjacentHTML('beforeend', modalHtml);
             const modal = new bootstrap.Modal(document.getElementById('assignGuideModal'));
             modal.show();
+
+            // Gọi API để lấy danh sách HDV có sẵn
+            try {
+                const availableGuidesUrl = '{{ route("admin.bookings.available-guides") }}';
+                const url = availableGuidesUrl + '?departure_date=' + encodeURIComponent(departureDate) + '&tour_id=' + encodeURIComponent(tourId);
+                const response = await fetch(url, {
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                const selectElement = document.getElementById('guide_id');
+                
+                if (data.success && data.data.length > 0) {
+                    let optionsHtml = '<option value="">-- Chọn hướng dẫn viên --</option>';
+                    data.data.forEach(guide => {
+                        optionsHtml += `<option value="${guide.id}">${guide.name} (${guide.email})</option>`;
+                    });
+                    selectElement.innerHTML = optionsHtml;
+                } else {
+                    selectElement.innerHTML = '<option value="">Không có HDV nào có sẵn</option>';
+                    selectElement.disabled = true;
+                }
+            } catch (error) {
+                console.error('Error loading guides:', error);
+                document.getElementById('guide_id').innerHTML = '<option value="">Lỗi khi tải danh sách HDV</option>';
+            }
             
             document.getElementById('assignGuideForm').addEventListener('submit', async function(e) {
                 e.preventDefault();
@@ -1098,8 +1134,9 @@
             });
         }
 
-        // B4: Gán xe
-        function openAssignVehicleModal(departureDate) {
+        // B4: Gán xe (chọn từ danh sách Quản lý xe)
+        async function openAssignVehicleModal(departureDate, tourId) {
+            // Hiển thị modal với loading state
             const modalHtml = `
                 <div class="modal fade" id="assignVehicleModal" tabindex="-1">
                     <div class="modal-dialog">
@@ -1111,23 +1148,14 @@
                             <form id="assignVehicleForm">
                                 <div class="modal-body">
                                     <input type="hidden" name="departure_date" value="${departureDate}">
+                                    <input type="hidden" name="tour_id" value="${tourId}">
                                     <div class="mb-3">
-                                        <label for="vehicle_type" class="form-label">Loại xe *</label>
-                                        <select class="form-select" id="vehicle_type" name="vehicle_type" required>
-                                            <option value="">-- Chọn loại xe --</option>
-                                            <option value="16">Xe 16 chỗ</option>
-                                            <option value="29">Xe 29 chỗ</option>
-                                            <option value="45">Xe 45 chỗ</option>
+                                        <label for="vehicle_id" class="form-label">Chọn xe *</label>
+                                        <select class="form-select" id="vehicle_id" name="vehicle_id" required>
+                                            <option value="">Đang tải danh sách...</option>
                                         </select>
                                     </div>
-                                    <div class="mb-3">
-                                        <label for="vehicle_details" class="form-label">Chi tiết xe</label>
-                                        <input type="text" class="form-control" id="vehicle_details" name="vehicle_details" placeholder="VD: Xe 45 chỗ - 29B-123.45">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="driver_contact" class="form-label">Liên hệ tài xế</label>
-                                        <input type="text" class="form-control" id="driver_contact" name="driver_contact" placeholder="VD: Tài xế Hùng - 0909123456">
-                                    </div>
+                                    <p class="text-muted mb-0"><small>Chỉ hiển thị các xe chưa được gán cho tour khác cùng ngày.</small></p>
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
@@ -1142,6 +1170,34 @@
             document.body.insertAdjacentHTML('beforeend', modalHtml);
             const modal = new bootstrap.Modal(document.getElementById('assignVehicleModal'));
             modal.show();
+
+            // Gọi API để lấy danh sách xe có sẵn
+            try {
+                const availableVehiclesUrl = '{{ route("admin.bookings.available-vehicles") }}';
+                const url = availableVehiclesUrl + '?departure_date=' + encodeURIComponent(departureDate) + '&tour_id=' + encodeURIComponent(tourId);
+                const response = await fetch(url, {
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                const selectElement = document.getElementById('vehicle_id');
+                
+                if (data.success && data.data.length > 0) {
+                    let optionsHtml = '<option value="">-- Chọn xe --</option>';
+                    data.data.forEach(vehicle => {
+                        optionsHtml += `<option value="${vehicle.id}">${vehicle.label}</option>`;
+                    });
+                    selectElement.innerHTML = optionsHtml;
+                } else {
+                    selectElement.innerHTML = '<option value="">Không có xe nào có sẵn</option>';
+                    selectElement.disabled = true;
+                }
+            } catch (error) {
+                console.error('Error loading vehicles:', error);
+                document.getElementById('vehicle_id').innerHTML = '<option value="">Lỗi khi tải danh sách xe</option>';
+            }
             
             document.getElementById('assignVehicleForm').addEventListener('submit', async function(e) {
                 e.preventDefault();

@@ -949,6 +949,15 @@
                         <span class="nav-text">Quản lý HDV</span>
                     </a>
                 </div>
+                <div class="nav-item">
+                    <a href="{{ route('admin.vehicles.index') }}"
+                        class="nav-link {{ request()->routeIs('admin.vehicles*') ? 'active' : '' }}">
+                        <div class="nav-icon">
+                            <i class="fas fa-bus"></i>
+                        </div>
+                        <span class="nav-text">Quản lý xe</span>
+                    </a>
+                </div>
             </div>
 
             <!-- Bookings & Operations -->

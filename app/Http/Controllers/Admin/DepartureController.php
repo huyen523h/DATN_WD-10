@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Tour;
 use App\Models\TourDeparture;
+use App\Models\Vehicle;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -183,19 +184,29 @@ class DepartureController extends Controller
       $departure = TourDeparture::findOrFail($id);
 
         $validated = $request->validate([
-            // Sửa 'nullable' thành 'required'
             'guide_id' => 'required|exists:users,id', 
-            'vehicle_details' => 'required|string|max:255',
-            'driver_contact' => 'required|string|max:255',
-            
-            // File thì vẫn nên để 'nullable' để lần sau sửa SĐT tài xế thì không bắt buộc phải up lại file cũ
-          'itinerary_file' => 'nullable|file|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx|max:10240', // Tăng lên 10MB và thêm đuôi file
+            'vehicle_id' => 'required|exists:vehicles,id',
+            'itinerary_file' => 'nullable|file|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx|max:10240',
         ], [
-            // Thêm thông báo lỗi tiếng Việt cho thân thiện
             'guide_id.required' => 'Vui lòng chọn Hướng dẫn viên.',
-            'vehicle_details.required' => 'Vui lòng nhập thông tin Xe & Biển số.',
-            'driver_contact.required' => 'Vui lòng nhập liên hệ Tài xế.',
+            'vehicle_id.required' => 'Vui lòng chọn xe.',
         ]);
+
+        // Lấy thông tin xe từ vehicle_id
+        $vehicle = Vehicle::findOrFail($validated['vehicle_id']);
+        
+        // Chuẩn bị thông tin xe hiển thị
+        $vehicleDetails = trim(($vehicle->brand ? $vehicle->brand . ' ' : '') .
+            ($vehicle->color ? $vehicle->color . ' ' : '') .
+            '(' . $vehicle->license_plate . ')');
+
+        $driverContact = trim(($vehicle->driver_name ? $vehicle->driver_name . ' - ' : '') .
+            ($vehicle->driver_phone ?? ''));
+
+        // Cập nhật departure với vehicle_id và thông tin chi tiết
+        $validated['vehicle_type'] = $vehicle->vehicle_type;
+        $validated['vehicle_details'] = $vehicleDetails;
+        $validated['driver_contact'] = $driverContact ?: null;
 
         // Xử lý file upload
         if ($request->hasFile('itinerary_file')) {

@@ -130,6 +130,8 @@ class InvoiceController extends Controller
         
         // Calculate totals
         $invoice->calculateTotals();
+        // Đồng bộ số tiền hóa đơn với số tiền thực tế của booking
+        $invoice->amount = $booking->total_amount;
         
         // Payment Information
         $invoice->payment_method = 'bank_transfer';
@@ -205,6 +207,8 @@ class InvoiceController extends Controller
         
         // Calculate totals
         $invoice->calculateTotals();
+        // Cập nhật số tiền hóa đơn theo tổng mới tính được
+        $invoice->amount = $invoice->total_amount;
         
         // Status
         $invoice->status = $request->status;

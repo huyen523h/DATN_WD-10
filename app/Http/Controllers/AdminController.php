@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Facades\DB;
 use App\Models\Tour;
 use App\Models\Booking;
+use App\Models\Banner;
 use App\Models\User;
 use App\Models\Category;
 use App\Models\Promotion;
@@ -16,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Storage;
+use App\Http\Requests\BannerRequest;
 
 class AdminController extends Controller
 {
@@ -85,6 +87,195 @@ class AdminController extends Controller
             'categories' => $categories,
             'availabilityCurrent' => $av,
         ]);
+    }
+
+    /**
+     * ============================
+     * BANNERS MANAGEMENT
+     * ============================
+     */
+
+    /**
+     * Danh sách banner.
+     */
+    public function banners(): View
+    {
+        $banners = Banner::ordered()->paginate(10);
+
+        return view('admin.banners.index', compact('banners'));
+    }
+
+    /**
+     * Form tạo banner.
+     */
+    public function createBanner(): View
+    {
+        return view('admin.banners.create');
+    }
+
+    /**
+     * Lưu banner mới.
+     */
+    public function storeBanner(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:200',
+            'description' => 'nullable|string',
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'link_url' => 'nullable|url|max:500',
+            'type' => 'required|in:hero,promotion,category,featured',
+            'position' => 'required|in:top,middle,bottom,sidebar',
+            'sort_order' => 'nullable|integer|min:0',
+            'is_active' => 'nullable|boolean',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+        ]);
+
+        $path = $request->file('image')->store('banners', 'public');
+        $imageUrl = Storage::url($path); // /storage/banners/...
+
+        Banner::create([
+            'title' => $validated['title'],
+            'description' => $validated['description'] ?? null,
+            'image_url' => $imageUrl,
+            'link_url' => $validated['link_url'] ?? null,
+            'type' => $validated['type'],
+            'position' => $validated['position'],
+            'sort_order' => $validated['sort_order'] ?? 0,
+            'is_active' => $request->boolean('is_active', true),
+            'start_date' => $validated['start_date'] ?? null,
+            'end_date' => $validated['end_date'] ?? null,
+            'target_audience' => ['all'],
+            'click_count' => 0,
+            'view_count' => 0,
+        ]);
+
+        return redirect()
+            ->route('admin.banners')
+            ->with('success', 'Banner đã được tạo thành công!');
+    }
+
+    /**
+     * Chi tiết banner.
+     */
+    public function showBanner(Banner $banner): View
+    {
+        return view('admin.banners.show', compact('banner'));
+    }
+
+    /**
+     * Form chỉnh sửa banner.
+     */
+    public function editBanner(Banner $banner): View
+    {
+        return view('admin.banners.edit', compact('banner'));
+    }
+
+    /**
+     * Cập nhật banner.
+     */
+    public function updateBanner(Request $request, Banner $banner): RedirectResponse
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:200',
+            'description' => 'nullable|string',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'link_url' => 'nullable|url|max:500',
+            'type' => 'required|in:hero,promotion,category,featured',
+            'position' => 'required|in:top,middle,bottom,sidebar',
+            'sort_order' => 'nullable|integer|min:0',
+            'is_active' => 'nullable|boolean',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+        ]);
+
+        // Nếu có ảnh mới thì xoá ảnh cũ và lưu ảnh mới
+        if ($request->hasFile('image')) {
+            if ($banner->image_url) {
+                $oldPath = str_replace('/storage/', '', $banner->image_url);
+                Storage::disk('public')->delete($oldPath);
+            }
+
+            $path = $request->file('image')->store('banners', 'public');
+            $banner->image_url = Storage::url($path);
+        }
+
+        $banner->title = $validated['title'];
+        $banner->description = $validated['description'] ?? null;
+        $banner->link_url = $validated['link_url'] ?? null;
+        $banner->type = $validated['type'];
+        $banner->position = $validated['position'];
+        $banner->sort_order = $validated['sort_order'] ?? 0;
+        $banner->is_active = $request->has('is_active');
+        $banner->start_date = $validated['start_date'] ?? null;
+        $banner->end_date = $validated['end_date'] ?? null;
+
+        $banner->save();
+
+        return redirect()
+            ->route('admin.banners')
+            ->with('success', 'Banner đã được cập nhật thành công!');
+    }
+
+    /**
+     * Xoá banner.
+     */
+    public function deleteBanner(Banner $banner): RedirectResponse
+    {
+        if ($banner->image_url) {
+            $oldPath = str_replace('/storage/', '', $banner->image_url);
+            Storage::disk('public')->delete($oldPath);
+        }
+
+        $banner->delete();
+
+        return redirect()
+            ->route('admin.banners')
+            ->with('success', 'Banner đã được xóa thành công!');
+    }
+
+    /**
+     * Thay đổi thứ tự banner (lên / xuống).
+     */
+    public function moveBanner(Request $request, Banner $banner)
+    {
+        $direction = $request->input('direction');
+
+        if (!in_array($direction, ['up', 'down'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hướng di chuyển không hợp lệ.',
+            ], 422);
+        }
+
+        $query = Banner::where('position', $banner->position);
+
+        if ($direction === 'up') {
+            $neighbor = $query
+                ->where('sort_order', '<', $banner->sort_order)
+                ->orderBy('sort_order', 'desc')
+                ->first();
+        } else {
+            $neighbor = $query
+                ->where('sort_order', '>', $banner->sort_order)
+                ->orderBy('sort_order', 'asc')
+                ->first();
+        }
+
+        if (!$neighbor) {
+            return response()->json(['success' => true]);
+        }
+
+        DB::transaction(function () use ($banner, $neighbor) {
+            $currentOrder = $banner->sort_order;
+            $banner->sort_order = $neighbor->sort_order;
+            $neighbor->sort_order = $currentOrder;
+
+            $banner->save();
+            $neighbor->save();
+        });
+
+        return response()->json(['success' => true]);
     }
 
     public function createTour(): View
@@ -383,25 +574,28 @@ class AdminController extends Controller
     public function bookings()
     {
         // Lấy tất cả bookings với relationships
-        $bookings = Booking::with(['tour', 'user', 'departure'])
+        $bookings = Booking::with(['tour', 'user', 'departure.vehicle', 'departure.guide'])
             ->whereHas('departure') // Chỉ lấy bookings có departure
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Gom booking theo ngày khởi hành
+        // Gom booking theo NGÀY KHỞI HÀNH + TOUR
+        // => Hai tour khác nhau nhưng cùng ngày sẽ được tách thành 2 nhóm riêng
         $groupedBookings = collect();
         $groupsWithDate = collect();
         $groupsWithoutDate = collect();
         
         foreach ($bookings as $booking) {
-            $date = null;
+            $dateString = null;
             if ($booking->departure && $booking->departure->departure_date) {
-                $date = $booking->departure->departure_date->format('Y-m-d');
+                $dateString = $booking->departure->departure_date->format('Y-m-d');
             }
-            
-            $key = $date ?? 'no-date';
-            
-            if ($date) {
+            $tourId = $booking->tour_id ?? 0;
+
+            // Khóa nhóm: date|tour_id (vd: 2025-12-20|14)
+            $key = ($dateString ?? 'no-date') . '|' . $tourId;
+
+            if ($dateString) {
                 if (!$groupsWithDate->has($key)) {
                     $groupsWithDate->put($key, collect());
                 }
@@ -426,16 +620,33 @@ class AdminController extends Controller
         }
 
         // Tính toán thống kê cho mỗi nhóm và sắp xếp bookings trong mỗi nhóm
-        $groupedBookings = $groupedBookings->map(function ($group, $date) {
+        $groupedBookings = $groupedBookings->map(function ($group, $key) {
+            // Tách key thành phần ngày & tour_id
+            [$datePart, $tourIdPart] = explode('|', $key);
+
             // Sắp xếp bookings trong nhóm theo thời gian tạo (mới nhất trước)
             $sortedBookings = $group->sortByDesc('created_at')->values();
             
-            // Lấy departure đầu tiên để lấy thông tin chung
+            // Lấy tour từ booking đầu tiên
             $firstBooking = $sortedBookings->first();
-            $departure = $firstBooking->departure ?? null;
+            $tour = $firstBooking->tour ?? null;
+            $tourId = $tour ? $tour->id : null;
+            
+            // Lấy departure của tour này và cùng ngày khởi hành (đảm bảo đúng tour)
+            $departure = null;
+            if ($tourId && $datePart !== 'no-date') {
+                $departure = TourDeparture::where('tour_id', $tourId)
+                    ->whereDate('departure_date', $datePart)
+                    ->first();
+            } else {
+                // Fallback: lấy từ booking nếu không tìm thấy
+                $departure = $firstBooking->departure ?? null;
+            }
             
             return [
-                'date' => $date === 'no-date' ? null : \Carbon\Carbon::parse($date),
+                'date' => $datePart === 'no-date' ? null : \Carbon\Carbon::parse($datePart),
+                'tour' => $tour,
+                'tour_id' => $tour ? $tour->id : null,
                 'bookings' => $sortedBookings,
                 'total_guests' => $sortedBookings->sum(function ($booking) {
                     return $booking->adults + $booking->children + $booking->infants;
@@ -449,6 +660,7 @@ class AdminController extends Controller
                 'group_confirmed' => $departure ? $departure->group_confirmed : false,
                 'confirmed_guests_count' => $departure ? $departure->confirmed_guests_count : null,
                 'guide' => $departure && $departure->guide ? $departure->guide : null,
+                'vehicle' => $departure && $departure->vehicle ? $departure->vehicle : null,
                 'vehicle_type' => $departure ? $departure->vehicle_type : null,
                 'vehicle_details' => $departure ? $departure->vehicle_details : null,
                 'driver_contact' => $departure ? $departure->driver_contact : null,
@@ -460,23 +672,70 @@ class AdminController extends Controller
             $q->where('name', 'guide');
         })->orderBy('name')->get();
 
-        return view('admin.bookings.index', compact('groupedBookings', 'bookings', 'guides'));
+        // Lấy danh sách xe đang hoạt động để gán (status = 1)
+        $vehicles = \App\Models\Vehicle::where('status', 1)
+            ->orderBy('license_plate')
+            ->get();
+
+        return view('admin.bookings.index', compact('groupedBookings', 'bookings', 'guides', 'vehicles'));
     }
 
     public function showBooking(Booking $booking): View
     {
         // Load các quan hệ dữ liệu
-        $booking->load(['tour', 'user', 'departure.guide', 'payment', 'documents', 'chat.messages.sender']);
+        $booking->load(['tour', 'user', 'departure.guide', 'departure.vehicle', 'payment', 'documents', 'chat.messages.sender']);
 
-        // --- (SỬA LẠI ĐOẠN NÀY) ---
-        // Chỉ lấy những user có quyền là 'staff' (hoặc 'guide')
-        // Giả sử bạn dùng quan hệ 'roles' trong model User
-        $guides = User::whereHas('roles', function($q) {
-            $q->whereIn('name', ['staff', 'guide']); // Lọc tên role là staff hoặc guide
-        })->get();
-        // -------------------------
+        // Ngày khởi hành & tour hiện tại (nếu có)
+        $departureDate = $booking->departure?->departure_date;
+        $tourId        = $booking->tour_id;
 
-        return view('admin.bookings.show', compact('booking', 'guides'));
+        // Lấy danh sách guides (staff + guide)
+        $allGuides = User::whereHas('roles', function($q) {
+            $q->whereIn('name', ['staff', 'guide']);
+        })->orderBy('name')->get();
+
+        $busyGuideIds = [];
+        if ($departureDate) {
+            $query = TourDeparture::whereDate('departure_date', $departureDate)
+                ->whereNotNull('guide_id');
+
+            // Loại trừ tour hiện tại để vẫn giữ HDV đã gán cho tour này
+            if ($tourId) {
+                $query->where('tour_id', '!=', $tourId);
+            }
+
+            $busyGuideIds = $query->pluck('guide_id')->unique()->toArray();
+        }
+
+        // Chỉ giữ các HDV chưa bận tour khác cùng ngày
+        $guides = $allGuides->reject(function($guide) use ($busyGuideIds) {
+            return in_array($guide->id, $busyGuideIds);
+        })->values();
+
+        // Lấy danh sách xe đang hoạt động
+        $allVehicles = \App\Models\Vehicle::where('status', 1)
+            ->orderBy('license_plate')
+            ->get();
+
+        $busyVehicleIds = [];
+        if ($departureDate) {
+            $query = TourDeparture::whereDate('departure_date', $departureDate)
+                ->whereNotNull('vehicle_id');
+
+            // Loại trừ tour hiện tại để vẫn giữ xe đã gán cho tour này
+            if ($tourId) {
+                $query->where('tour_id', '!=', $tourId);
+            }
+
+            $busyVehicleIds = $query->pluck('vehicle_id')->unique()->toArray();
+        }
+
+        // Chỉ giữ các xe chưa bận tour khác cùng ngày
+        $vehicles = $allVehicles->reject(function($vehicle) use ($busyVehicleIds) {
+            return in_array($vehicle->id, $busyVehicleIds);
+        })->values();
+
+        return view('admin.bookings.show', compact('booking', 'guides', 'vehicles'));
     }
 
     public function customers()
@@ -1030,12 +1289,116 @@ class AdminController extends Controller
     }
 
     /**
+     * API: Lấy danh sách HDV có sẵn cho một ngày khởi hành
+     */
+    public function getAvailableGuides(Request $request)
+    {
+        $request->validate([
+            'departure_date' => 'nullable|date',
+            'tour_id' => 'nullable|exists:tours,id',
+        ]);
+
+        // Lấy tất cả HDV
+        $allGuides = User::whereHas('roles', function($q) {
+            $q->where('name', 'guide');
+        })->orderBy('name')->get();
+
+        $busyGuideIds = [];
+        // Chỉ lọc HDV bận nếu có ngày khởi hành hợp lệ
+        if ($request->filled('departure_date')) {
+            $query = TourDeparture::whereDate('departure_date', $request->departure_date)
+                ->whereNotNull('guide_id');
+
+            // Nếu có tour_id, loại trừ tour hiện tại
+            if ($request->filled('tour_id')) {
+                $query->where('tour_id', '!=', $request->tour_id);
+            }
+
+            $busyGuideIds = $query->pluck('guide_id')
+                ->unique()
+                ->toArray();
+        }
+
+        // Lọc ra các HDV có sẵn (chưa được gán cho tour khác cùng ngày)
+        $availableGuides = $allGuides->reject(function($guide) use ($busyGuideIds) {
+            return in_array($guide->id, $busyGuideIds);
+        })->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => $availableGuides->map(function($guide) {
+                return [
+                    'id' => $guide->id,
+                    'name' => $guide->name,
+                    'email' => $guide->email,
+                ];
+            })
+        ]);
+    }
+
+    /**
+     * API: Lấy danh sách xe có sẵn cho một ngày khởi hành
+     */
+    public function getAvailableVehicles(Request $request)
+    {
+        $request->validate([
+            'departure_date' => 'nullable|date',
+            'tour_id' => 'nullable|exists:tours,id',
+        ]);
+
+        // Lấy tất cả xe đang hoạt động
+        $allVehicles = \App\Models\Vehicle::where('status', 1)
+            ->orderBy('license_plate')
+            ->get();
+
+        $busyVehicleIds = [];
+        // Chỉ lọc xe bận nếu có ngày khởi hành hợp lệ
+        if ($request->filled('departure_date')) {
+            $query = TourDeparture::whereDate('departure_date', $request->departure_date)
+                ->whereNotNull('vehicle_id');
+
+            // Nếu có tour_id, loại trừ tour hiện tại
+            if ($request->filled('tour_id')) {
+                $query->where('tour_id', '!=', $request->tour_id);
+            }
+
+            $busyVehicleIds = $query->pluck('vehicle_id')
+                ->unique()
+                ->toArray();
+        }
+
+        // Lọc ra các xe có sẵn (chưa được gán cho tour khác cùng ngày)
+        $availableVehicles = $allVehicles->reject(function($vehicle) use ($busyVehicleIds) {
+            return in_array($vehicle->id, $busyVehicleIds);
+        })->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => $availableVehicles->map(function($vehicle) {
+                $typeMap = ['16' => '16 chỗ', '29' => '29 chỗ', '45' => '45 chỗ'];
+                $typeLabel = $typeMap[$vehicle->vehicle_type] ?? ($vehicle->vehicle_type . ' chỗ');
+                $label = '[' . $typeLabel . '] ' . ($vehicle->brand ?? '') . ' ' . ($vehicle->color ?? '') . ' - ' . $vehicle->license_plate;
+                
+                return [
+                    'id' => $vehicle->id,
+                    'license_plate' => $vehicle->license_plate,
+                    'vehicle_type' => $vehicle->vehicle_type,
+                    'brand' => $vehicle->brand,
+                    'color' => $vehicle->color,
+                    'label' => trim($label),
+                ];
+            })
+        ]);
+    }
+
+    /**
      * B3: Gán hướng dẫn viên (HDV)
      */
     public function assignGuide(Request $request)
     {
         $request->validate([
             'departure_date' => 'required|date',
+            'tour_id' => 'required|exists:tours,id',
             'guide_id' => 'required|exists:users,id',
         ]);
 
@@ -1048,17 +1411,33 @@ class AdminController extends Controller
             ], 422);
         }
 
-        // Lấy tất cả departures có cùng ngày khởi hành
-        $departures = TourDeparture::whereDate('departure_date', $request->departure_date)->get();
+        // Kiểm tra xem HDV này đã được gán cho tour khác trong cùng ngày chưa (trừ tour hiện tại)
+        $conflictDeparture = TourDeparture::whereDate('departure_date', $request->departure_date)
+            ->where('tour_id', '!=', $request->tour_id)
+            ->where('guide_id', $request->guide_id)
+            ->first();
+
+        if ($conflictDeparture) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hướng dẫn viên này đã được gán cho một tour khác trong ngày '
+                    . $request->departure_date . '. Vui lòng chọn HDV khác để tránh trùng lịch.'
+            ], 422);
+        }
+
+        // Chỉ lấy departures của tour này và cùng ngày khởi hành
+        $departures = TourDeparture::whereDate('departure_date', $request->departure_date)
+            ->where('tour_id', $request->tour_id)
+            ->get();
         
         if ($departures->isEmpty()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Không tìm thấy lịch khởi hành cho ngày này.'
+                'message' => 'Không tìm thấy lịch khởi hành cho tour này trong ngày này.'
             ], 404);
         }
 
-        // Gán guide cho tất cả departures cùng ngày
+        // Gán guide cho departures của tour này
         foreach ($departures as $departure) {
             $departure->update([
                 'guide_id' => $request->guide_id,
@@ -1070,6 +1449,7 @@ class AdminController extends Controller
             'message' => 'Đã gán hướng dẫn viên thành công!',
             'data' => [
                 'departure_date' => $request->departure_date,
+                'tour_id' => $request->tour_id,
                 'guide_id' => $request->guide_id,
                 'guide_name' => $guide->name,
             ]
@@ -1077,44 +1457,72 @@ class AdminController extends Controller
     }
 
     /**
-     * B4: Gán xe (xe 16-29-45 chỗ)
+     * B4: Gán xe từ danh sách Quản lý xe
      */
     public function assignVehicle(Request $request)
     {
         $request->validate([
             'departure_date' => 'required|date',
-            'vehicle_type' => 'required|in:16,29,45',
-            'vehicle_details' => 'nullable|string|max:255',
-            'driver_contact' => 'nullable|string|max:255',
+            'tour_id' => 'required|exists:tours,id',
+            'vehicle_id' => 'required|exists:vehicles,id',
         ]);
 
-        // Lấy tất cả departures có cùng ngày khởi hành
-        $departures = TourDeparture::whereDate('departure_date', $request->departure_date)->get();
+        $vehicle = \App\Models\Vehicle::findOrFail($request->vehicle_id);
+
+        // Kiểm tra xem xe này đã được gán cho tour khác trong cùng ngày chưa (trừ tour hiện tại)
+        $conflictDeparture = TourDeparture::whereDate('departure_date', $request->departure_date)
+            ->where('tour_id', '!=', $request->tour_id)
+            ->where('vehicle_id', $vehicle->id)
+            ->first();
+
+        if ($conflictDeparture) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Xe ' . $vehicle->license_plate . ' đã được gán cho một tour khác trong ngày '
+                    . $request->departure_date . '. Vui lòng chọn xe khác để tránh trùng lịch.'
+            ], 422);
+        }
+
+        // Chỉ lấy departures của tour này và cùng ngày khởi hành
+        $departures = TourDeparture::whereDate('departure_date', $request->departure_date)
+            ->where('tour_id', $request->tour_id)
+            ->get();
         
         if ($departures->isEmpty()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Không tìm thấy lịch khởi hành cho ngày này.'
+                'message' => 'Không tìm thấy lịch khởi hành cho tour này trong ngày này.'
             ], 404);
         }
 
-        // Gán xe cho tất cả departures cùng ngày
+        // Chuẩn bị thông tin xe hiển thị
+        $vehicleDetails = trim(($vehicle->brand ? $vehicle->brand . ' ' : '') .
+            ($vehicle->color ? $vehicle->color . ' ' : '') .
+            '(' . $vehicle->license_plate . ')');
+
+        $driverContact = trim(($vehicle->driver_name ? $vehicle->driver_name . ' - ' : '') .
+            ($vehicle->driver_phone ?? ''));
+
+        // Gán xe cho departures của tour này
         foreach ($departures as $departure) {
             $departure->update([
-                'vehicle_type' => $request->vehicle_type,
-                'vehicle_details' => $request->vehicle_details,
-                'driver_contact' => $request->driver_contact,
+                'vehicle_id' => $vehicle->id,
+                'vehicle_type' => $vehicle->vehicle_type,
+                'vehicle_details' => $vehicleDetails,
+                'driver_contact' => $driverContact ?: null,
             ]);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Đã gán xe thành công!',
+            'message' => 'Đã gán xe ' . $vehicle->license_plate . ' thành công!',
             'data' => [
                 'departure_date' => $request->departure_date,
-                'vehicle_type' => $request->vehicle_type,
-                'vehicle_details' => $request->vehicle_details,
-                'driver_contact' => $request->driver_contact,
+                'tour_id' => $request->tour_id,
+                'vehicle_id' => $vehicle->id,
+                'vehicle_type' => $vehicle->vehicle_type,
+                'vehicle_details' => $vehicleDetails,
+                'driver_contact' => $driverContact,
             ]
         ]);
     }

@@ -143,20 +143,49 @@
 
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-bold">
-                            Thông tin Xe & Biển số <span class="text-danger">*</span>
+                            Chọn xe <span class="text-danger">*</span>
                         </label>
-                        <input type="text" name="vehicle_details" class="form-control" 
-                               value="{{ $booking->departure->vehicle_details }}" 
-                               placeholder="VD: 45 chỗ - 29B-12345" required> {{-- Thêm required --}}
+                        <select name="vehicle_id" class="form-select" required>
+                            <option value="">-- Chọn xe --</option>
+                            @foreach($vehicles as $vehicle)
+                                @php
+                                    $typeMap = ['16' => '16 chỗ', '29' => '29 chỗ', '45' => '45 chỗ'];
+                                    $typeLabel = $typeMap[$vehicle->vehicle_type] ?? ($vehicle->vehicle_type . ' chỗ');
+                                    $label = '[' . $typeLabel . '] ' . ($vehicle->brand ?? '') . ' ' . ($vehicle->color ?? '') . ' - ' . $vehicle->license_plate;
+                                @endphp
+                                <option value="{{ $vehicle->id }}" 
+                                    {{ $booking->departure && $booking->departure->vehicle_id == $vehicle->id ? 'selected' : '' }}>
+                                    {{ trim($label) }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <small class="text-muted">Danh sách lấy từ mục <strong>Quản lý xe</strong>. Chỉ hiển thị các xe đang hoạt động.</small>
                     </div>
 
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-bold">
-                            Liên hệ Tài xế <span class="text-danger">*</span>
+                            Thông tin xe & Tài xế
                         </label>
-                        <input type="text" name="driver_contact" class="form-control" 
-                               value="{{ $booking->departure->driver_contact }}" 
-                               placeholder="Tên & SĐT Tài xế" required> {{-- Thêm required --}}
+                        @if($booking->departure && $booking->departure->vehicle)
+                            <div class="border rounded p-3 bg-light">
+                                <p class="mb-1"><strong>Biển số:</strong> {{ $booking->departure->vehicle->license_plate }}</p>
+                                <p class="mb-1"><strong>Loại xe:</strong> {{ $booking->departure->vehicle->vehicle_type }} chỗ</p>
+                                @if($booking->departure->vehicle->brand)
+                                    <p class="mb-1"><strong>Hãng:</strong> {{ $booking->departure->vehicle->brand }}</p>
+                                @endif
+                                @if($booking->departure->vehicle->color)
+                                    <p class="mb-1"><strong>Màu:</strong> {{ $booking->departure->vehicle->color }}</p>
+                                @endif
+                                @if($booking->departure->vehicle->driver_name)
+                                    <p class="mb-1"><strong>Tài xế:</strong> {{ $booking->departure->vehicle->driver_name }}</p>
+                                @endif
+                                @if($booking->departure->vehicle->driver_phone)
+                                    <p class="mb-0"><strong>SĐT tài xế:</strong> {{ $booking->departure->vehicle->driver_phone }}</p>
+                                @endif
+                            </div>
+                        @else
+                            <div class="text-muted small">Chưa có thông tin xe. Vui lòng chọn xe ở trên.</div>
+                        @endif
                     </div>
 
                     <div class="col-md-6 mb-3">

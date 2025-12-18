@@ -19,6 +19,8 @@ class Booking extends Model
         'adults',
         'children',
         'infants',
+        'additional_services',
+        'additional_services_total',
         'total_amount',
         'status',
         'promotion_code',
@@ -30,6 +32,8 @@ class Booking extends Model
     protected $casts = [
         'total_amount' => 'decimal:2',
         'expires_at' => 'datetime',
+        'additional_services' => 'array',
+        'additional_services_total' => 'decimal:2',
     ];
 
     /**

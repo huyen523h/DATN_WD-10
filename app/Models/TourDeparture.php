@@ -25,6 +25,7 @@ class TourDeparture extends Model
         'status', // string: available|contact|sold_out
         // THÊM CÁC TRƯỜNG MỚI VÀO ĐÂY:
         'guide_id',
+        'vehicle_id',
         'vehicle_type', // 16, 29, 45
         'vehicle_details',
         'driver_contact',
@@ -53,6 +54,11 @@ class TourDeparture extends Model
     public function backupGuide()
     {
         return $this->belongsTo(User::class, 'backup_guide_id');
+    }
+
+    public function vehicle(): BelongsTo
+    {
+        return $this->belongsTo(Vehicle::class, 'vehicle_id');
     }
 
     protected $casts = [

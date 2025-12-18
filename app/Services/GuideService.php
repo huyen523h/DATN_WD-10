@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Role;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class GuideService
@@ -53,10 +54,6 @@ class GuideService
                         'password' => Hash::make($initialPassword),
                         'phone' => $data['phone'] ?? null,
                         'address' => $data['address'] ?? null,
-                        'role' => 'guide', // CRITICAL: Set role directly in users table
-                    ]);
-                    
-                    // Gán role 'guide' cho user trong bảng user_roles (nếu có)
                         'role' => 'guide', // CRITICAL: Set role directly in users table
                     ]);
                     
@@ -110,13 +107,13 @@ class GuideService
             }
             
             // Debug: Log data before creating guide
-            \Log::info('Creating guide with data:', $data);
+            Log::info('Creating guide with data:', $data);
             
             try {
                 $guide = Guide::create($data);
-                \Log::info('Guide created successfully:', ['id' => $guide->id]);
+                Log::info('Guide created successfully:', ['id' => $guide->id]);
             } catch (\Exception $e) {
-                \Log::error('Failed to create guide:', [
+                Log::error('Failed to create guide:', [
                     'error' => $e->getMessage(),
                     'data' => $data
                 ]);

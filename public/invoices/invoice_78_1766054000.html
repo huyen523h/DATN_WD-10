@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hóa đơn {{ $invoice->invoice_number }}</title>
+    <title>Hóa đơn INV202512180014</title>
     <style>
         * {
             margin: 0;
@@ -189,11 +189,11 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <div class="company-name">{{ $company['name'] }}</div>
+            <div class="company-name">Tour365 - Công ty Du lịch</div>
             <div class="company-info">
-                {{ $company['address'] }}<br>
-                Điện thoại: {{ $company['phone'] }} | Email: {{ $company['email'] }}<br>
-                Website: {{ $company['website'] }} | MST: {{ $company['tax_code'] }}
+                123 Đường ABC, Quận 1, TP.HCM<br>
+                Điện thoại: 0123 456 789 | Email: info@tour365.com<br>
+                Website: www.tour365.com | MST: 0123456789
             </div>
         </div>
 
@@ -206,61 +206,47 @@
                 <div class="section-title">Thông tin hóa đơn</div>
                 <div class="detail-row">
                     <div class="detail-label">Số hóa đơn:</div>
-                    <div class="detail-value">{{ $invoice->invoice_number }}</div>
+                    <div class="detail-value">INV202512180014</div>
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">Ngày phát hành:</div>
                     <div class="detail-value">
-                        @if($invoice->issue_date)
-                            {{ is_string($invoice->issue_date) ? date('d/m/Y', strtotime($invoice->issue_date)) : $invoice->issue_date->format('d/m/Y') }}
-                        @else
-                            N/A
-                        @endif
-                    </div>
+                                                    18/12/2025
+                                            </div>
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">Trạng thái:</div>
                     <div class="detail-value">
-                        <span class="status-badge status-{{ $invoice->status }}">
-                            {{ ucfirst($invoice->status) }}
+                        <span class="status-badge status-issued">
+                            Issued
                         </span>
                     </div>
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">Mã đặt tour:</div>
-                    <div class="detail-value">#{{ $booking->id }}</div>
+                    <div class="detail-value">#78</div>
                 </div>
-                @if(isset($discountAmount) && $discountAmount > 0)
-                <div class="detail-row">
-                    <div class="detail-label">Tiền giảm giá:</div>
-                    <div class="detail-value">-{{ number_format($discountAmount, 0, ',', '.') }} VNĐ</div>
-                </div>
-                @endif
             </div>
 
             <div class="customer-details">
                 <div class="section-title">Thông tin khách hàng</div>
                 <div class="detail-row">
                     <div class="detail-label">Họ tên:</div>
-                    <div class="detail-value">{{ $user->name }}</div>
+                    <div class="detail-value">truong</div>
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">Email:</div>
-                    <div class="detail-value">{{ $user->email }}</div>
+                    <div class="detail-value">truongndph53735@gmail.com</div>
                 </div>
-                @if($user->phone)
-                <div class="detail-row">
+                                <div class="detail-row">
                     <div class="detail-label">Điện thoại:</div>
-                    <div class="detail-value">{{ $user->phone }}</div>
+                    <div class="detail-value">098</div>
                 </div>
-                @endif
-                @if($user->address)
-                <div class="detail-row">
+                                                <div class="detail-row">
                     <div class="detail-label">Địa chỉ:</div>
-                    <div class="detail-value">{{ $user->address }}</div>
+                    <div class="detail-value">DD</div>
                 </div>
-                @endif
-            </div>
+                            </div>
         </div>
 
         <!-- Tour Details -->
@@ -278,38 +264,21 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td>{{ $tour->title }}</td>
-                        <td>{{ $tour->location }}</td>
-                        <td>{{ $tour->duration }}</td>
+                        <td>Hà tĩnh</td>
+                        <td></td>
+                        <td></td>
                         <td>
-                            @if($departure && $departure->departure_date)
-                                {{ is_string($departure->departure_date) ? date('d/m/Y', strtotime($departure->departure_date)) : $departure->departure_date->format('d/m/Y') }}
-                            @else
-                                N/A
-                            @endif
-                        </td>
+                                                            02/01/2026
+                                                    </td>
                     </tr>
                 </tbody>
             </table>
 
-            @if($departure)
-            <div class="departure-info">
+                        <div class="departure-info">
                 <strong>Thông tin khởi hành:</strong><br>
-                @if($departure->departure_date)
-                Ngày: {{ is_string($departure->departure_date) ? date('d/m/Y', strtotime($departure->departure_date)) : $departure->departure_date->format('d/m/Y') }}<br>
-                @endif
-                @if($departure->return_date)
-                Ngày về: {{ is_string($departure->return_date) ? date('d/m/Y', strtotime($departure->return_date)) : (is_object($departure->return_date) ? $departure->return_date->format('d/m/Y') : $departure->return_date) }}<br>
-                @endif
-                @if($departure->meeting_point)
-                Điểm tập trung: {{ $departure->meeting_point }}<br>
-                @endif
-                @if($departure->meeting_time)
-                Giờ tập trung: {{ $departure->meeting_time }}<br>
-                @endif
-            </div>
-            @endif
-        </div>
+                                Ngày: 02/01/2026<br>
+                                                                            </div>
+                    </div>
 
         <!-- Passenger Details -->
         <div class="tour-details">
@@ -325,45 +294,27 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @php
-                        // Giống logic JS: đọc giá từ departure (price, childPrice, infantPrice)
-                        $adultPrice  = $departure->price ?? ($tour->price_adult ?? $tour->price ?? 0);
-                        $childPrice  = $departure->child_price ?? ($tour->price_child ?? ($tour->price * 0.7 ?? 0));
-                        $infantPrice = $departure->infant_price ?? 0;
-
-                        $adultTotal  = $adultPrice  * $booking->adults;
-                        $childTotal  = $childPrice  * $booking->children;
-                        $infantTotal = $infantPrice * $booking->infants;
-
-                        $baseTotal   = $adultTotal + $childTotal + $infantTotal;
-                    @endphp
-                    @if($booking->adults > 0)
-                    <tr>
+                                                            <tr>
                         <td>Người lớn</td>
-                        <td>{{ $booking->adults }}</td>
-                        <td>{{ number_format($adultPrice, 0, ',', '.') }} VNĐ</td>
-                        <td>{{ number_format($adultPrice * $booking->adults, 0, ',', '.') }} VNĐ</td>
+                        <td>2</td>
+                        <td>1.200.000 VNĐ</td>
+                        <td>2.400.000 VNĐ</td>
                     </tr>
-                    @endif
-                    
-                    @if($booking->children > 0)
-                    <tr>
+                                        
+                                        <tr>
                         <td>Trẻ em</td>
-                        <td>{{ $booking->children }}</td>
-                        <td>{{ number_format($childPrice, 0, ',', '.') }} VNĐ</td>
-                        <td>{{ number_format($childPrice * $booking->children, 0, ',', '.') }} VNĐ</td>
+                        <td>1</td>
+                        <td>1.200.000 VNĐ</td>
+                        <td>1.200.000 VNĐ</td>
                     </tr>
-                    @endif
-                    
-                    @if($booking->infants > 0)
-                    <tr>
+                                        
+                                        <tr>
                         <td>Em bé</td>
-                        <td>{{ $booking->infants }}</td>
-                        <td>{{ number_format($infantPrice, 0, ',', '.') }} VNĐ</td>
-                        <td>{{ number_format($infantTotal, 0, ',', '.') }} VNĐ</td>
+                        <td>1</td>
+                        <td>0 VNĐ</td>
+                        <td>0 VNĐ</td>
                     </tr>
-                    @endif
-                </tbody>
+                                    </tbody>
             </table>
         </div>
 
@@ -371,45 +322,34 @@
         <div class="amount-section">
             <div class="amount-row">
                 <div class="amount-label">Tiền tour (người lớn + trẻ em):</div>
-                <div>{{ number_format($baseTotal ?? 0, 0, ',', '.') }} VNĐ</div>
+                <div>3.600.000 VNĐ</div>
             </div>
 
-            @if(($booking->additional_services ?? []) && ($additionalTotal ?? 0) > 0)
-                @foreach($booking->additional_services as $service)
-                <div class="amount-row">
-                    <div class="amount-label">Dịch vụ thêm - {{ $service['label'] }}:</div>
-                    <div>+{{ number_format($service['amount'], 0, ',', '.') }} VNĐ</div>
+                                            <div class="amount-row">
+                    <div class="amount-label">Dịch vụ thêm - Bảo hiểm du lịch:</div>
+                    <div>+50.000 VNĐ</div>
                 </div>
-                @endforeach
-                <div class="amount-row">
+                                <div class="amount-row">
+                    <div class="amount-label">Dịch vụ thêm - Đón sân bay:</div>
+                    <div>+200.000 VNĐ</div>
+                </div>
+                                <div class="amount-row">
                     <div class="amount-label">Tổng dịch vụ thêm:</div>
-                    <div>+{{ number_format($additionalTotal, 0, ',', '.') }} VNĐ</div>
+                    <div>+250.000 VNĐ</div>
                 </div>
-            @elseif(($additionalTotal ?? 0) > 0)
-                <div class="amount-row">
-                    <div class="amount-label">Dịch vụ thêm:</div>
-                    <div>+{{ number_format($additionalTotal, 0, ',', '.') }} VNĐ</div>
-                </div>
-            @endif
-
-            @if(($discountAmount ?? 0) > 0 && $promotion)
-            <div class="amount-row">
-                <div class="amount-label">Giảm giá ({{ $promotion->code }}):</div>
-                <div>-{{ number_format($discountAmount, 0, ',', '.') }} VNĐ</div>
-            </div>
-            @endif
-
+            
+            
             <div class="amount-row total-row">
                 <div class="amount-label">TỔNG CỘNG:</div>
-                <div>{{ number_format($finalTotal ?? $booking->total_amount, 0, ',', '.') }} VNĐ</div>
+                <div>3.465.000 VNĐ</div>
             </div>
         </div>
 
         <!-- Footer -->
         <div class="footer">
-            <p><strong>Cảm ơn quý khách đã sử dụng dịch vụ của {{ $company['name'] }}!</strong></p>
+            <p><strong>Cảm ơn quý khách đã sử dụng dịch vụ của Tour365 - Công ty Du lịch!</strong></p>
             <p>Hóa đơn này được tạo tự động bởi hệ thống quản lý du lịch Tour365</p>
-            <p>Mọi thắc mắc vui lòng liên hệ: {{ $company['phone'] }} hoặc {{ $company['email'] }}</p>
+            <p>Mọi thắc mắc vui lòng liên hệ: 0123 456 789 hoặc info@tour365.com</p>
         </div>
     </div>
 </body>
