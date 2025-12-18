@@ -1,0 +1,205 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+
+class Booking extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'user_id',
+        'tour_id',
+        'departure_id',
+        'adults',
+        'children',
+        'infants',
+        'additional_services',
+        'additional_services_total',
+        'total_amount',
+        'status',
+        'promotion_code',
+        'note',
+        'passenger_manifest_file',
+        'expires_at',
+    ];
+
+    protected $casts = [
+        'total_amount' => 'decimal:2',
+        'expires_at' => 'datetime',
+        'additional_services' => 'array',
+        'additional_services_total' => 'decimal:2',
+    ];
+
+    /**
+     * Get the user that owns the booking.
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the tour for the booking.
+     */
+    public function tour(): BelongsTo
+    {
+        return $this->belongsTo(Tour::class);
+    }
+
+    /**
+     * Get the departure for the booking.
+     */
+    public function departure(): BelongsTo
+    {
+        return $this->belongsTo(TourDeparture::class, 'departure_id');
+    }
+
+    /**
+     * Get the promotion for the booking.
+     */
+    public function promotion(): BelongsTo
+    {
+        return $this->belongsTo(Promotion::class);
+    }
+
+    /**
+     * Get the staff member who handled the booking.
+     */
+    public function staff(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'staff_id');
+    }
+
+    /**
+     * Get the payments for the booking.
+     */
+    public function payment()
+    {
+        return $this->hasMany(Payment::class, 'booking_id', 'id');
+    }
+
+    /**
+     * Get the invoice for the booking.
+     */
+    public function invoice(): HasOne
+    {
+        return $this->hasOne(Invoice::class);
+    }
+
+    /**
+     * Get the documents for the booking.
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(Document::class);
+    }
+
+    /**
+     * Get the chat for the booking.
+     */
+    public function chat(): HasOne
+    {
+        return $this->hasOne(Chat::class);
+    }
+
+    /**
+     * Get check-ins for the booking.
+     */
+    public function checkIns(): HasMany
+    {
+        return $this->hasMany(CheckIn::class);
+    }
+
+    /**
+     * Get special requests for the booking.
+     */
+    public function specialRequests(): HasMany
+    {
+        return $this->hasMany(GuestSpecialRequest::class);
+    }
+
+    /**
+     * Get total passengers.
+     */
+    public function getTotalPassengersAttribute(): int
+    {
+        return $this->adults + $this->children + $this->infants;
+    }
+
+    /**
+     * Check if booking can be paid.
+     * 
+     * @return array{can_pay: bool, message: string}
+     */
+    public function canPay(): array
+    {
+        // Kiểm tra nếu booking đã EXPIRED
+        if ($this->status === 'expired') {
+            return [
+                'can_pay' => false,
+                'message' => 'Đặt tour này đã hết hạn thanh toán. Vui lòng đặt lại tour mới.'
+            ];
+        }
+
+        // Kiểm tra nếu booking PENDING nhưng đã hết hạn
+        if ($this->status === 'pending' && $this->expires_at && $this->expires_at->isPast()) {
+            // Tự động chuyển sang EXPIRED
+            $this->update(['status' => 'expired']);
+            return [
+                'can_pay' => false,
+                'message' => 'Đặt tour này đã hết hạn thanh toán. Vui lòng đặt lại tour mới.'
+            ];
+        }
+
+        // Booking phải ở trạng thái 'confirmed' hoặc 'pending' để có thể thanh toán
+        if (!in_array($this->status, ['confirmed', 'pending'])) {
+            return [
+                'can_pay' => false,
+                'message' => 'Đặt tour này không thể thanh toán. Trạng thái: ' . $this->status
+            ];
+        }
+
+        // Kiểm tra xem đã có payment completed chưa
+        $hasCompletedPayment = $this->payment()
+            ->where('status', 'completed')
+            ->exists();
+
+        if ($hasCompletedPayment) {
+            return [
+                'can_pay' => false,
+                'message' => 'Đặt tour này đã được thanh toán thành công.'
+            ];
+        }
+
+        // Kiểm tra departure có còn hợp lệ không
+        if ($this->departure) {
+            $departureDate = $this->departure->departure_date;
+            if ($departureDate && $departureDate->isPast()) {
+                return [
+                    'can_pay' => false,
+                    'message' => 'Không thể thanh toán vì ngày khởi hành đã qua.'
+                ];
+            }
+        }
+
+        // Trường hợp bình thường: có thể thanh toán
+        return [
+            'can_pay' => true,
+            'message' => 'Bạn có thể thanh toán cho đặt tour này.'
+        ];
+    }
+
+    /**
+     * Check if booking is completed.
+     */
+    public function isCompleted(): bool
+    {
+        return $this->status === 'completed';
+    }
+}
