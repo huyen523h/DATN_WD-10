@@ -529,6 +529,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/bookings/{booking}/mark-as-paid', [AdminController::class, 'markAsPaid'])->name('bookings.markAsPaid');
     Route::post('/bookings/{booking}/cancel', [AdminController::class, 'cancelBooking'])->name('bookings.cancel');
     Route::delete('/bookings/{booking}', [AdminController::class, 'deleteBooking'])->name('bookings.destroy');
+    Route::post('/bookings/{booking}/update-receipt', [AdminController::class, 'updateReceiptImage'])->name('bookings.updateReceipt');
 
     //  Group management operations
     Route::post('/bookings/confirm-group', [AdminController::class, 'confirmGroup'])->name('bookings.confirm-group');
@@ -538,7 +539,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     // Customers management
     Route::get('/customers', [AdminController::class, 'customers'])->name('customers');
-    Route::get('/customers/{user}', [AdminController::class, 'showCustomer'])->name('customers.show');
+    Route::get('/customers/{user}', [AdminController::class, 'showCustomer'])->name('customers.show');  
     Route::put('/customers/{user}', [AdminController::class, 'updateCustomer'])->name('customers.update');
     Route::delete('/customers/{user}', [AdminController::class, 'deleteCustomer'])->name('customers.destroy');
 

@@ -20,6 +20,31 @@
     </a>
 </div>
 
+{{-- Success/Error Messages (Đặt ở đây cho dễ nhìn) --}}
+@if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+
+@if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i> {{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+
+@php
+   //-- Tính toán số lượng đã đặt 
+    $bookedCount = $tour->bookings
+        ->whereIn('status', ['paid', 'confirmed'])
+        ->sum(function($booking) {
+            return $booking->adults + $booking->children;
+        });
+@endphp
+
+
 <!-- Success/Error Messages -->
 @if(session('success'))
     <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -50,6 +75,30 @@
             </h5>
         </div>
         <div class="card-body">
+            {{-- 2. GIAO DIỆN Ô NHẬP LIỆU --}}
+<div class="form-group">
+    <label>Tổng số chỗ (Max Participants) <span class="text-danger">*</span></label>
+    <div class="input-group">
+        <input type="number" 
+               name="max_participants" 
+               class="form-control @error('max_participants') is-invalid @enderror" {{-- Class is-invalid làm viền đỏ --}}
+               value="{{ old('max_participants', $tour->max_participants) }}">
+        
+        <div class="input-group-append">
+            <span class="input-group-text">
+                <i class="fas fa-users"></i> Đã đặt: {{ $tour->bookings->whereIn('status', ['paid', 'confirmed'])->sum(function($b){ return $b->adults + $b->children; }) }}
+            </span>
+        </div>
+    </div>
+    
+    {{-- ĐOẠN NÀY QUAN TRỌNG ĐỂ HIỆN CHỮ ĐỎ --}}
+    @error('max_participants')
+        <div class="text-danger mt-1">
+            <i class="fas fa-exclamation-triangle"></i> {{ $message }}
+        </div>
+    @enderror
+</div>
+
             <div class="row">
                 <div class="col-md-8">
                     <div class="form-group">

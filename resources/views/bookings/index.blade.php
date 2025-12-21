@@ -99,17 +99,14 @@
                                                 class="btn btn-outline-primary btn-sm">
                                                 <i class="fas fa-eye"></i> Xem chi tiết
                                             </a>
-                                            @if ($booking->status !== 'paid')
-                                                <form action="{{ route('momo_payment', $booking->id) }}" method="POST">
-                                                    @csrf
-                                                    {{-- Gửi tổng tiền từ bảng payment --}}
-                                                    <input type="hidden" name="total_momo"
-                                                        value="{{ optional($booking->payment->first())->amount ?? $booking->total_amount }}">
-                                                    <button type="submit" class="btn btn-danger">
-                                                        <i class="fas fa-credit-card"></i> Thanh toán qua MOMO
-                                                    </button>
-                                                </form>
-                                            @endif
+                                           @if($booking->status !== 'cancelled' && $booking->status !== 'paid' && $booking->status !== 'completed')
+    <form action="{{ route('momo_payment', $booking->id) }}" method="POST" class="d-inline ms-1">
+        @csrf
+        <button type="submit" class="btn btn-danger btn-sm">
+            <i class="fas fa-wallet"></i> Thanh toán qua MOMO
+        </button>
+    </form>
+@endif
                                         </div>
                                     </div>
                                 </div>

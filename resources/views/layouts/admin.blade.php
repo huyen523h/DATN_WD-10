@@ -921,7 +921,7 @@
             </div>
 
             <div class="nav-item">
-                <a href="{{ route('admin.guides.index') }}"
+                <a href="#"
                     class="nav-link {{ request()->routeIs('admin.guides*') ? 'active' : '' }}">
                     <i class="fas fa-user-tie"></i>
                     <span class="nav-text">Quản lý HDV</span>
