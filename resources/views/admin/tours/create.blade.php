@@ -353,7 +353,7 @@
 
 
             <div id="departure-container">
-                <div class="departure-item mb-3 p-3 border rounded">
+                {{-- <div class="departure-item mb-3 p-3 border rounded">
                     <div class="row">
                         <div class="col-md-4">
                             <label class="form-label">Ngày khởi hành</label>
@@ -378,7 +378,7 @@
                             </button>
                         </div>
                     </div>
-                </div>
+                </div> --}}
                 <div class="col-md-5">
                     <div class="form-group">
                         <label class="form-label">
@@ -1162,28 +1162,27 @@
             }, 300);
         }
 
-        // Enhanced form validation with animations
+        // SỬA ĐOẠN NÀY
         document.getElementById('tourForm').addEventListener('submit', function(e) {
             const requiredFields = this.querySelectorAll('[required]');
             let isValid = true;
             let firstInvalidField = null;
 
-            // Reset previous validation states
+            // 1. Reset trạng thái lỗi cũ
             this.querySelectorAll('.is-invalid').forEach(field => {
                 field.classList.remove('is-invalid');
                 field.classList.remove('error-animation');
             });
 
+            // 2. Kiểm tra các trường bắt buộc (Code cũ của bạn)
             requiredFields.forEach(field => {
                 if (!field.value.trim()) {
                     field.classList.add('is-invalid');
                     field.classList.add('error-animation');
                     isValid = false;
-
-                    if (!firstInvalidField) {
-                        firstInvalidField = field;
-                    }
+                    if (!firstInvalidField) firstInvalidField = field;
                 } else {
+                    // Hiệu ứng xanh thành công
                     field.classList.remove('is-invalid');
                     field.classList.add('success-animation');
                     setTimeout(() => {
@@ -1191,11 +1190,32 @@
                     }, 600);
                 }
             });
+            const dateInputs = this.querySelectorAll('input[name="departure_date[]"]');
+            const dateTracker = []; // Mảng chứa các ngày tạm để so sánh
+            let hasDuplicate = false;
+
+            dateInputs.forEach(input => {
+                const val = input.value;
+                if (val) {
+                    if (dateTracker.includes(val)) {
+                        // Phát hiện trùng
+                        input.classList.add('is-invalid');
+                        input.classList.add('error-animation');
+                        hasDuplicate = true;
+                        isValid = false; // Đánh dấu form không hợp lệ
+                        
+                        // Nếu chưa có trường lỗi nào trước đó, focus vào ô ngày này
+                        if (!firstInvalidField) firstInvalidField = input;
+                    } else {
+                        dateTracker.push(val);
+                    }
+                }
+            });
 
             if (!isValid) {
-                e.preventDefault();
+                e.preventDefault(); // CHẶN LƯU NGAY LẬP TỨC
 
-                // Scroll to first invalid field
+                // Cuộn tới trường lỗi đầu tiên
                 if (firstInvalidField) {
                     firstInvalidField.scrollIntoView({
                         behavior: 'smooth',
@@ -1204,23 +1224,29 @@
                     firstInvalidField.focus();
                 }
 
-                showNotification('Vui lòng điền đầy đủ các trường bắt buộc!', 'error');
+                // Thông báo lỗi cụ thể
+                if (hasDuplicate) {
+                    showNotification('Lỗi: Có ngày khởi hành bị trùng nhau. Vui lòng kiểm tra lại!', 'error');
+                } else {
+                    showNotification('Vui lòng điền đầy đủ các trường bắt buộc!', 'error');
+                }
+                
                 return false;
             }
 
-            // Show loading state
+            // Show loading state (Code cũ của bạn - Chỉ chạy khi isValid = true)
             const saveBtn = document.getElementById('saveBtn');
             const originalText = saveBtn.innerHTML;
             saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';
             saveBtn.disabled = true;
             saveBtn.classList.add('loading');
 
-            // Simulate loading (remove this in production)
+            // Simulate loading (remove this in production if you assume backend redirect)
+            // Nếu form submit thật lên server thì không cần setTimeout này, nhưng giữ nguyên theo code bạn
             setTimeout(() => {
-                saveBtn.innerHTML = originalText;
-                saveBtn.disabled = false;
-                saveBtn.classList.remove('loading');
-                showNotification('Tour đã được lưu thành công!', 'success');
+                 // Form sẽ tự submit sau khi bỏ preventDefault, hoặc nếu dùng Ajax thì xử lý ở đây
+                 // Vì đây là form thường, ta không cần làm gì thêm, để nó tự submit
+                 // saveBtn.innerHTML = originalText; // dòng này chỉ dùng nếu là Ajax
             }, 2000);
         });
 
@@ -1332,5 +1358,8 @@
         document.querySelectorAll('input[name="price"], input[name="discount_price"]').forEach(field => {
             field.addEventListener('input', calculateTotalPrice);
         });
+
+        
     </script>
 @endsection
+l

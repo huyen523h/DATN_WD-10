@@ -7,7 +7,7 @@
 @endsection
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-4">
+{{-- <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h2><i class="fas fa-chart-bar text-primary"></i> Báo cáo & Thống kê</h2>
         <p class="text-muted mb-0">Phân tích dữ liệu và báo cáo doanh thu</p>
@@ -20,7 +20,28 @@
             <i class="fas fa-file-excel"></i> Xuất Excel
         </button>
     </div>
+</div> --}}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h3 mb-0 text-gray-800"><i class="fas fa-chart-bar text-primary"></i> Báo cáo & Thống kê</h2>
+    </div>
+    
+    {{-- FORM LỌC NGÀY - TÍNH NĂNG "XỊN" NHẤT CẦN CÓ --}}
+    <form action="{{ route('admin.reports') }}" method="GET" class="d-flex shadow-sm p-2 bg-white rounded">
+        <div class="input-group me-2">
+            <span class="input-group-text bg-white border-0"><i class="fas fa-calendar-alt"></i></span>
+            <input type="date" name="start_date" class="form-control border-0" value="{{ $startDate }}">
+        </div>
+        <div class="vr"></div>
+        <div class="input-group mx-2">
+            <span class="input-group-text bg-white border-0"><i class="fas fa-arrow-right"></i></span>
+            <input type="date" name="end_date" class="form-control border-0" value="{{ $endDate }}">
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm px-3">Lọc</button>
+    </form>
 </div>
+
 
 <!-- Stats Cards -->
 <div class="row mb-4">
@@ -124,7 +145,7 @@
             <div class="card-header">
                 <h6 class="m-0 font-weight-bold text-primary">Top Tours bán chạy</h6>
             </div>
-            <div class="card-body">
+            {{-- <div class="card-body">
                 <div class="list-group list-group-flush">
                     <div class="list-group-item d-flex justify-content-between align-items-center">
                         <div>
@@ -157,7 +178,31 @@
                         </div>
                     </div>
                 </div>
+            </div> --}}
+
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    @forelse($topTours as $item)
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <div>
+                                <div class="fw-bold text-dark">{{ $item->tour->name ?? 'Tour đã bị xóa' }}</div>
+                                <small class="text-muted">
+                                    <i class="fas fa-clock"></i> {{ $item->tour->duration ?? 'N/A' }} 
+                                </small>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-bold text-success">{{ $item->total }} lượt đặt</div>
+                                {{-- Giả sử giá tour * số lượt (tạm tính) --}}
+                                <small class="text-muted">{{ number_format(($item->tour->price ?? 0) * $item->total) }}đ</small>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="text-center py-3 text-muted">Chưa có dữ liệu trong khoảng thời gian này</div>
+                    @endforelse
+                </div>
             </div>
+        </div>
+    </div>
         </div>
     </div>
 
@@ -206,68 +251,112 @@
 @endsection
 
 @section('scripts')
+{{-- Thêm thư viện Chart.js --}}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Revenue Chart
-    const revenueCtx = document.getElementById('revenueChart').getContext('2d');
-    new Chart(revenueCtx, {
-        type: 'line',
-        data: {
-            labels: ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6'],
-            datasets: [{
-                label: 'Doanh thu (triệu VNĐ)',
-                data: [120, 190, 300, 500, 200, 300],
-                borderColor: '#4F46E5',
-                backgroundColor: 'rgba(79, 70, 229, 0.1)',
-                tension: 0.4,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
-    });
-
-    // Tours Chart
-    const toursCtx = document.getElementById('toursChart').getContext('2d');
-    new Chart(toursCtx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Trong nước', 'Nước ngoài', 'Du lịch sinh thái', 'Du lịch văn hóa'],
-            datasets: [{
-                data: [40, 30, 20, 10],
-                backgroundColor: ['#4F46E5', '#10B981', '#F59E0B', '#EF4444']
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom'
-                }
-            }
-        }
-    });
-});
-
-function exportReport(format) {
-    if (format === 'pdf') {
-        alert('Tính năng xuất PDF đang được phát triển');
-    } else if (format === 'excel') {
-        alert('Tính năng xuất Excel đang được phát triển');
+    // --- SỬA LỖI TẠI ĐÂY ---
+    // Thay vì dùng json, ta dùng json_encode trực tiếp để tránh lỗi cú pháp
+    const rawData = {!! json_encode($chartData) !!};
+    
+    // Kiểm tra xem dữ liệu có tồn tại không để tránh lỗi JS
+    if (!rawData || rawData.length === 0) {
+        console.warn("Không có dữ liệu biểu đồ");
+        return;
     }
-}
+
+    // Tách mảng ngày và doanh thu
+    const labels = rawData.map(item => item.date);
+    const data = rawData.map(item => item.total);
+
+    // 2. VẼ BIỂU ĐỒ DOANH THU (LINE CHART)
+    const revenueCanvas = document.getElementById('revenueChart');
+    
+    // Kiểm tra nếu thẻ canvas tồn tại thì mới vẽ
+    if (revenueCanvas) {
+        const revenueCtx = revenueCanvas.getContext('2d');
+        
+        // Tạo gradient màu tím
+        let gradient = revenueCtx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(79, 70, 229, 0.2)');
+        gradient.addColorStop(1, 'rgba(79, 70, 229, 0)');
+
+        new Chart(revenueCtx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Doanh thu',
+                    data: data,
+                    borderColor: '#4F46E5',
+                    backgroundColor: gradient,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#4F46E5',
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let value = context.parsed.y;
+                                return ' ' + new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return new Intl.NumberFormat('vi-VN').format(value) + 'đ';
+                            }
+                        },
+                        border: { dash: [4, 4] }
+                    }
+                }
+            }
+        });
+    }
+
+    // 3. BIỂU ĐỒ TRÒN (Nếu có)
+    const toursCanvas = document.getElementById('toursChart');
+    if (toursCanvas) {
+        const toursCtx = toursCanvas.getContext('2d');
+        new Chart(toursCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Hoàn thành', 'Đang xử lý', 'Đã hủy'],
+                datasets: [{
+                    data: [
+                        {{ $stats['completed_bookings'] ?? 0 }}, 
+                        {{ ($stats['total_bookings'] ?? 0) - ($stats['completed_bookings'] ?? 0) }},
+                        0 
+                    ], 
+                    backgroundColor: ['#10B981', '#F59E0B', '#EF4444'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '75%',
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    }
+});
 </script>
 @endsection

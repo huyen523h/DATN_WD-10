@@ -105,10 +105,7 @@ class TourController extends Controller
         return view('admin.tours.edit', compact('tour', 'categories'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Tour $tour)
+ public function update(Request $request, Tour $tour)
     {
         $validated = $request->validate([
             'title' => 'required|string|max:200',
@@ -122,10 +119,8 @@ class TourController extends Controller
             'status' => 'required|in:active,inactive,draft',
             'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
-
         $tour->update($validated);
 
-        // Handle new images
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $index => $image) {
                 $path = $image->store('tours/images', 'public');
@@ -139,7 +134,6 @@ class TourController extends Controller
 
         return redirect()->route('admin.tours.index')->with('success', 'Tour đã được cập nhật thành công!');
     }
-
     /**
      * Remove the specified resource from storage.
      */

@@ -960,6 +960,7 @@
                 </div>
             </div>
 
+
             <!-- Bookings & Operations -->
             <div class="nav-section">
                 <div class="nav-section-title">Đặt tour & Vận hành</div>
@@ -981,6 +982,22 @@
                         <span class="nav-text">Check-in/Check-out</span>
                     </a>
                 </div>
+
+            <div class="nav-item">
+                <a href="#"
+                    class="nav-link {{ request()->routeIs('admin.guides*') ? 'active' : '' }}">
+                    <i class="fas fa-user-tie"></i>
+                    <span class="nav-text">Quản lý HDV</span>
+                </a>
+            </div>
+
+            <!-- Bookings Management -->
+            <div class="nav-item">
+                <a href="{{ route('admin.bookings') }}"
+                    class="nav-link {{ request()->routeIs('admin.bookings*') ? 'active' : '' }}">
+                    <i class="fas fa-calendar-check"></i>
+                    <span class="nav-text">Quản lý Đặt tour</span>
+                </a>
             </div>
 
             <!-- Users Management -->
