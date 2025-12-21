@@ -531,6 +531,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         // route mới 3/12/2025
         Route::put('/departures/{id}/operating', [\App\Http\Controllers\Admin\DepartureController::class, 'updateOperating'])
         ->name('departures.update_operating');
+        
+        // Cập nhật thông tin điều hành (Ghi chú, Trạng thái tour, File danh sách khách)
+        Route::put('/departures/{id}/management', [\App\Http\Controllers\Admin\DepartureController::class, 'updateManagement'])
+        ->name('departures.update_management');
 
         // route mới 4/12/2025
         Route::post('/bookings/{booking}/admin-upload-manifest', [AdminController::class, 'uploadManifest'])->name('bookings.upload-manifest');
