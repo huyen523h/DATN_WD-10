@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Carbon\Carbon;
 
 class Booking extends Model
 {
@@ -27,6 +28,8 @@ class Booking extends Model
         'note',
         'passenger_manifest_file',
         'expires_at',
+        'cancel_reason',
+        'receipt_image',
     ];
 
     protected $casts = [
@@ -81,7 +84,7 @@ class Booking extends Model
      */
     public function payment()
     {
-        return $this->hasMany(Payment::class, 'booking_id', 'id');
+        return $this->hasMany(Payment::class, 'booking_id', 'id')->orderBy('id', 'desc');
     }
 
     /**
@@ -201,5 +204,51 @@ class Booking extends Model
     public function isCompleted(): bool
     {
         return $this->status === 'completed';
+    }
+
+    /**
+     * Tính toán thông tin hoàn tiền dựa trên ngày khởi hành
+     * Trả về mảng: % hoàn, số tiền hoàn, và lý do gợi ý.
+     */
+    public function getRefundInfo()
+    {
+        // 1. Nếu chưa có lịch khởi hành hoặc chưa thanh toán -> Hoàn 100% (hoặc 0đ)
+        if (!$this->departure || $this->status !== 'paid') {
+            return [
+                'percent' => 100,
+                'amount' => $this->total_amount, // Hoàn toàn bộ
+                'policy' => 'Khách chưa chốt lịch hoặc chưa thanh toán. Hủy không mất phí.'
+            ];
+        }
+
+        // 2. Tính khoảng cách ngày: (Ngày khởi hành) - (Hôm nay)
+        $departureDate = Carbon::parse($this->departure->departure_date);
+        $now = Carbon::now();
+        $daysDiff = $now->diffInDays($departureDate, false); // false để lấy số âm nếu đã qua ngày
+
+        // 3. Áp dụng chính sách hủy tour
+        if ($daysDiff >= 30) {
+            $percent = 100;
+            $note = "Hủy trước 30 ngày. Hoàn 100%.";
+        } elseif ($daysDiff >= 7) {
+            $percent = 70;
+            $note = "Hủy trước 7-29 ngày. Hoàn 70%.";
+        } elseif ($daysDiff >= 3) {
+            $percent = 30;
+            $note = "Hủy trước 3-6 ngày. Hoàn 30%.";
+        } else {
+            $percent = 0;
+            $note = "Hủy sát ngày (dưới 3 ngày) hoặc đã qua ngày đi. Không hoàn tiền.";
+        }
+
+        // 4. Tính ra số tiền cụ thể
+        $refundAmount = ($this->total_amount * $percent) / 100;
+
+        return [
+            'days_diff' => $daysDiff,
+            'percent' => $percent,
+            'amount' => $refundAmount,
+            'policy' => $note
+        ];
     }
 }

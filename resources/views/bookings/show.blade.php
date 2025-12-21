@@ -9,6 +9,54 @@
         <a href="{{ route('bookings.index') }}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left"></i> Quay lại</a>
     </div>
 
+    {{-- HIỂN THỊ THÔNG BÁO HỦY TOUR (Dành cho khách hàng) --}}
+@if($booking->status === 'cancelled')
+    <div class="alert alert-danger border-danger shadow-sm mb-4">
+        <div class="d-flex">
+            <div class="me-3">
+                <i class="fas fa-exclamation-circle fa-3x text-danger"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h4 class="alert-heading fw-bold">Tour này đã bị hủy!</h4>
+                <p class="mb-1">
+                    <strong>Lý do hủy:</strong> {{ $booking->cancel_reason ?? 'Không có lý do cụ thể.' }}
+                </p>
+                
+                {{-- Kiểm tra xem có giao dịch hoàn tiền nào không --}}
+                @php
+                    $refundTransaction = $booking->payment->where('amount', '<', 0)->first();
+                @endphp
+
+                @if($refundTransaction)
+                    <hr>
+                    <div class="bg-white p-3 rounded border border-danger border-opacity-25">
+                        <h6 class="text-danger fw-bold"><i class="fas fa-undo"></i> Thông tin hoàn tiền:</h6>
+                        <ul class="mb-0 ps-3">
+                            <li>Số tiền hoàn lại: <strong class="text-danger">{{ number_format(abs($refundTransaction->amount)) }} VNĐ</strong></li>
+                            <li>Thời gian xử lý: {{ $refundTransaction->created_at->format('d/m/Y H:i') }}</li>
+                            <li>Ghi chú: {{ $refundTransaction->note }}</li>
+                        </ul>
+                        
+                        {{-- Hiển thị ảnh bằng chứng nếu có --}}
+                        @if($refundTransaction->refund_proof)
+                            <div class="mt-2">
+                                <a href="{{ Storage::url($refundTransaction->refund_proof) }}" target="_blank" class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-image"></i> Xem biên lai chuyển khoản
+                                </a>
+                            </div>
+                        @endif
+                    </div>
+                @else
+                    <hr>
+                    <p class="mb-0 fst-italic">
+                        <i class="fas fa-info-circle"></i> Nếu bạn đã thanh toán, nhân viên sẽ liên hệ để xử lý hoàn tiền theo quy định.
+                    </p>
+                @endif
+            </div>
+        </div>
+    </div>
+@endif
+
     <div class="row">
         <div class="col-lg-8">
             
@@ -125,54 +173,122 @@
         </div>
 
         <div class="col-lg-4">
-             <div class="card mb-4 border-0 shadow-sm">
+         <div class="card mb-4 border-0 shadow-sm">
                 <div class="card-body">
+                    <h5 class="card-title text-muted mb-3 border-bottom pb-2">Thông tin thanh toán</h5>
+                    
                     <div class="d-flex justify-content-between mb-3">
                         <span>Tổng tiền:</span>
                         <span class="fw-bold text-primary fs-5">{{ number_format($booking->total_amount) }}đ</span>
                     </div>
-                    @if ($booking->status === 'paid' || $booking->status === 'completed')
-                        <div class="alert alert-success text-center mb-0 p-2"><i class="fas fa-check-circle"></i> Đã thanh toán</div>
+
+                    {{-- [CODE MỚI] HIỂN THỊ BILL CHO KHÁCH --}}
+@if($booking->receipt_image)
+    <div class="alert alert-success mt-3 shadow-sm">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-receipt fa-2x me-3"></i>
+            <div>
+                <h5 class="alert-heading h6 fw-bold mb-1">Biên lai thu tiền</h5>
+                <p class="mb-1 small">Bạn đã thanh toán bằng tiền mặt. Xem chi tiết phiếu thu tại đây:</p>
+                <a href="{{ Storage::url($booking->receipt_image) }}" target="_blank" class="btn btn-sm btn-light text-success fw-bold">
+                    <i class="fas fa-eye me-1"></i> Xem hóa đơn của tôi
+                </a>
+            </div>
+        </div>
+    </div>
+@endif
+
+                    {{-- LOGIC MỚI: Kiểm tra trạng thái chặt chẽ hơn --}}
+                    
+                    {{-- 1. TRƯỜNG HỢP ĐÃ HỦY: Chặn tuyệt đối nút thanh toán --}}
+                    @if ($booking->status === 'cancelled')
+                        <div class="alert alert-secondary text-center mb-0 p-3 bg-light border-secondary">
+                            <i class="fas fa-ban fa-2x mb-2 text-secondary"></i><br>
+                            <strong class="text-uppercase text-secondary">Đơn hàng đã hủy</strong><br>
+                            <small class="text-muted">Giao dịch đã đóng. Không thể thanh toán.</small>
+                        </div>
+
+                    {{-- 2. TRƯỜNG HỢP ĐÃ THANH TOÁN: Chỉ hiện thông báo xanh --}}
+                    @elseif ($booking->status === 'paid' || $booking->status === 'completed')
+                        <div class="alert alert-success text-center mb-0 p-3">
+                            <i class="fas fa-check-circle fa-2x mb-2"></i><br>
+                            <strong>Đã thanh toán thành công</strong>
+                        </div>
+
+                    {{-- 3. TRƯỜNG HỢP CÒN LẠI (Pending/Confirmed): Mới hiện nút thanh toán --}}
                     @else
-                        <div class="alert alert-warning text-center mb-3 p-2">Chưa thanh toán</div>
+                        <div class="alert alert-warning text-center mb-3 p-2 small">
+                            <i class="fas fa-clock"></i> Đơn hàng đang chờ thanh toán
+                        </div>
                         
-                        <!-- Các nút thanh toán -->
                         <div class="d-grid gap-2">
+                            {{-- Form MoMo --}}
                             <form action="{{ route('momo_payment', $booking->id) }}" method="POST" class="d-inline">
                                 @csrf
-                                <button type="submit" class="btn w-100" style="background: linear-gradient(135deg, #A50064 0%, #FF007F 100%); border: none; color: white; padding: 12px;">
+                                <button type="submit" class="btn w-100 fw-bold shadow-sm" 
+                                        style="background: linear-gradient(135deg, #A50064 0%, #FF007F 100%); border: none; color: white; padding: 12px;">
                                     <i class="fas fa-mobile-alt me-2"></i>Thanh toán với MoMo
                                 </button>
                             </form>
                             
+                            {{-- Form VNPay --}}
                             <form action="{{ route('payment.vnpay', $booking->id) }}" method="POST" class="d-inline">
                                 @csrf
-                                <button type="submit" class="btn btn-primary w-100" style="background: linear-gradient(135deg, #1E88E5 0%, #1565C0 100%); border: none; padding: 12px;">
-                                    <i class="fas fa-credit-card me-2"></i>Thanh toán với VNPay
+                                <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm" 
+                                        style="background: linear-gradient(135deg, #005C97 0%, #363795 100%); border: none; padding: 12px;">
+                                    <i class="fas fa-university me-2"></i>Thanh toán với VNPay
                                 </button>
                             </form>
+                        </div>
+                        
+                        <div class="mt-3 text-center">
+                            <small class="text-muted fst-italic">Vui lòng thanh toán để hệ thống giữ chỗ cho bạn.</small>
                         </div>
                     @endif
                 </div>
             </div>
             
-             <div class="card border-0 shadow-sm">
-                 <div class="card-header bg-white"><h6 class="mb-0">Danh sách đoàn</h6></div>
-                 <div class="card-body">
-                    <form action="{{ route('bookings.upload-manifest', $booking->id) }}" method="POST" enctype="multipart/form-data">
-                        @csrf
-                        <div class="mb-2">
-                             @if($booking->passenger_manifest_file)
-                                <a href="{{ Storage::url($booking->passenger_manifest_file) }}" target="_blank" class="d-block mb-2 fw-bold text-success">
-                                    <i class="fas fa-file-download"></i> Xem danh sách đã gửi
-                                </a>
-                            @endif
-                            <input type="file" name="manifest_file" class="form-control form-control-sm" required>
-                        </div>
-                        <button class="btn btn-primary btn-sm w-100">Cập nhật</button>
-                    </form>
-                 </div>
-             </div>
+          <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white">
+        <h6 class="mb-0 fw-bold text-primary"><i class="fas fa-users me-2"></i>Danh sách đoàn</h6>
+    </div>
+    <div class="card-body">
+        {{-- LOGIC CHẶT CHẼ: Phải thanh toán xong mới được nộp danh sách --}}
+        @if($booking->status === 'paid' || $booking->status === 'completed')
+            
+            <form action="{{ route('bookings.upload-manifest', $booking->id) }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="mb-2">
+                    @if($booking->passenger_manifest_file)
+                        <a href="{{ Storage::url($booking->passenger_manifest_file) }}" target="_blank" class="d-block mb-2 fw-bold text-success text-decoration-none">
+                            <i class="fas fa-file-check me-1"></i> Đã gửi danh sách (Tải về)
+                        </a>
+                    @else
+                        <div class="text-muted small mb-2">Vui lòng tải lên danh sách thành viên để làm thủ tục bảo hiểm.</div>
+                    @endif
+                    
+                    <input type="file" name="manifest_file" class="form-control form-control-sm" required>
+                </div>
+                <button class="btn btn-primary btn-sm w-100">
+                    <i class="fas fa-cloud-upload-alt me-1"></i> Cập nhật danh sách
+                </button>
+            </form>
+
+        @elseif($booking->status === 'cancelled')
+            <div class="text-center text-muted py-2 small">
+                <i class="fas fa-ban"></i> Đơn hàng đã hủy.
+            </div>
+
+        @else
+            {{-- CHƯA THANH TOÁN --}}
+            <div class="text-center text-secondary py-3 bg-light rounded">
+                <i class="fas fa-lock fa-2x mb-2 text-muted"></i>
+                <div class="small fw-bold">Chức năng đang khóa</div>
+                <div style="font-size: 11px;">Vui lòng thanh toán để mở khóa chức năng nộp danh sách đoàn.</div>
+            </div>
+        @endif
+    </div>
+</div>
         </div>
     </div>
 </div>
