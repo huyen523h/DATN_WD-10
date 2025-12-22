@@ -221,9 +221,23 @@
                             <i class="fas fa-clock"></i> Đơn hàng đang chờ thanh toán
                         </div>
                         
+                        <!-- Terms and Conditions Agreement -->
+                        <div class="alert alert-light border mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="agreeTermsBooking" required>
+                                <label class="form-check-label" for="agreeTermsBooking">
+                                    Tôi đã đọc và đồng ý với 
+                                    <a href="{{ route('payment-policy') }}" target="_blank" class="text-primary fw-bold">
+                                        Chính sách & Điều khoản Tour Đoàn
+                                        <i class="fas fa-external-link-alt ms-1"></i>
+                                    </a>
+                                </label>
+                            </div>
+                        </div>
+                        
                         <div class="d-grid gap-2">
                             {{-- Form MoMo --}}
-                            <form action="{{ route('momo_payment', $booking->id) }}" method="POST" class="d-inline">
+                            <form action="{{ route('momo_payment', $booking->id) }}" method="POST" class="d-inline" id="momoForm" onsubmit="return validateTermsBeforePayment(event)">
                                 @csrf
                                 <button type="submit" class="btn w-100 fw-bold shadow-sm" 
                                         style="background: linear-gradient(135deg, #A50064 0%, #FF007F 100%); border: none; color: white; padding: 12px;">
@@ -232,7 +246,7 @@
                             </form>
                             
                             {{-- Form VNPay --}}
-                            <form action="{{ route('payment.vnpay', $booking->id) }}" method="POST" class="d-inline">
+                            <form action="{{ route('payment.vnpay', $booking->id) }}" method="POST" class="d-inline" id="vnpayForm" onsubmit="return validateTermsBeforePayment(event)">
                                 @csrf
                                 <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm" 
                                         style="background: linear-gradient(135deg, #005C97 0%, #363795 100%); border: none; padding: 12px;">
@@ -358,5 +372,39 @@
                             });
                             // --- (KẾT THÚC CODE MỚI) ---
                         });
+
+                        // Validate terms before payment
+                        function validateTermsBeforePayment(event) {
+                            const agreeTerms = document.getElementById('agreeTermsBooking');
+                            if (!agreeTerms || !agreeTerms.checked) {
+                                event.preventDefault();
+                                
+                                // Show alert
+                                const alertDiv = document.createElement('div');
+                                alertDiv.className = 'alert alert-warning alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+                                alertDiv.style.zIndex = '9999';
+                                alertDiv.style.minWidth = '400px';
+                                alertDiv.innerHTML = `
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>Vui lòng đọc và đồng ý với Chính sách & Điều khoản trước khi thanh toán!</strong>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                `;
+                                document.body.appendChild(alertDiv);
+                                
+                                // Scroll to checkbox
+                                if (agreeTerms) {
+                                    agreeTerms.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    agreeTerms.focus();
+                                }
+                                
+                                // Remove alert after 5 seconds
+                                setTimeout(() => {
+                                    alertDiv.remove();
+                                }, 5000);
+                                
+                                return false;
+                            }
+                            return true;
+                        }
                     </script>
                 @endsection

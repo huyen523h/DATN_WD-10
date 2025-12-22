@@ -778,6 +778,11 @@
                                 <i class="fas fa-envelope"></i> <span class="d-none d-lg-inline">Liên hệ</span>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('payment-policy') }}" title="Chính sách & Điều khoản">
+                                <i class="fas fa-file-contract"></i> <span class="d-none d-lg-inline">Điều khoản</span>
+                            </a>
+                        </li>
                     @endif
 
                     @auth
@@ -969,7 +974,7 @@
                                 <li><a href="#">Tour365 Affiliate</a></li>
                                 <li><a href="{{ route('blog.index') }}">Tour365 Blog</a></li>
                                 <li><a href="#">Chính sách bảo mật</a></li>
-                                <li><a href="#">Điều khoản & Điều kiện</a></li>
+                                <li><a href="{{ route('payment-policy') }}">Chính sách & Điều khoản Tour Đoàn</a></li>
                                 <li><a href="#">Đăng ký đối tác</a></li>
                                 <li><a href="#">Khu vực báo chí</a></li>
                                 <li><a href="#">Quy chế hoạt động</a></li>

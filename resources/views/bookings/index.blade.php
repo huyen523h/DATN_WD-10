@@ -91,22 +91,44 @@
                                         </div>
                                     </div>
                                     <div class="card-footer">
-                                        <div class="d-flex justify-content-between">
-                                            <small class="text-muted">
+                                        <div class="d-flex justify-content-between flex-wrap">
+                                            <small class="text-muted mb-2">
                                                 Đặt lúc: {{ $booking->created_at->format('d/m/Y H:i') }}
                                             </small>
-                                            <a href="{{ route('bookings.show', $booking) }}"
-                                                class="btn btn-outline-primary btn-sm">
-                                                <i class="fas fa-eye"></i> Xem chi tiết
-                                            </a>
-                                           @if($booking->status !== 'cancelled' && $booking->status !== 'paid' && $booking->status !== 'completed')
-    <form action="{{ route('momo_payment', $booking->id) }}" method="POST" class="d-inline ms-1">
-        @csrf
-        <button type="submit" class="btn btn-danger btn-sm">
-            <i class="fas fa-wallet"></i> Thanh toán qua MOMO
-        </button>
-    </form>
-@endif
+                                            <div class="d-flex gap-2 flex-wrap">
+                                                <a href="{{ route('bookings.show', $booking) }}"
+                                                    class="btn btn-outline-primary btn-sm">
+                                                    <i class="fas fa-eye"></i> Xem chi tiết
+                                                </a>
+                                                @if($booking->status !== 'cancelled' && $booking->status !== 'paid' && $booking->status !== 'completed')
+                                                    <!-- Terms checkbox for this booking -->
+                                                    <div class="form-check d-inline-flex align-items-center ms-2">
+                                                        <input class="form-check-input" type="checkbox" 
+                                                               id="agreeTerms{{ $booking->id }}" 
+                                                               style="margin-top: 0;">
+                                                        <label class="form-check-label small" 
+                                                               for="agreeTerms{{ $booking->id }}"
+                                                               style="white-space: nowrap;">
+                                                            <a href="{{ route('payment-policy') }}" 
+                                                               target="_blank" 
+                                                               class="text-primary fw-bold">
+                                                                Đã đọc điều khoản
+                                                                <i class="fas fa-external-link-alt ms-1" style="font-size: 0.7rem;"></i>
+                                                            </a>
+                                                        </label>
+                                                    </div>
+                                                    <form action="{{ route('momo_payment', $booking->id) }}" 
+                                                          method="POST" 
+                                                          class="d-inline ms-1"
+                                                          id="momoForm{{ $booking->id }}"
+                                                          onsubmit="return validateTermsBeforePayment(event, {{ $booking->id }})">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-danger btn-sm">
+                                                            <i class="fas fa-wallet"></i> Thanh toán qua MOMO
+                                                        </button>
+                                                    </form>
+                                                @endif
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -135,4 +157,43 @@
             </div>
         </div>
     </div>
+@endsection
+
+@section('scripts')
+<script>
+    // Validate terms before payment for booking list page
+    function validateTermsBeforePayment(event, bookingId) {
+        const agreeTerms = document.getElementById('agreeTerms' + bookingId);
+        if (!agreeTerms || !agreeTerms.checked) {
+            event.preventDefault();
+            
+            // Show alert
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-warning alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+            alertDiv.style.zIndex = '9999';
+            alertDiv.style.minWidth = '400px';
+            alertDiv.style.maxWidth = '90%';
+            alertDiv.innerHTML = `
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Vui lòng đọc và đồng ý với Chính sách & Điều khoản trước khi thanh toán!</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+            
+            // Scroll to checkbox
+            if (agreeTerms) {
+                agreeTerms.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                agreeTerms.focus();
+            }
+            
+            // Remove alert after 5 seconds
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+            
+            return false;
+        }
+        return true;
+    }
+</script>
 @endsection
