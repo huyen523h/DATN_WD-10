@@ -58,7 +58,7 @@ class AdminController extends Controller
             'pending_bookings' => Booking::where('status', 'pending')->count(),
         ];
 
-        $recent_bookings = Booking::with(['tour', 'user'])  
+        $recent_bookings = Booking::with(['tour', 'user'])
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get();
@@ -555,7 +555,7 @@ class AdminController extends Controller
                     \App\Models\TourImage::create([
                         'tour_id'    => $tour->id,
                         'image_url'  => Storage::url($path),
-                        'is_cover'   => $idx === 0,
+                        'is_cover'   => $idx === 0,         
                         'sort_order' => $order++,
                     ]);
                 }
@@ -620,7 +620,7 @@ class AdminController extends Controller
                         'seats_total' => $newMax,
                         'seats_available' => $newMax - $bookedCount // Tự động trừ đi số khách đã đặt
                     ]);
-                }
+        }
             }
         });
 
@@ -1290,7 +1290,7 @@ class AdminController extends Controller
             'receipt_image.image'    => 'File tải lên phải là hình ảnh.',
             'receipt_image.max'      => 'Ảnh quá lớn. Vui lòng chọn ảnh dưới 5MB.',
         ]);
-
+        
         // 2. XỬ LÝ ẢNH (ghi đè ảnh cũ nếu có)
         $imagePath = $booking->receipt_image;
 
@@ -1657,12 +1657,12 @@ class AdminController extends Controller
 
             // Nếu khoảng ngày giao nhau => không cho gán
             if ($startDate <= $depEnd && $endDate >= $depStart) {
-                return response()->json([
-                    'success' => false,
+            return response()->json([
+                'success' => false,
                     'message' => 'Hướng dẫn viên này đã được gán cho tour khác trong khoảng thời gian từ '
                         . $depStart->format('d/m/Y') . ' đến ' . $depEnd->format('d/m/Y')
                         . '. Vui lòng chọn HDV khác để tránh trùng lịch.',
-                ], 422);
+            ], 422);
             }
         }
 
@@ -1736,12 +1736,12 @@ class AdminController extends Controller
 
             // Nếu khoảng ngày giao nhau => không cho gán
             if ($startDate <= $depEnd && $endDate >= $depStart) {
-                return response()->json([
-                    'success' => false,
+            return response()->json([
+                'success' => false,
                     'message' => 'Xe ' . $vehicle->license_plate . ' đã được gán cho tour khác trong khoảng thời gian từ '
                         . $depStart->format('d/m/Y') . ' đến ' . $depEnd->format('d/m/Y')
                         . '. Vui lòng chọn xe khác để tránh trùng lịch.',
-                ], 422);
+            ], 422);
             }
         }
 
