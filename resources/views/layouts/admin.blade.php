@@ -973,7 +973,7 @@
                         <span class="nav-text">Quản lý Đặt tour</span>
                     </a>
                 </div>
-                <div class="nav-item">
+                {{-- <div class="nav-item">
                     <a href="{{ route('admin.check-in-out.index') }}"
                         class="nav-link {{ request()->routeIs('admin.check-in-out*') ? 'active' : '' }}">
                         <div class="nav-icon">
@@ -981,7 +981,7 @@
                         </div>
                         <span class="nav-text">Check-in/Check-out</span>
                     </a>
-                </div>
+                </div> --}}
 
             <div class="nav-item">
                 <a href="#"
