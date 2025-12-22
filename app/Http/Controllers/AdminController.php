@@ -18,9 +18,35 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Requests\BannerRequest;
+use Illuminate\Support\Facades\Auth;
+use App\Models\Payment;
+use Carbon\Carbon;
 
 class AdminController extends Controller
 {
+    /**
+     * Tính số ngày của tour dựa trên duration_days hoặc số ngày trong lịch trình.
+     * Luôn trả về ít nhất 1 ngày.
+     */
+    protected function getTourDurationDays(?Tour $tour): int
+    {
+        if (!$tour) {
+            // Fallback: giả định tour tối thiểu 3 ngày nếu không có dữ liệu
+            return 3;
+        }
+
+        if (!empty($tour->duration_days) && (int)$tour->duration_days > 0) {
+            return (int)$tour->duration_days;
+        }
+
+        // fallback: lấy max day_number trong schedules nếu có
+        try {
+            $maxDay = $tour->schedules()->max('day_number');
+            return $maxDay ? (int)$maxDay : 3;
+        } catch (\Throwable $e) {
+            return 3;
+        }
+    }
     public function dashboard()
     {
         $stats = [
@@ -863,18 +889,43 @@ class AdminController extends Controller
         return redirect()->route('admin.promotions')->with('success', 'Mã giảm giá đã được xóa.');
     }
 
-    public function reports()
+    public function reports(Request $request)
     {
+        // 1. Xử lý bộ lọc ngày (Mặc định là đầu tháng đến hiện tại)
+        $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->format('Y-m-d'));
+        $endDate   = $request->input('end_date', Carbon::now()->endOfMonth()->format('Y-m-d'));
+
+        // 2. Query dữ liệu Payment
+        $query = Payment::where('status', 'completed')
+            ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+
+        // 3. Tính Stats Cards
         $stats = [
-            'total_revenue' => \App\Models\Payment::where('status', 'completed')->sum('amount'),
-            'monthly_revenue' => \App\Models\Payment::where('status', 'completed')
-                ->whereMonth('created_at', now()->month)
-                ->sum('amount'),
-            'total_bookings' => Booking::count(),
-            'completed_bookings' => Booking::where('status', 'completed')->count(),
+            'total_revenue' => $query->sum('amount'),
+            'monthly_revenue' => $query->sum('amount'),
+            'total_bookings' => Booking::whereBetween('created_at', [$startDate, $endDate])->count(),
+            'completed_bookings' => Booking::where('status', 'completed')
+                ->whereBetween('created_at', [$startDate, $endDate])->count(),
         ];
 
-        return view('admin.reports', compact('stats'));
+        // 4. Dữ liệu cho BIỂU ĐỒ DOANH THU (Line Chart)
+        $chartData = Payment::selectRaw('DATE(created_at) as date, SUM(amount) as total')
+            ->where('status', 'completed')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
+
+        // 5. Dữ liệu cho TOP TOUR (List)
+        $topTours = Booking::select('tour_id', DB::raw('count(*) as total'))
+            ->with('tour')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->groupBy('tour_id')
+            ->orderByDesc('total')
+            ->limit(5)
+            ->get();
+
+        return view('admin.reports', compact('stats', 'chartData', 'topTours', 'startDate', 'endDate'));
     }
 
     public function notifications()
@@ -1192,42 +1243,143 @@ class AdminController extends Controller
     }
 
     /**
-     * Đánh dấu đã thanh toán
+     * Đánh dấu đã thanh toán (tiền mặt + lưu ảnh phiếu thu)
      */
-    public function markAsPaid(Request $request, Booking $booking): RedirectResponse
+    public function markAsPaid(Request $request, $id)
     {
-        $booking->update(['status' => 'paid']);
-        
-        // Gửi thông báo
-        $notificationService = new NotificationService();
-        $notificationService->sendNotification(
-            $booking->user,
-            'payment_success',
-            'Thanh toán thành công',
-            "Đơn hàng \"{$booking->tour->title}\" của bạn đã được thanh toán thành công. Tổng tiền: " . 
-            number_format($booking->total_amount, 0, ',', '.') . " VNĐ",
-            $booking->id,
-            'booking',
-            true
-        );
+        $booking = Booking::findOrFail($id);
 
-        return redirect()->route('admin.bookings.show', $booking)
-            ->with('success', 'Đã đánh dấu đơn hàng đã thanh toán!');
+        // 1. VALIDATE: Bắt buộc phải có ảnh và số tiền
+        $request->validate([
+            'amount' => 'required|numeric|min:0',
+            'note'   => 'nullable|string|max:500',
+            'receipt_image' => 'required|image|mimes:jpeg,png,jpg,gif|max:5120',
+        ], [
+            'receipt_image.required' => 'Bắt buộc phải chụp và upload ảnh phiếu thu làm bằng chứng!',
+            'receipt_image.image'    => 'File tải lên phải là hình ảnh.',
+            'receipt_image.max'      => 'Ảnh quá lớn. Vui lòng chọn ảnh dưới 5MB.',
+        ]);
+
+        // 2. XỬ LÝ ẢNH (ghi đè ảnh cũ nếu có)
+        $imagePath = $booking->receipt_image;
+
+        if ($request->hasFile('receipt_image')) {
+            if ($booking->receipt_image && Storage::disk('public')->exists($booking->receipt_image)) {
+                Storage::disk('public')->delete($booking->receipt_image);
+            }
+
+            $imagePath = $request->file('receipt_image')->store('receipts', 'public');
+        }
+
+        // 3. TẠO LỊCH SỬ THANH TOÁN (Payment Record)
+        Payment::create([
+            'booking_id'       => $booking->id,
+            'user_id'          => Auth::id(),
+            'amount'           => $request->amount,
+            'payment_method'   => 'cash',
+            'status'           => 'completed',
+            'transaction_code' => 'CASH-' . time(),
+            'note'             => $request->note ? $request->note . ' (Có ảnh phiếu thu)' : 'Thanh toán tiền mặt (có ảnh phiếu thu)',
+            'payment_date'     => now(),
+        ]);
+
+        // 4. CẬP NHẬT TRẠNG THÁI ĐƠN HÀNG & LƯU ẢNH
+        $booking->update([
+            'status'        => 'paid',
+            'receipt_image' => $imagePath,
+        ]);
+
+        return back()->with('success', 'Đã xác nhận thu tiền và lưu ảnh phiếu thu thành công!');
     }
 
     /**
-     * Hủy booking
+     * Cập nhật lại ảnh biên lai thu tiền mặt
      */
-    public function cancelBooking(Request $request, Booking $booking): RedirectResponse
+    public function updateReceiptImage(Request $request, $id)
     {
-        $booking->update(['status' => 'cancelled']);
-        
-        // Gửi thông báo
-        $notificationService = new NotificationService();
-        $notificationService->notifyBookingCancelled($booking, 'Admin hủy đơn');
+        $booking = Booking::findOrFail($id);
 
-        return redirect()->route('admin.bookings.show', $booking)
-            ->with('success', 'Đặt tour đã được hủy thành công!');
+        $request->validate([
+            'receipt_image' => 'required|image|mimes:jpeg,png,jpg|max:5120',
+        ], [
+            'receipt_image.required' => 'Vui lòng chọn ảnh mới để cập nhật.',
+            'receipt_image.image'    => 'File phải là hình ảnh.',
+        ]);
+
+        if ($request->hasFile('receipt_image')) {
+            if ($booking->receipt_image && Storage::disk('public')->exists($booking->receipt_image)) {
+                Storage::disk('public')->delete($booking->receipt_image);
+            }
+
+            $path = $request->file('receipt_image')->store('receipts', 'public');
+
+            $booking->update([
+                'receipt_image' => $path,
+            ]);
+        }
+
+        return back()->with('success', 'Đã cập nhật lại ảnh phiếu thu mới thành công!');
+    }
+
+    /**
+     * Hủy đơn hàng & xử lý hoàn tiền (nếu có)
+     */
+    public function cancelBooking(Request $request, Booking $booking)
+    {
+        $rules = [
+            'cancel_reason' => 'required|string|max:1000',
+        ];
+
+        // Nếu đơn đã thanh toán (PAID), bắt buộc phải nhập số tiền hoàn và upload ảnh chứng từ
+        if ($booking->status === 'paid') {
+            $rules['refund_amount'] = 'required|numeric|min:0';
+            $rules['refund_proof_file'] = 'required|image|max:2048';
+        }
+
+        $request->validate($rules, [
+            'cancel_reason.required' => 'Vui lòng nhập lý do hủy tour.',
+            'refund_proof_file.required' => 'Bắt buộc phải upload ảnh bằng chứng chuyển khoản hoàn tiền.',
+        ]);
+
+        try {
+            DB::transaction(function () use ($request, $booking) {
+                // A. Xử lý hoàn tiền (nếu đã thanh toán)
+                if ($booking->status === 'paid') {
+                    $path = null;
+                    if ($request->hasFile('refund_proof_file')) {
+                        $path = $request->file('refund_proof_file')->store('refunds', 'public');
+                    }
+
+                    Payment::create([
+                        'booking_id'       => $booking->id,
+                        'user_id'          => Auth::id(),
+                        'amount'           => -1 * abs($request->refund_amount),
+                        'payment_method'   => 'refund',
+                        'status'           => 'completed',
+                        'transaction_code' => 'REFUND_' . now()->format('YmdHis') . '_' . $booking->id,
+                        'note'             => 'Hoàn tiền hủy tour. Lý do: ' . $request->cancel_reason,
+                        'refund_proof'     => $path,
+                        'payment_date'     => now(),
+                    ]);
+                }
+
+                // B. Cập nhật trạng thái booking
+                $booking->update([
+                    'status' => 'cancelled',
+                    'cancel_reason' => $request->cancel_reason,
+                ]);
+
+                // C. Trả lại chỗ cho departure (nếu có)
+                if ($booking->departure) {
+                    $seatsToRestore = $booking->adults + $booking->children;
+                    $booking->departure->increment('seats_available', $seatsToRestore);
+                }
+            });
+
+            return back()->with('success', 'Đã hủy đơn hàng và cập nhật sổ sách thành công!');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Có lỗi xảy ra: ' . $e->getMessage());
+        }
     }
 
  // hàm upload file tour theo đoàn 4/12/2025
@@ -1274,7 +1426,7 @@ class AdminController extends Controller
                 'group_confirmed' => true,
                 'confirmed_guests_count' => $request->confirmed_guests_count,
                 'group_confirmed_at' => now(),
-                'group_confirmed_by' => auth()->id(),
+                'group_confirmed_by' => Auth::id(),
             ]);
         }
 
@@ -1289,7 +1441,7 @@ class AdminController extends Controller
     }
 
     /**
-     * API: Lấy danh sách HDV có sẵn cho một ngày khởi hành
+     * API: Lấy danh sách HDV có sẵn cho một khoảng thời gian tour (theo ngày khởi hành + số ngày tour)
      */
     public function getAvailableGuides(Request $request)
     {
@@ -1304,22 +1456,47 @@ class AdminController extends Controller
         })->orderBy('name')->get();
 
         $busyGuideIds = [];
+
         // Chỉ lọc HDV bận nếu có ngày khởi hành hợp lệ
         if ($request->filled('departure_date')) {
-            $query = TourDeparture::whereDate('departure_date', $request->departure_date)
-                ->whereNotNull('guide_id');
+            $startDate = \Carbon\Carbon::parse($request->departure_date)->startOfDay();
 
-            // Nếu có tour_id, loại trừ tour hiện tại
+            // Tính ngày kết thúc của tour hiện tại (nếu có tour_id thì dùng duration_days)
+            // Quy ước: chặn thêm 1 ngày sau khi tour kết thúc để đảm bảo HDV/xe về kịp
+            $endDate = (clone $startDate);
+            if ($request->filled('tour_id')) {
+                $currentTour = Tour::find($request->tour_id);
+                $durationDays = $this->getTourDurationDays($currentTour);
+                $endDate->addDays($durationDays); // +durationDays (chặn thêm 1 ngày sau khi tour kết thúc)
+            }
+
+            // Lấy tất cả departures đã được gán HDV (trừ tour hiện tại nếu có)
+            $query = TourDeparture::whereNotNull('guide_id');
             if ($request->filled('tour_id')) {
                 $query->where('tour_id', '!=', $request->tour_id);
             }
 
-            $busyGuideIds = $query->pluck('guide_id')
-                ->unique()
-                ->toArray();
+            $assignedDepartures = $query->with('tour')->get();
+
+            foreach ($assignedDepartures as $departure) {
+                $depStart = $departure->departure_date instanceof \Carbon\Carbon
+                    ? $departure->departure_date->copy()->startOfDay()
+                    : \Carbon\Carbon::parse($departure->departure_date)->startOfDay();
+
+                $depTour = $departure->tour;
+                $depDuration = $this->getTourDurationDays($depTour);
+                $depEnd = (clone $depStart)->addDays($depDuration); // +depDuration
+
+                // Nếu khoảng thời gian tour mới giao với khoảng thời gian tour đã gán => HDV bận
+                if ($startDate <= $depEnd && $endDate >= $depStart) {
+                    $busyGuideIds[] = $departure->guide_id;
+                }
+            }
+
+            $busyGuideIds = array_values(array_unique($busyGuideIds));
         }
 
-        // Lọc ra các HDV có sẵn (chưa được gán cho tour khác cùng ngày)
+        // Lọc ra các HDV có sẵn (chưa bị bận trong khoảng thời gian đó)
         $availableGuides = $allGuides->reject(function($guide) use ($busyGuideIds) {
             return in_array($guide->id, $busyGuideIds);
         })->values();
@@ -1337,7 +1514,7 @@ class AdminController extends Controller
     }
 
     /**
-     * API: Lấy danh sách xe có sẵn cho một ngày khởi hành
+     * API: Lấy danh sách xe có sẵn cho một khoảng thời gian tour (theo ngày khởi hành + số ngày tour)
      */
     public function getAvailableVehicles(Request $request)
     {
@@ -1352,22 +1529,47 @@ class AdminController extends Controller
             ->get();
 
         $busyVehicleIds = [];
+
         // Chỉ lọc xe bận nếu có ngày khởi hành hợp lệ
         if ($request->filled('departure_date')) {
-            $query = TourDeparture::whereDate('departure_date', $request->departure_date)
-                ->whereNotNull('vehicle_id');
+            $startDate = \Carbon\Carbon::parse($request->departure_date)->startOfDay();
 
-            // Nếu có tour_id, loại trừ tour hiện tại
+            // Tính ngày kết thúc của tour hiện tại (nếu có tour_id thì dùng duration_days)
+            // Quy ước: chặn thêm 1 ngày sau khi tour kết thúc để đảm bảo HDV/xe về kịp
+            $endDate = (clone $startDate);
+            if ($request->filled('tour_id')) {
+                $currentTour = Tour::find($request->tour_id);
+                $durationDays = $this->getTourDurationDays($currentTour);
+                $endDate->addDays($durationDays); // +durationDays
+            }
+
+            // Lấy tất cả departures đã được gán xe (trừ tour hiện tại nếu có)
+            $query = TourDeparture::whereNotNull('vehicle_id');
             if ($request->filled('tour_id')) {
                 $query->where('tour_id', '!=', $request->tour_id);
             }
 
-            $busyVehicleIds = $query->pluck('vehicle_id')
-                ->unique()
-                ->toArray();
+            $assignedDepartures = $query->with('tour')->get();
+
+            foreach ($assignedDepartures as $departure) {
+                $depStart = $departure->departure_date instanceof \Carbon\Carbon
+                    ? $departure->departure_date->copy()->startOfDay()
+                    : \Carbon\Carbon::parse($departure->departure_date)->startOfDay();
+
+                $depTour = $departure->tour;
+                $depDuration = $this->getTourDurationDays($depTour);
+                $depEnd = (clone $depStart)->addDays($depDuration); // +depDuration
+
+                // Nếu khoảng thời gian tour mới giao với khoảng thời gian tour đã gán => xe bận
+                if ($startDate <= $depEnd && $endDate >= $depStart) {
+                    $busyVehicleIds[] = $departure->vehicle_id;
+                }
+            }
+
+            $busyVehicleIds = array_values(array_unique($busyVehicleIds));
         }
 
-        // Lọc ra các xe có sẵn (chưa được gán cho tour khác cùng ngày)
+        // Lọc ra các xe có sẵn (chưa bị bận trong khoảng thời gian đó)
         $availableVehicles = $allVehicles->reject(function($vehicle) use ($busyVehicleIds) {
             return in_array($vehicle->id, $busyVehicleIds);
         })->values();
@@ -1393,6 +1595,9 @@ class AdminController extends Controller
 
     /**
      * B3: Gán hướng dẫn viên (HDV)
+     *
+     * Yêu cầu: HDV không được bận ở bất kỳ tour nào có khoảng thời gian
+     * giao với khoảng ngày của tour hiện tại (ngày khởi hành + số ngày tour).
      */
     public function assignGuide(Request $request)
     {
@@ -1402,30 +1607,42 @@ class AdminController extends Controller
             'guide_id' => 'required|exists:users,id',
         ]);
 
-        // Kiểm tra user có phải là guide không
+        $tour = Tour::findOrFail($request->tour_id);
         $guide = User::findOrFail($request->guide_id);
-        if (!$guide->hasRole('guide')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Người dùng này không phải là hướng dẫn viên.'
-            ], 422);
+
+        // Tính khoảng thời gian của tour hiện tại
+        $startDate = \Carbon\Carbon::parse($request->departure_date)->startOfDay();
+        $durationDays = $this->getTourDurationDays($tour);
+        // +durationDays để chặn luôn các tour khởi hành đúng ngày xe/HDV vừa kết thúc tour này
+        $endDate = (clone $startDate)->addDays($durationDays);
+
+        // Lấy tất cả departures mà HDV này đã được gán, thuộc tour khác
+        $assignedDepartures = TourDeparture::where('guide_id', $guide->id)
+            ->where('tour_id', '!=', $tour->id)
+            ->with('tour')
+            ->get();
+
+        foreach ($assignedDepartures as $departure) {
+            $depStart = $departure->departure_date instanceof \Carbon\Carbon
+                ? $departure->departure_date->copy()->startOfDay()
+                : \Carbon\Carbon::parse($departure->departure_date)->startOfDay();
+
+            $depTour = $departure->tour;
+            $depDuration = $this->getTourDurationDays($depTour);
+            $depEnd = (clone $depStart)->addDays($depDuration);
+
+            // Nếu khoảng ngày giao nhau => không cho gán
+            if ($startDate <= $depEnd && $endDate >= $depStart) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Hướng dẫn viên này đã được gán cho tour khác trong khoảng thời gian từ '
+                        . $depStart->format('d/m/Y') . ' đến ' . $depEnd->format('d/m/Y')
+                        . '. Vui lòng chọn HDV khác để tránh trùng lịch.',
+                ], 422);
+            }
         }
 
-        // Kiểm tra xem HDV này đã được gán cho tour khác trong cùng ngày chưa (trừ tour hiện tại)
-        $conflictDeparture = TourDeparture::whereDate('departure_date', $request->departure_date)
-            ->where('tour_id', '!=', $request->tour_id)
-            ->where('guide_id', $request->guide_id)
-            ->first();
-
-        if ($conflictDeparture) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Hướng dẫn viên này đã được gán cho một tour khác trong ngày '
-                    . $request->departure_date . '. Vui lòng chọn HDV khác để tránh trùng lịch.'
-            ], 422);
-        }
-
-        // Chỉ lấy departures của tour này và cùng ngày khởi hành
+        // Lấy tất cả departures của tour này trong ngày khởi hành
         $departures = TourDeparture::whereDate('departure_date', $request->departure_date)
             ->where('tour_id', $request->tour_id)
             ->get();
@@ -1433,14 +1650,14 @@ class AdminController extends Controller
         if ($departures->isEmpty()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Không tìm thấy lịch khởi hành cho tour này trong ngày này.'
+                'message' => 'Không tìm thấy lịch khởi hành cho tour này trong ngày này.',
             ], 404);
         }
 
-        // Gán guide cho departures của tour này
+        // Gán guide cho tất cả departures của tour này trong ngày đó
         foreach ($departures as $departure) {
             $departure->update([
-                'guide_id' => $request->guide_id,
+                'guide_id' => $guide->id,
             ]);
         }
 
@@ -1450,14 +1667,17 @@ class AdminController extends Controller
             'data' => [
                 'departure_date' => $request->departure_date,
                 'tour_id' => $request->tour_id,
-                'guide_id' => $request->guide_id,
+                'guide_id' => $guide->id,
                 'guide_name' => $guide->name,
-            ]
+            ],
         ]);
     }
 
     /**
      * B4: Gán xe từ danh sách Quản lý xe
+     *
+     * Yêu cầu: Xe không được bận ở bất kỳ tour nào có khoảng thời gian
+     * giao với khoảng ngày của tour hiện tại (ngày khởi hành + số ngày tour).
      */
     public function assignVehicle(Request $request)
     {
@@ -1467,23 +1687,42 @@ class AdminController extends Controller
             'vehicle_id' => 'required|exists:vehicles,id',
         ]);
 
+        $tour = Tour::findOrFail($request->tour_id);
         $vehicle = \App\Models\Vehicle::findOrFail($request->vehicle_id);
 
-        // Kiểm tra xem xe này đã được gán cho tour khác trong cùng ngày chưa (trừ tour hiện tại)
-        $conflictDeparture = TourDeparture::whereDate('departure_date', $request->departure_date)
-            ->where('tour_id', '!=', $request->tour_id)
-            ->where('vehicle_id', $vehicle->id)
-            ->first();
+        // Tính khoảng thời gian của tour hiện tại
+        $startDate = \Carbon\Carbon::parse($request->departure_date)->startOfDay();
+        $durationDays = $this->getTourDurationDays($tour);
+        // +durationDays để chặn luôn các tour khởi hành đúng ngày xe này vừa kết thúc tour khác
+        $endDate = (clone $startDate)->addDays($durationDays);
 
-        if ($conflictDeparture) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Xe ' . $vehicle->license_plate . ' đã được gán cho một tour khác trong ngày '
-                    . $request->departure_date . '. Vui lòng chọn xe khác để tránh trùng lịch.'
-            ], 422);
+        // Lấy tất cả departures mà xe này đã được gán, thuộc tour khác
+        $assignedDepartures = TourDeparture::where('vehicle_id', $vehicle->id)
+            ->where('tour_id', '!=', $tour->id)
+            ->with('tour')
+            ->get();
+
+        foreach ($assignedDepartures as $departure) {
+            $depStart = $departure->departure_date instanceof \Carbon\Carbon
+                ? $departure->departure_date->copy()->startOfDay()
+                : \Carbon\Carbon::parse($departure->departure_date)->startOfDay();
+
+            $depTour = $departure->tour;
+            $depDuration = $this->getTourDurationDays($depTour);
+            $depEnd = (clone $depStart)->addDays($depDuration);
+
+            // Nếu khoảng ngày giao nhau => không cho gán
+            if ($startDate <= $depEnd && $endDate >= $depStart) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Xe ' . $vehicle->license_plate . ' đã được gán cho tour khác trong khoảng thời gian từ '
+                        . $depStart->format('d/m/Y') . ' đến ' . $depEnd->format('d/m/Y')
+                        . '. Vui lòng chọn xe khác để tránh trùng lịch.',
+                ], 422);
+            }
         }
 
-        // Chỉ lấy departures của tour này và cùng ngày khởi hành
+        // Lấy tất cả departures của tour này trong ngày khởi hành
         $departures = TourDeparture::whereDate('departure_date', $request->departure_date)
             ->where('tour_id', $request->tour_id)
             ->get();
@@ -1491,7 +1730,7 @@ class AdminController extends Controller
         if ($departures->isEmpty()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Không tìm thấy lịch khởi hành cho tour này trong ngày này.'
+                'message' => 'Không tìm thấy lịch khởi hành cho tour này trong ngày này.',
             ], 404);
         }
 
@@ -1503,7 +1742,7 @@ class AdminController extends Controller
         $driverContact = trim(($vehicle->driver_name ? $vehicle->driver_name . ' - ' : '') .
             ($vehicle->driver_phone ?? ''));
 
-        // Gán xe cho departures của tour này
+        // Gán xe cho tất cả departures của tour này trong ngày đó
         foreach ($departures as $departure) {
             $departure->update([
                 'vehicle_id' => $vehicle->id,
@@ -1523,7 +1762,7 @@ class AdminController extends Controller
                 'vehicle_type' => $vehicle->vehicle_type,
                 'vehicle_details' => $vehicleDetails,
                 'driver_contact' => $driverContact,
-            ]
+            ],
         ]);
     }
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Vehicle;
+use App\Models\TourDeparture;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -102,11 +103,26 @@ class VehicleWebController extends Controller
     }
 
     /**
-     * Xem chi tiết xe.
+     * Xem chi tiết xe + các lịch khởi hành đã được gán.
      */
     public function show(Vehicle $vehicle): View
     {
-        return view('admin.vehicles.show', compact('vehicle'));
+        // Lấy các lịch khởi hành đã gán xe này (chia tương lai / quá khứ)
+        $futureDepartures = TourDeparture::with('tour')
+            ->where('vehicle_id', $vehicle->id)
+            ->whereDate('departure_date', '>=', now()->toDateString())
+            ->orderBy('departure_date')
+            ->limit(50)
+            ->get();
+
+        $pastDepartures = TourDeparture::with('tour')
+            ->where('vehicle_id', $vehicle->id)
+            ->whereDate('departure_date', '<', now()->toDateString())
+            ->orderByDesc('departure_date')
+            ->limit(50)
+            ->get();
+
+        return view('admin.vehicles.show', compact('vehicle', 'futureDepartures', 'pastDepartures'));
     }
 
     /**

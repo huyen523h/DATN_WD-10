@@ -50,13 +50,75 @@
             </div>
 
             <div class="card mb-4">
-                <div class="card-header">
-                    Ghi chú
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Ghi chú</span>
                 </div>
                 <div class="card-body">
                     <p class="mb-0">
                         {{ $vehicle->notes ?: 'Không có ghi chú.' }}
                     </p>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Lịch khởi hành đã gán xe này</span>
+                    <small class="text-muted">Tối đa 50 lịch tương lai và 50 lịch đã qua</small>
+                </div>
+                <div class="card-body">
+                    <h6 class="mb-2">Các lịch sắp diễn ra</h6>
+                    @if(isset($futureDepartures) && $futureDepartures->count())
+                        <div class="table-responsive mb-3">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead>
+                                <tr>
+                                    <th>Ngày khởi hành</th>
+                                    <th>Tour</th>
+                                    <th>Ghi chú khởi hành</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                @foreach($futureDepartures as $dep)
+                                    <tr>
+                                        <td>{{ $dep->departure_date?->format('d/m/Y') }}</td>
+                                        <td>{{ $dep->tour?->title ?? 'Tour đã xoá' }}</td>
+                                        <td>{{ $dep->departure_location ?? '' }}</td>
+                                    </tr>
+                                @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <p class="text-muted">Chưa có lịch khởi hành tương lai nào được gán xe này.</p>
+                    @endif
+
+                    <hr>
+
+                    <h6 class="mb-2">Lịch khởi hành đã chạy</h6>
+                    @if(isset($pastDepartures) && $pastDepartures->count())
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead>
+                                <tr>
+                                    <th>Ngày khởi hành</th>
+                                    <th>Tour</th>
+                                    <th>Ghi chú khởi hành</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                @foreach($pastDepartures as $dep)
+                                    <tr>
+                                        <td>{{ $dep->departure_date?->format('d/m/Y') }}</td>
+                                        <td>{{ $dep->tour?->title ?? 'Tour đã xoá' }}</td>
+                                        <td>{{ $dep->departure_location ?? '' }}</td>
+                                    </tr>
+                                @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <p class="text-muted mb-0">Chưa có lịch khởi hành đã chạy nào được gán xe này.</p>
+                    @endif
                 </div>
             </div>
         </div>
