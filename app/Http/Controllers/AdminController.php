@@ -1500,13 +1500,10 @@ class AdminController extends Controller
                 $endDate->addDays($durationDays); // +durationDays (chặn thêm 1 ngày sau khi tour kết thúc)
             }
 
-            // Lấy tất cả departures đã được gán HDV (trừ tour hiện tại nếu có)
-            $query = TourDeparture::whereNotNull('guide_id');
-            if ($request->filled('tour_id')) {
-                $query->where('tour_id', '!=', $request->tour_id);
-            }
-
-            $assignedDepartures = $query->with('tour')->get();
+            // Lấy tất cả departures đã được gán HDV (kể cả cùng tour, để tránh trùng lịch giữa các ngày)
+            $assignedDepartures = TourDeparture::whereNotNull('guide_id')
+                ->with('tour')
+                ->get();
 
             foreach ($assignedDepartures as $departure) {
                 $depStart = $departure->departure_date instanceof \Carbon\Carbon
@@ -1573,13 +1570,10 @@ class AdminController extends Controller
                 $endDate->addDays($durationDays); // +durationDays
             }
 
-            // Lấy tất cả departures đã được gán xe (trừ tour hiện tại nếu có)
-            $query = TourDeparture::whereNotNull('vehicle_id');
-            if ($request->filled('tour_id')) {
-                $query->where('tour_id', '!=', $request->tour_id);
-            }
-
-            $assignedDepartures = $query->with('tour')->get();
+            // Lấy tất cả departures đã được gán xe (kể cả cùng tour)
+            $assignedDepartures = TourDeparture::whereNotNull('vehicle_id')
+                ->with('tour')
+                ->get();
 
             foreach ($assignedDepartures as $departure) {
                 $depStart = $departure->departure_date instanceof \Carbon\Carbon
@@ -1646,9 +1640,9 @@ class AdminController extends Controller
         // +durationDays để chặn luôn các tour khởi hành đúng ngày xe/HDV vừa kết thúc tour này
         $endDate = (clone $startDate)->addDays($durationDays);
 
-        // Lấy tất cả departures mà HDV này đã được gán, thuộc tour khác
+        // Lấy tất cả departures mà HDV này đã được gán (kể cả cùng tour),
+        // để tránh trùng lịch giữa các lần khởi hành khác nhau của cùng một tour.
         $assignedDepartures = TourDeparture::where('guide_id', $guide->id)
-            ->where('tour_id', '!=', $tour->id)
             ->with('tour')
             ->get();
 
@@ -1726,9 +1720,8 @@ class AdminController extends Controller
         // +durationDays để chặn luôn các tour khởi hành đúng ngày xe này vừa kết thúc tour khác
         $endDate = (clone $startDate)->addDays($durationDays);
 
-        // Lấy tất cả departures mà xe này đã được gán, thuộc tour khác
+        // Lấy tất cả departures mà xe này đã được gán (kể cả cùng tour)
         $assignedDepartures = TourDeparture::where('vehicle_id', $vehicle->id)
-            ->where('tour_id', '!=', $tour->id)
             ->with('tour')
             ->get();
 
