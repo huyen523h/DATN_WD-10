@@ -519,7 +519,7 @@
                                             <!-- TRƯỚC CUTOFF: Các nút điều hành tạm -->
                                             @if(!$isConfirmed)
                                                 <button class="btn btn-sm btn-outline-primary"
-                                                    onclick="openConfirmGroupModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}', {{ $totalGuests }})"
+                                                    onclick="openConfirmGroupModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}', {{ $totalGuests }}, false, '')"
                                                     @if(!($group['can_confirm_group'] ?? true)) 
                                                         disabled 
                                                         title="Chưa đủ điều kiện chốt đoàn"
@@ -535,7 +535,7 @@
                                             <!-- ĐẾN CUTOFF: Button CHỐT ĐOÀN nổi bật -->
                                             @if(!$isConfirmed)
                                                 <button class="btn btn-sm btn-warning fw-bold animate-pulse"
-                                                    onclick="openConfirmGroupModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}', {{ $totalGuests }})"
+                                                    onclick="openConfirmGroupModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}', {{ $totalGuests }}, false, '')"
                                                     @if(!($group['can_confirm_group'] ?? true)) disabled @endif>
                                                     <i class="fas fa-exclamation-triangle me-1"></i> CHỐT ĐOÀN NGAY!
                                                 </button>
@@ -561,7 +561,7 @@
                                                 </span>
                                                 @if(auth()->user()->hasRole('admin'))
                                                     <button class="btn btn-sm btn-outline-danger"
-                                                        onclick="openConfirmGroupModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}', {{ $totalGuests }})">
+                                                        onclick="openConfirmGroupModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}', {{ $totalGuests }}, true, '{{ $cutoffDate ? $cutoffDate->format('d/m/Y') : '' }}')">
                                                         <i class="fas fa-unlock me-1"></i> Admin Override
                                                     </button>
                                                 @endif
@@ -1511,17 +1511,33 @@
         }
 
         // B2: Chốt đoàn
-        function openConfirmGroupModal(departureDate, totalGuests) {
+        function openConfirmGroupModal(departureDate, totalGuests, isAdminOverride = false, cutoffDate = '') {
+            const overrideWarning = isAdminOverride ? `
+                <div class="alert alert-danger mb-3">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>⚠️ ADMIN OVERRIDE - CẢNH BÁO!</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>Tour đã quá cutoff (${cutoffDate || 'N/A'})</li>
+                        <li>Hành động này sẽ được ghi log vào hệ thống</li>
+                        <li>Chỉ sử dụng trong trường hợp đặc biệt</li>
+                    </ul>
+                </div>
+            ` : '';
+            
             const modalHtml = `
                 <div class="modal fade" id="confirmGroupModal" tabindex="-1">
                     <div class="modal-dialog">
                         <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Chốt đoàn</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            <div class="modal-header ${isAdminOverride ? 'bg-danger text-white' : ''}">
+                                <h5 class="modal-title">
+                                    <i class="fas ${isAdminOverride ? 'fa-unlock' : 'fa-check-double'} me-2"></i>
+                                    ${isAdminOverride ? 'Admin Override - Chốt đoàn' : 'Chốt đoàn'}
+                                </h5>
+                                <button type="button" class="btn-close ${isAdminOverride ? 'btn-close-white' : ''}" data-bs-dismiss="modal"></button>
                             </div>
                             <form id="confirmGroupForm">
                                 <div class="modal-body">
+                                    ${overrideWarning}
                                     <input type="hidden" name="departure_date" value="${departureDate}">
                                     <div class="mb-3">
                                         <label class="form-label">Tổng số khách hiện tại: <strong>${totalGuests}</strong></label>
@@ -1533,7 +1549,9 @@
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                                    <button type="submit" class="btn btn-success">Chốt đoàn</button>
+                                    <button type="submit" class="btn ${isAdminOverride ? 'btn-danger' : 'btn-success'}">
+                                        <i class="fas fa-check me-1"></i> ${isAdminOverride ? 'Xác nhận Override' : 'Chốt đoàn'}
+                                    </button>
                                 </div>
                             </form>
                         </div>
@@ -1577,12 +1595,12 @@
             });
         }
 
-        // B3: Gán HDV (từ dropdown Điều hành)
+        // B3: Gán HDV (từ dropdown Điều hành) - CẢI THIỆN VỚI THÔNG TIN CHI TIẾT
         async function openAssignGuideModal(departureDate, tourId, departureId = null) {
             // Hiển thị modal với loading state
             const modalHtml = `
                 <div class="modal fade" id="assignGuideModal" tabindex="-1">
-                    <div class="modal-dialog">
+                    <div class="modal-dialog modal-lg">
                         <div class="modal-content">
                             <div class="modal-header bg-info text-white">
                                 <h5 class="modal-title"><i class="fas fa-user-tie me-2"></i>Gán hướng dẫn viên</h5>
@@ -1599,6 +1617,33 @@
                                             <option value="">Đang tải danh sách...</option>
                                         </select>
                                         <small class="text-muted">Chỉ hiển thị các HDV chưa được gán cho tour khác cùng ngày.</small>
+                                    </div>
+                                    
+                                    <!-- THÔNG TIN CHI TIẾT HDV -->
+                                    <div id="guideInfoCard" class="card bg-light d-none mb-3">
+                                        <div class="card-body">
+                                            <h6 class="card-title mb-3"><i class="fas fa-info-circle me-2"></i>Thông tin HDV</h6>
+                                            <div class="row g-2">
+                                                <div class="col-md-6">
+                                                    <small class="text-muted d-block">Số điện thoại</small>
+                                                    <strong id="guidePhone" class="d-block">-</strong>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <small class="text-muted d-block">Email</small>
+                                                    <strong id="guideEmail" class="d-block">-</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- GHI CHÚ CHO HDV -->
+                                    <div class="mb-3">
+                                        <label for="guide_notes" class="form-label">
+                                            <i class="fas fa-sticky-note me-1"></i>Ghi chú cho HDV
+                                        </label>
+                                        <textarea class="form-control" id="guide_notes" name="guide_notes" rows="3" 
+                                                  placeholder="Nhập ghi chú đặc biệt cho HDV (ví dụ: Đón khách tại sân bay, Lưu ý về dị ứng thực phẩm...)"></textarea>
+                                        <small class="text-muted">Ghi chú này sẽ được gửi cho HDV trước khi tour khởi hành.</small>
                                     </div>
                                 </div>
                                 <div class="modal-footer">
@@ -1629,13 +1674,31 @@
                 
                 const data = await response.json();
                 const selectElement = document.getElementById('guide_id');
+                const guidesData = {}; // Lưu thông tin chi tiết HDV
                 
                 if (data.success && data.data.length > 0) {
                     let optionsHtml = '<option value="">-- Chọn hướng dẫn viên --</option>';
                     data.data.forEach(guide => {
-                        optionsHtml += `<option value="${guide.id}">${guide.name} (${guide.email})</option>`;
+                        optionsHtml += `<option value="${guide.id}" data-phone="${guide.phone || ''}" data-email="${guide.email || ''}">${guide.name} (${guide.email || 'N/A'})</option>`;
+                        guidesData[guide.id] = {
+                            phone: guide.phone || 'Chưa có',
+                            email: guide.email || 'Chưa có'
+                        };
                     });
                     selectElement.innerHTML = optionsHtml;
+                    
+                    // Event listener để hiển thị thông tin chi tiết khi chọn HDV
+                    selectElement.addEventListener('change', function() {
+                        const selectedId = this.value;
+                        const guideInfoCard = document.getElementById('guideInfoCard');
+                        if (selectedId && guidesData[selectedId]) {
+                            document.getElementById('guidePhone').textContent = guidesData[selectedId].phone;
+                            document.getElementById('guideEmail').textContent = guidesData[selectedId].email;
+                            guideInfoCard.classList.remove('d-none');
+                        } else {
+                            guideInfoCard.classList.add('d-none');
+                        }
+                    });
                 } else {
                     selectElement.innerHTML = '<option value="">Không có HDV nào có sẵn</option>';
                     selectElement.disabled = true;
@@ -1677,12 +1740,25 @@
             });
         }
 
-        // B4: Gán xe (từ dropdown Điều hành)
+        // B4: Gán xe (từ dropdown Điều hành) - CẢI THIỆN VỚI THÔNG TIN CHI TIẾT VÀ CẢNH BÁO SỨC CHỨA
         async function openAssignVehicleModal(departureDate, tourId, departureId = null) {
+            // Lấy thông tin tổng số khách hiện tại
+            let totalGuests = 0;
+            if (departureId) {
+                try {
+                    const bookingsResult = await fetchBookingsByDeparture(departureId);
+                    if (bookingsResult && bookingsResult.bookings) {
+                        totalGuests = bookingsResult.total_guests || 0;
+                    }
+                } catch (e) {
+                    console.warn('Could not fetch total guests:', e);
+                }
+            }
+            
             // Hiển thị modal với loading state
             const modalHtml = `
                 <div class="modal fade" id="assignVehicleModal" tabindex="-1">
-                    <div class="modal-dialog">
+                    <div class="modal-dialog modal-lg">
                         <div class="modal-content">
                             <div class="modal-header bg-warning">
                                 <h5 class="modal-title"><i class="fas fa-bus me-2"></i>Gán xe</h5>
@@ -1693,17 +1769,58 @@
                                     <input type="hidden" name="departure_date" value="${departureDate}">
                                     <input type="hidden" name="tour_id" value="${tourId}">
                                     <input type="hidden" name="departure_id" value="${departureId || ''}">
+                                    
+                                    <!-- THÔNG TIN TỔNG SỐ KHÁCH -->
+                                    <div class="alert alert-info mb-3">
+                                        <i class="fas fa-users me-2"></i>
+                                        <strong>Tổng số khách hiện tại:</strong> <span id="currentTotalGuests">${totalGuests}</span> khách
+                                    </div>
+                                    
                                     <div class="mb-3">
                                         <label for="vehicle_id" class="form-label">Chọn xe *</label>
                                         <select class="form-select" id="vehicle_id" name="vehicle_id" required>
                                             <option value="">Đang tải danh sách...</option>
                                         </select>
+                                        <small class="text-muted">Chỉ hiển thị các xe chưa được gán cho tour khác cùng ngày.</small>
                                     </div>
+                                    
+                                    <!-- THÔNG TIN CHI TIẾT XE -->
+                                    <div id="vehicleInfoCard" class="card bg-light d-none mb-3">
+                                        <div class="card-body">
+                                            <h6 class="card-title mb-3"><i class="fas fa-info-circle me-2"></i>Thông tin xe</h6>
+                                            <div class="row g-2">
+                                                <div class="col-md-6">
+                                                    <small class="text-muted d-block">Tài xế</small>
+                                                    <strong id="vehicleDriver" class="d-block">-</strong>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <small class="text-muted d-block">Số điện thoại tài xế</small>
+                                                    <strong id="vehicleDriverPhone" class="d-block">-</strong>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <small class="text-muted d-block">Công ty xe</small>
+                                                    <strong id="vehicleCompany" class="d-block">-</strong>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <small class="text-muted d-block">Sức chứa</small>
+                                                    <strong id="vehicleCapacity" class="d-block">-</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- CẢNH BÁO SỨC CHỨA -->
+                                    <div id="capacityWarning" class="alert alert-danger d-none mb-3">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        <strong>Cảnh báo!</strong>
+                                        <div id="capacityWarningText"></div>
+                                    </div>
+                                    
                                     <p class="text-muted mb-0"><small>Chỉ hiển thị các xe chưa được gán cho tour khác cùng ngày.</small></p>
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                                    <button type="submit" class="btn btn-warning">
+                                    <button type="submit" class="btn btn-warning" id="confirmVehicleBtn">
                                         <i class="fas fa-check me-1"></i> Xác nhận gán xe
                                     </button>
                                 </div>
@@ -1729,13 +1846,62 @@
                 
                 const data = await response.json();
                 const selectElement = document.getElementById('vehicle_id');
+                const vehiclesData = {}; // Lưu thông tin chi tiết xe
                 
                 if (data.success && data.data.length > 0) {
                     let optionsHtml = '<option value="">-- Chọn xe --</option>';
                     data.data.forEach(vehicle => {
-                        optionsHtml += `<option value="${vehicle.id}">${vehicle.label}</option>`;
+                        const label = vehicle.label || `${vehicle.license_plate || 'N/A'} - ${vehicle.vehicle_type || 'N/A'} chỗ`;
+                        optionsHtml += `<option value="${vehicle.id}" 
+                            data-driver="${vehicle.driver_name || ''}" 
+                            data-driver-phone="${vehicle.driver_phone || ''}" 
+                            data-company="${vehicle.bus_company || vehicle.company || ''}" 
+                            data-capacity="${vehicle.capacity || vehicle.seats || 0}">${label}</option>`;
+                        vehiclesData[vehicle.id] = {
+                            driver: vehicle.driver_name || 'Chưa có',
+                            driverPhone: vehicle.driver_phone || 'Chưa có',
+                            company: vehicle.bus_company || vehicle.company || 'Chưa có',
+                            capacity: vehicle.capacity || vehicle.seats || 0
+                        };
                     });
                     selectElement.innerHTML = optionsHtml;
+                    
+                    // Event listener để hiển thị thông tin chi tiết và cảnh báo khi chọn xe
+                    selectElement.addEventListener('change', function() {
+                        const selectedId = this.value;
+                        const vehicleInfoCard = document.getElementById('vehicleInfoCard');
+                        const capacityWarning = document.getElementById('capacityWarning');
+                        const confirmBtn = document.getElementById('confirmVehicleBtn');
+                        
+                        if (selectedId && vehiclesData[selectedId]) {
+                            const vehicle = vehiclesData[selectedId];
+                            document.getElementById('vehicleDriver').textContent = vehicle.driver;
+                            document.getElementById('vehicleDriverPhone').textContent = vehicle.driverPhone;
+                            document.getElementById('vehicleCompany').textContent = vehicle.company;
+                            document.getElementById('vehicleCapacity').textContent = vehicle.capacity + ' chỗ';
+                            vehicleInfoCard.classList.remove('d-none');
+                            
+                            // Kiểm tra sức chứa
+                            const currentGuests = parseInt(document.getElementById('currentTotalGuests').textContent) || 0;
+                            if (vehicle.capacity > 0 && currentGuests > vehicle.capacity) {
+                                const excess = currentGuests - vehicle.capacity;
+                                document.getElementById('capacityWarningText').innerHTML = 
+                                    `Số khách (${currentGuests}) vượt quá sức chứa xe (${vehicle.capacity} chỗ). Vượt <strong>${excess} khách</strong>. Vui lòng xác nhận lại!`;
+                                capacityWarning.classList.remove('d-none');
+                                confirmBtn.classList.add('btn-danger');
+                                confirmBtn.classList.remove('btn-warning');
+                            } else {
+                                capacityWarning.classList.add('d-none');
+                                confirmBtn.classList.remove('btn-danger');
+                                confirmBtn.classList.add('btn-warning');
+                            }
+                        } else {
+                            vehicleInfoCard.classList.add('d-none');
+                            capacityWarning.classList.add('d-none');
+                            confirmBtn.classList.remove('btn-danger');
+                            confirmBtn.classList.add('btn-warning');
+                        }
+                    });
                 } else {
                     selectElement.innerHTML = '<option value="">Không có xe nào có sẵn</option>';
                     selectElement.disabled = true;

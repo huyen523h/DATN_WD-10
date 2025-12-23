@@ -1319,8 +1319,8 @@ class AdminController extends Controller
                 'payment_method' => $validated['payment_method'] ?? null,
                 'status' => $status,
                 'note' => $validated['note'] ?? null,
-                'staff_id' => $validated['staff_id'] ?? null,
-                'source' => $validated['source'],
+                'sale_staff_id' => $validated['staff_id'] ?? null,
+                'booking_source' => $validated['source'],
             ]);
 
             // Trừ chỗ
@@ -2138,6 +2138,20 @@ class AdminController extends Controller
             }
         }
 
+        // Kiểm tra xem có phải admin override sau cutoff không
+        $isAdminOverride = false;
+        $cutoffDate = null;
+        foreach ($departures as $departure) {
+            if ($departure->departure_date) {
+                $cutoffDays = $departure->cutoff_days ?? 3;
+                $cutoffDate = $departure->departure_date->copy()->subDays($cutoffDays);
+                if (now()->gt($cutoffDate)) {
+                    $isAdminOverride = true;
+                    break;
+                }
+            }
+        }
+        
         // Nếu tất cả bookings đã được xác nhận và thanh toán, cho phép chốt đoàn
         foreach ($departures as $departure) {
             $departure->update([
@@ -2147,13 +2161,31 @@ class AdminController extends Controller
                 'group_confirmed_by' => Auth::id(),
             ]);
         }
+        
+        // LOG ADMIN OVERRIDE nếu sau cutoff
+        if ($isAdminOverride) {
+            $user = Auth::user();
+            $logMessage = sprintf(
+                '[ADMIN OVERRIDE] User %s (ID: %d) đã chốt đoàn sau cutoff. Ngày khởi hành: %s, Cutoff: %s, Số khách: %d',
+                $user->name,
+                $user->id,
+                $request->departure_date,
+                $cutoffDate ? $cutoffDate->format('d/m/Y H:i') : 'N/A',
+                $request->confirmed_guests_count
+            );
+            \Log::warning($logMessage);
+            
+            // Có thể lưu vào bảng audit log nếu có
+            // AdminOverrideLog::create([...]);
+        }
 
         return response()->json([
             'success' => true,
-            'message' => 'Đã chốt đoàn thành công!',
+            'message' => $isAdminOverride ? 'Đã chốt đoàn thành công (Admin Override sau cutoff)!' : 'Đã chốt đoàn thành công!',
             'data' => [
                 'departure_date' => $request->departure_date,
                 'confirmed_guests_count' => $request->confirmed_guests_count,
+                'is_admin_override' => $isAdminOverride,
             ]
         ]);
     }
@@ -2223,6 +2255,7 @@ class AdminController extends Controller
                     'id' => $guide->id,
                     'name' => $guide->name,
                     'email' => $guide->email,
+                    'phone' => $guide->phone ?? '',
                 ];
             })
         ]);
@@ -2293,6 +2326,9 @@ class AdminController extends Controller
                 $typeLabel = $typeMap[$vehicle->vehicle_type] ?? ($vehicle->vehicle_type . ' chỗ');
                 $label = '[' . $typeLabel . '] ' . ($vehicle->brand ?? '') . ' ' . ($vehicle->color ?? '') . ' - ' . $vehicle->license_plate;
                 
+                // Tính sức chứa từ vehicle_type
+                $capacity = (int) ($vehicle->vehicle_type ?? 0);
+                
                 return [
                     'id' => $vehicle->id,
                     'license_plate' => $vehicle->license_plate,
@@ -2300,6 +2336,12 @@ class AdminController extends Controller
                     'brand' => $vehicle->brand,
                     'color' => $vehicle->color,
                     'label' => trim($label),
+                    'driver_name' => $vehicle->driver_name ?? '',
+                    'driver_phone' => $vehicle->driver_phone ?? '',
+                    'bus_company' => $vehicle->notes ?? '', // Tạm dùng notes làm công ty xe
+                    'company' => $vehicle->notes ?? '',
+                    'capacity' => $capacity,
+                    'seats' => $capacity,
                 ];
             })
         ]);
