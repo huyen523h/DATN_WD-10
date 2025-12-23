@@ -140,69 +140,181 @@
         <div class="tab-content" id="departureTabsContent">
             <!-- Tab 1: Tổng quan -->
             <div class="tab-pane fade show active" id="overview" role="tabpanel">
-        <div class="card shadow-sm border-0">
+                <div class="card shadow-sm border-0 mb-3">
                     <div class="card-header bg-primary text-white">
                         <h5 class="mb-0"><i class="fas fa-info-circle"></i> Thông tin khởi hành</h5>
                     </div>
-            <div class="card-body">
-                        <table class="table table-bordered align-middle">
-                    <tbody>
-                        <tr>
-                                    <th style="width: 200px;">ID</th>
-                            <td>{{ $departure->id }}</td>
-                        </tr>
-                        <tr>
-                            <th>TOUR</th>
-                            <td>{{ $departure->tour->title ?? 'Chưa xác định' }}</td>
-                        </tr>
-                        <tr>
-                            <th>NGÀY KHỞI HÀNH</th>
-                            <td>{{ \Carbon\Carbon::parse($departure->departure_date)->format('d/m/Y') }}</td>
-                        </tr>
-                        <tr>
-                            <th>TỔNG GHẾ</th>
-                            <td>{{ $departure->seats_total }}</td>
-                        </tr>
-                        <tr>
-                            <th>GHẾ TRỐNG</th>
+                    <div class="card-body">
+                        @php
+                            $bookedCount = isset($bookedGuests) ? (int) $bookedGuests : null;
+                            $remainingSeats = !is_null($bookedCount)
+                                ? max($departure->seats_total - $bookedCount, 0)
+                                : null;
+
+                            $status = $departure->status;
+                            $statusBadge = 'bg-secondary';
+                            $statusText = 'Không xác định';
+
+                            if ($status === 'cancelled') {
+                                $statusBadge = 'bg-danger';
+                                $statusText = 'Đã hủy';
+                            } elseif ($status === 'finished') {
+                                $statusBadge = 'bg-secondary';
+                                $statusText = 'Đã kết thúc';
+                            } elseif ($status === 'sold_out') {
+                                $statusBadge = 'bg-warning text-dark';
+                                $statusText = 'Đã đủ khách';
+                            } elseif ($status === 'upcoming') {
+                                $statusBadge = 'bg-info';
+                                $statusText = 'Sắp khởi hành';
+                            } elseif ($status === 'available') {
+                                $statusBadge = 'bg-success';
+                                $statusText = 'Đang mở bán';
+                            }
+                        @endphp
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <table class="table table-sm table-borderless mb-0">
+                                    <tbody>
+                                        <tr>
+                                            <th style="width: 40%;">ID</th>
+                                            <td>{{ $departure->id }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Tour</th>
+                                            <td>{{ $departure->tour->title ?? 'Chưa xác định' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Ngày khởi hành</th>
+                                            <td>{{ \Carbon\Carbon::parse($departure->departure_date)->format('d/m/Y') }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Trạng thái</th>
+                                            <td>
+                                                <span class="badge {{ $statusBadge }}">{{ $statusText }}</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>Ngày tạo</th>
+                                            <td>{{ $departure->created_at ? $departure->created_at->format('d/m/Y H:i') : '---' }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <table class="table table-sm table-borderless mb-0">
+                                    <tbody>
+                                        @if(!is_null($bookedCount))
+                                            <tr>
+                                                <th style="width: 40%;">Đã đặt</th>
+                                                <td>
+                                                    <span class="fw-bold text-primary">
+                                                        {{ $bookedCount }} / {{ $departure->seats_total }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th>Còn trống</th>
+                                                <td>
+                                                    <span class="badge bg-{{ $remainingSeats > 0 ? 'success' : 'danger' }}">
+                                                        {{ $remainingSeats }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        @else
+                                            <tr>
+                                                <th style="width: 40%;">Tổng ghế</th>
+                                                <td>{{ $departure->seats_total }}</td>
+                                            </tr>
+                                        @endif
+                                        <tr>
+                                            <th>Giá người lớn</th>
+                                            <td class="fw-bold text-primary">{{ number_format($departure->price ?? 0, 0, ',', '.') }}₫</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Giá trẻ em</th>
+                                            <td>{{ number_format($departure->child_price ?? 0, 0, ',', '.') }}₫</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Giá em bé</th>
+                                            <td>{{ number_format($departure->infant_price ?? 0, 0, ',', '.') }}₫</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Thông tin vận hành -->
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0"><i class="fas fa-cogs"></i> Thông tin vận hành</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-bordered align-middle mb-0">
+                            <tbody>
+                                <tr>
+                                    <th style="width: 200px;">Hướng dẫn viên</th>
                                     <td>
-                                        <span class="badge bg-{{ $departure->seats_available > 0 ? 'success' : 'danger' }}">
-                                            {{ $departure->seats_available }}
-                                        </span>
+                                        @if($departure->guide)
+                                            @php
+                                                $guideName = $departure->guideProfile->full_name ?? $departure->guide->name;
+                                                $guideCode = $departure->guideProfile->code ?? null;
+                                            @endphp
+                                            <span class="fw-bold">{{ $guideName }}</span>
+                                            @if($guideCode)
+                                                <span class="badge bg-secondary ms-2">Mã: {{ $guideCode }}</span>
+                                            @endif
+                                        @else
+                                            <span class="text-muted fst-italic">Chưa gán</span>
+                                        @endif
                                     </td>
-                        </tr>
-                        <tr>
-                            <th>GIÁ NGƯỜI LỚN</th>
-                                    <td class="fw-bold text-primary">{{ number_format($departure->price ?? 0, 0, ',', '.') }}₫</td>
-                        </tr>
-                        <tr>
-                            <th>GIÁ TRẺ EM</th>
-                                    <td>{{ number_format($departure->child_price ?? 0, 0, ',', '.') }}₫</td>
-                        </tr>
-                        <tr>
-                            <th>GIÁ EM BÉ</th>
-                                    <td>{{ number_format($departure->infant_price ?? 0, 0, ',', '.') }}₫</td>
-                        </tr>
-                        <tr>
-                            <th>TRẠNG THÁI</th>
-                            <td>
-                                @if ($departure->status === 'available')
-                                    <span class="badge bg-success">Còn chỗ</span>
-                                @elseif ($departure->status === 'contact')
-                                    <span class="badge bg-warning text-dark">Liên hệ</span>
-                                @elseif ($departure->status === 'sold_out')
-                                    <span class="badge bg-danger">Hết chỗ</span>
-                                @else
-                                    <span class="badge bg-secondary">Không xác định</span>
-                                @endif
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>NGÀY TẠO</th>
-                            <td>{{ $departure->created_at ? $departure->created_at->format('d/m/Y H:i') : '---' }}</td>
-                        </tr>
-                    </tbody>
-                </table>
+                                </tr>
+                                <tr>
+                                    <th>Xe</th>
+                                    <td>
+                                        @if($departure->vehicle)
+                                            <span class="fw-bold">
+                                                {{ $departure->vehicle->vehicle_type ?? 'Không rõ loại' }}
+                                                - {{ $departure->vehicle->license_plate ?? 'Không rõ biển số' }}
+                                            </span>
+                                        @elseif($departure->vehicle_type || $departure->vehicle_details)
+                                            <span class="fw-bold">
+                                                {{ $departure->vehicle_type ? 'Xe ' . $departure->vehicle_type . ' chỗ' : '' }}
+                                                {{ $departure->vehicle_details ? ' - ' . $departure->vehicle_details : '' }}
+                                            </span>
+                                        @else
+                                            <span class="text-muted fst-italic">Chưa gán</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Số khách đã đặt</th>
+                                    <td>
+                                        {{ $bookedGuests ?? 0 }} khách
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Số khách tối đa</th>
+                                    <td>{{ $departure->seats_total }} khách</td>
+                                </tr>
+                                <tr>
+                                    <th>Thời hạn chốt đoàn</th>
+                                    <td>
+                                        @php
+                                            $departureDate = $departure->departure_date ? \Carbon\Carbon::parse($departure->departure_date) : null;
+                                        @endphp
+                                        @if($departureDate)
+                                            {{ $departureDate->copy()->subDays(3)->format('d/m/Y') }}
+                                        @else
+                                            <span class="text-muted fst-italic">Không xác định (chưa có ngày khởi hành)</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -228,13 +340,15 @@
                         @endphp
                         
                         @if($schedules->count() > 0)
-                            <div class="alert alert-info mb-4">
+                            <div class="alert alert-info mb-3">
                                 <div class="d-flex align-items-center">
                                     <i class="fas fa-info-circle fa-2x me-3"></i>
                                     <div>
                                         <strong>Lịch trình này áp dụng cho departure #{{ $departure->id }}</strong>
                                         <br>
                                         <small>Ngày khởi hành: <strong>{{ \Carbon\Carbon::parse($departure->departure_date)->format('d/m/Y') }}</strong></small>
+                                        <br>
+                                        <small class="fw-bold text-uppercase">Lịch trình được kế thừa từ Tour gốc (READ-ONLY)</small>
                                     </div>
                                 </div>
                             </div>
@@ -332,13 +446,6 @@
                                 <p class="text-muted mb-0">Vui lòng tạo lịch trình cho tour trước khi xem chi tiết.</p>
                             </div>
                         @endif
-                        
-                        <div class="mt-4 d-flex gap-2 flex-wrap">
-                            <a href="{{ route('admin.tours.schedule-management', $departure->tour_id) }}?departure_id={{ $departure->id }}" 
-                               class="btn btn-primary" @if(!$canEditSchedule) onclick="alert('Không thể chỉnh sửa lịch trình khi đã kết thúc'); return false;" @endif>
-                                <i class="fas fa-calendar-alt"></i> Xem/Chỉnh sửa lịch trình tour
-                            </a>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -624,13 +731,137 @@
                         <h5 class="mb-0"><i class="fas fa-users"></i> Danh sách khách</h5>
                     </div>
                     <div class="card-body">
-                        <div class="text-center py-4">
-                            <i class="fas fa-users fa-3x text-primary mb-3"></i>
-                            <h5>Xem danh sách khách đặt tour</h5>
-                            <p class="text-muted mb-4">Xem chi tiết danh sách khách hàng đã đặt tour cho lịch khởi hành này</p>
-                            <a href="{{ route('admin.departures.customers', $departure->id) }}" class="btn btn-primary btn-lg">
-                                <i class="fas fa-external-link-alt"></i> Xem danh sách khách
+                        <!-- Hành động nhanh -->
+                        <div class="d-flex flex-wrap gap-2 mb-3">
+                            <form action="{{ route('admin.departures.customers.import', $departure->id) }}" method="POST" enctype="multipart/form-data" class="d-flex align-items-center gap-2">
+                                @csrf
+                                <label class="btn btn-outline-primary mb-0">
+                                    <i class="fas fa-file-upload"></i> Import CSV
+                                    <input type="file" name="file" accept=".csv" class="d-none" onchange="this.form.submit()">
+                                </label>
+                            </form>
+                            <a href="{{ route('bookings.download-manifest-template') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-file-download"></i> Tải mẫu CSV
                             </a>
+                            <a href="{{ route('admin.departures.customers.export', $departure->id) }}" class="btn btn-outline-success">
+                                <i class="fas fa-file-export"></i> Xuất danh sách đoàn (CSV)
+                            </a>
+                            <a href="{{ route('admin.departures.customers', $departure->id) }}" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Thêm khách thủ công
+                            </a>
+                        </div>
+
+                        <!-- Tổng quan phân loại -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4">
+                                <div class="card border-0 shadow-sm h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-circle bg-primary text-white me-3" style="width:50px;height:50px;">
+                                                <i class="fas fa-user"></i>
+                                            </div>
+                                            <div>
+                                                <div class="text-muted small">Người lớn (>11)</div>
+                                                <div class="h5 mb-0">{{ $adultCount }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card border-0 shadow-sm h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-circle bg-info text-white me-3" style="width:50px;height:50px;">
+                                                <i class="fas fa-child"></i>
+                                            </div>
+                                            <div>
+                                                <div class="text-muted small">Trẻ em (2–11)</div>
+                                                <div class="h5 mb-0">{{ $childCount }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card border-0 shadow-sm h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-circle bg-warning text-white me-3" style="width:50px;height:50px;">
+                                                <i class="fas fa-baby"></i>
+                                            </div>
+                                            <div>
+                                                <div class="text-muted small">Em bé (&lt;2)</div>
+                                                <div class="h5 mb-0">{{ $infantCount }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bảng danh sách khách -->
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Khách hàng</th>
+                                        <th>Liên hệ</th>
+                                        <th class="text-center">Người lớn</th>
+                                        <th class="text-center">Trẻ em</th>
+                                        <th class="text-center">Em bé</th>
+                                        <th>Trạng thái</th>
+                                        <th>Ngày đặt</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($bookings as $booking)
+                                        <tr>
+                                            <td><strong>#{{ $booking->id }}</strong></td>
+                                            <td>{{ $booking->user->name ?? 'Khách lẻ' }}</td>
+                                            <td>
+                                                <div class="small text-muted">
+                                                    @if($booking->user && $booking->user->phone)
+                                                        <div><i class="fas fa-phone"></i> {{ $booking->user->phone }}</div>
+                                                    @endif
+                                                    @if($booking->user && $booking->user->email)
+                                                        <div><i class="fas fa-envelope"></i> {{ $booking->user->email }}</div>
+                                                    @endif
+                                                </div>
+                                            </td>
+                                            <td class="text-center fw-bold">{{ $booking->adults }}</td>
+                                            <td class="text-center fw-bold text-info">{{ $booking->children }}</td>
+                                            <td class="text-center fw-bold text-warning">{{ $booking->infants }}</td>
+                                            <td>
+                                                @php
+                                                    $status = $booking->status;
+                                                    $badge = 'bg-secondary';
+                                                    $text = ucfirst($status);
+                                                    if ($status === 'pending') { $badge = 'bg-warning text-dark'; $text = 'Chờ'; }
+                                                    elseif ($status === 'confirmed') { $badge = 'bg-info'; $text = 'Đã xác nhận'; }
+                                                    elseif ($status === 'paid') { $badge = 'bg-success'; $text = 'Đã thanh toán'; }
+                                                    elseif ($status === 'completed') { $badge = 'bg-primary'; $text = 'Hoàn thành'; }
+                                                    elseif ($status === 'cancelled') { $badge = 'bg-danger'; $text = 'Hủy'; }
+                                                @endphp
+                                                <span class="badge {{ $badge }}">{{ $text }}</span>
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">
+                                                    {{ $booking->created_at ? $booking->created_at->format('d/m/Y') : '---' }}
+                                                </small>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="8" class="text-center text-muted py-4">
+                                                <i class="fas fa-users-slash fa-2x mb-2"></i>
+                                                <div>Chưa có khách cho lịch khởi hành này.</div>
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>

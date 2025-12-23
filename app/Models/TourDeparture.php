@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class TourDeparture extends Model
 {
@@ -63,6 +64,14 @@ class TourDeparture extends Model
         return $this->belongsTo(User::class, 'backup_guide_id');
     }
 
+    /**
+     * Thông tin hồ sơ hướng dẫn viên (Guide) tương ứng với user_id = guide_id.
+     */
+    public function guideProfile(): HasOne
+    {
+        return $this->hasOne(Guide::class, 'user_id', 'guide_id');
+    }
+
     public function vehicle(): BelongsTo
     {
         return $this->belongsTo(Vehicle::class, 'vehicle_id');
@@ -86,8 +95,39 @@ class TourDeparture extends Model
 
     public function getStatusAttribute($value)
     {
+        // Nếu tour bị hủy thủ công thì ưu tiên trạng thái hủy
+        if ($value === 'cancelled') {
+            return 'cancelled';
+        }
+
+        $today = now()->startOfDay();
+        $departureDate = $this->departure_date ? $this->departure_date->copy()->startOfDay() : null;
+
+        // Nếu không có ngày khởi hành, trả về trạng thái gốc
+        if (!$departureDate) {
+            return $value;
+        }
+
+        // Đã kết thúc: ngày hiện tại > ngày khởi hành
+        if ($today->gt($departureDate)) {
+            return 'finished';
+        }
+
+        $daysUntilDeparture = $today->diffInDays($departureDate, false);
+
+        // Đã đủ khách: hết chỗ
         if ($this->seats_available <= 0) {
             return 'sold_out';
+        }
+
+        // Sắp khởi hành: còn ≤ 7 ngày
+        if ($daysUntilDeparture >= 0 && $daysUntilDeparture <= 7) {
+            return 'upcoming';
+        }
+
+        // Đang mở bán: ngày hiện tại < ngày khởi hành và còn chỗ
+        if ($today->lt($departureDate) && $this->seats_available > 0) {
+            return 'available';
         }
 
         return $value;

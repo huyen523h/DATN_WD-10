@@ -565,9 +565,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::put('/departures/{id}/management', [\App\Http\Controllers\Admin\DepartureController::class, 'updateManagement'])
         ->name('departures.update_management');
 
-        // route mới 4/12/2025
-        Route::get('/bookings/download-manifest-template', [AdminController::class, 'downloadManifestTemplate'])->name('admin.bookings.download-manifest-template');
-        Route::post('/bookings/{booking}/admin-upload-manifest', [AdminController::class, 'uploadManifest'])->name('admin.bookings.upload-manifest');
+        
+        Route::get('/bookings/download-manifest-template', [AdminController::class, 'downloadManifestTemplate'])->name('bookings.download-manifest-template');
+        Route::post('/bookings/{booking}/admin-upload-manifest', [AdminController::class, 'uploadManifest'])->name('bookings.upload-manifest');
 
     // Guides management
     Route::resource('guides', GuideWebController::class);
@@ -585,9 +585,13 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     // Bookings management
     Route::get('/bookings', [AdminController::class, 'bookings'])->name('bookings');
+    Route::get('/bookings/manual/create', [AdminController::class, 'createManualBooking'])->name('bookings.manual.create');
+    Route::post('/bookings/manual', [AdminController::class, 'storeManualBooking'])->name('bookings.manual.store');
     
     // Departures management
     Route::get('/departures/{departure}/customers', [AdminController::class, 'departureCustomers'])->name('departures.customers');
+    Route::get('/departures/{departure}/customers/export', [AdminController::class, 'exportDepartureCustomers'])->name('departures.customers.export');
+    Route::post('/departures/{departure}/customers/import', [AdminController::class, 'importDepartureCustomers'])->name('departures.customers.import');
 
     //  Group management & helper APIs (đặt TRƯỚC route /bookings/{booking} để tránh bị nuốt bởi {booking})
     Route::post('/bookings/confirm-group', [AdminController::class, 'confirmGroup'])->name('bookings.confirm-group');
