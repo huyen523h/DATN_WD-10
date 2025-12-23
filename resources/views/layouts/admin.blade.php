@@ -1050,6 +1050,15 @@
                 </a>
             </div>
 
+             {{-- Link Quản lý Mã giảm giá --}}
+           <div class="nav-item">
+                  <a href="{{ route('admin.promotions.index') }}" 
+                     class="nav-link {{ request()->routeIs('promotions*') ? 'active' : '' }}">
+                     <i class="fas fa-ticket-alt"></i> {{-- Icon vé/voucher --}}
+                     <span class="nav-text">Mã giảm giá (Voucher)</span>
+                 </a>
+            </div>
+
             <!-- Payments Management -->
             <div class="nav-item">
                 <a href="{{ route('admin.payments') }}"

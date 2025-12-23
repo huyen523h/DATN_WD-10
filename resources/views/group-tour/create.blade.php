@@ -78,7 +78,7 @@
                                 <input type="number" name="children" class="form-control" value="0" min="0">
                             </div>
                             <div class="col-md-3 mb-3">
-                                <label class="form-label">Em bé (<5t)</label>
+                                <label class="form-label">Em bé (dưới 5t) </label>
                                 <input type="number" name="infants" class="form-control" value="0" min="0">
                             </div>
                             <div class="col-md-3 mb-3">
@@ -151,21 +151,36 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <h6>1. Chính sách trẻ em</h6>
-                <ul>
-                    <li>Trẻ em dưới 5 tuổi: Miễn phí (ngồi chung với bố mẹ).</li>
-                    <li>Trẻ em từ 5 - 11 tuổi: Tính 50% giá người lớn.</li>
-                    <li>Trẻ em trên 11 tuổi: Tính như người lớn.</li>
-                </ul>
-                <hr>
-                <h6>2. Chính sách hoàn hủy</h6>
-                <ul>
-                    <li>Hủy trước 15 ngày: Hoàn 100% tiền cọc.</li>
-                    <li>Hủy trước 7 ngày: Phạt 50% tiền cọc.</li>
-                    <li>Hủy sau 7 ngày: Không hoàn tiền cọc.</li>
-                </ul>
-                <p class="text-muted fst-italic mt-3">Lưu ý: Đây là chính sách tham khảo. Điều khoản chi tiết sẽ được quy định cụ thể trong Hợp đồng Du lịch khi hai bên ký kết.</p>
-            </div>
+    <h6 class="fw-bold text-primary"><i class="fas fa-users-cog me-2"></i>1. Quy tắc hành khách</h6>
+    <div class="alert alert-info bg-light border-0 small">
+        <ul class="mb-0 ps-3">
+            <li class="mb-2">
+                Mỗi người lớn có thể đi kèm tối đa <strong>2 trẻ em (2-11 tuổi)</strong> và <strong>1 em bé (< 2 tuổi)</strong>.
+            </li>
+            <li class="mb-2">
+                Trẻ em/em bé <strong>bắt buộc</strong> phải đi cùng ít nhất 1 người lớn.
+            </li>
+            <li>
+                <strong>Người lớn:</strong> Là hành khách trên 11 tuổi.
+            </li>
+        </ul>
+    </div>
+
+
+    <h6 class="fw-bold text-primary mt-3"><i class="fas fa-undo-alt me-2"></i>2. Chính sách hoàn hủy</h6>
+    <ul class="small ps-3 text-secondary">
+        <li class="mb-1">Hủy trước <strong>15 ngày</strong>: Hoàn 100% tiền cọc.</li>
+        <li class="mb-1">Hủy trước <strong>7 ngày</strong>: Phạt 50% tiền cọc.</li>
+        <li>Hủy sau <strong>7 ngày</strong>: Không hoàn tiền cọc.</li>
+    </ul>
+
+    <div class="mt-4 pt-3 border-top">
+        <p class="fst-italic text-muted small mb-0">
+            <i class="fas fa-info-circle me-1"></i> 
+            Lưu ý: Đây là chính sách tham khảo chung. Điều khoản chi tiết chính xác sẽ được quy định cụ thể trong Hợp đồng Du lịch khi hai bên ký kết.
+        </p>
+    </div>
+</div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
             </div>

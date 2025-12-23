@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Payment;
 
+
 class BookingController extends Controller
 {
     /**
@@ -142,28 +143,39 @@ class BookingController extends Controller
                 $additionalTotal += $def['amount'];
             }
         }
-
-        // Tổng tạm tính = tiền tour + dịch vụ thêm (giống subtotal trong JS)
         $subtotal = $baseTourAmount + $additionalTotal;
 
-        // Apply promotion nếu có (giảm trực tiếp 10% trên subtotal, giống JS: subtotal * 0.1)
-        $promotion = null;
+       $promotion = null;
         $discountAmount = 0;
+
         if (!empty($validated['promotion_code'] ?? null)) {
             $promotion = Promotion::where('code', $validated['promotion_code'])->first();
-            if ($promotion && $promotion->isActive()) {
-                $discountAmount = $subtotal * 0.1;
+            
+            // Kiểm tra kỹ lại lần cuối trước khi chốt đơn
+            if ($promotion && $promotion->isActive() && $promotion->used_count < $promotion->quantity) {
+                // Tính toán đúng theo loại (Số tiền hoặc %) thay vì cứng 10%
+                if ($promotion->discount_percent) {
+                    $discountAmount = $subtotal * ($promotion->discount_percent / 100);
+                } else {
+                    $discountAmount = $promotion->discount_amount;
+                }
+                
+                // Đảm bảo không giảm quá số tiền tổng
+                if ($discountAmount > $subtotal) {
+                    $discountAmount = $subtotal;
+                }
             }
         }
 
-        // Tổng cuối cùng = subtotal - discount (chính là số trong \"Tóm tắt đặt tour\")
+        // Tổng cuối cùng
         $totalAmount = $subtotal - $discountAmount;
 
+        // Tạo Booking
         $booking = Booking::create([
             'user_id' => Auth::id(),
             'tour_id' => $validated['tour_id'],
             'departure_id' => $validated['departure_id'],
-            'promotion_id' => $promotion?->id,
+            'promotion_id' => $promotion?->id, // Dấu ? để null safe
             'adults' => $adults,
             'children' => $children,
             'infants' => $infants,
@@ -171,8 +183,23 @@ class BookingController extends Controller
             'additional_services_total' => $additionalTotal,
             'total_amount' => $totalAmount,
             'status' => 'pending',
+            'discount_amount' => $discountAmount,
             'note' => $validated['note'],
         ]);
+
+        // --- [THÊM MỚI] CẬP NHẬT SỐ LƯỢNG MÃ GIẢM GIÁ ---
+        if ($promotion) {
+            // 1. Tăng số lượng đã dùng lên 1
+            $promotion->increment('used_count');
+            \Illuminate\Support\Facades\DB::table('promotion_usages')->insert([
+                'user_id' => Auth::id(),
+                'promotion_id' => $promotion->id,
+                'booking_id' => $booking->id, // Liên kết với đơn hàng vừa tạo
+                'used_at' => now(),
+                // 'created_at' => now(),
+                // 'updated_at' => now(),
+            ]);
+        }
 
         // Update available seats
         // Giảm chỗ trống theo số ghế cần (người lớn + trẻ em)
@@ -194,6 +221,68 @@ class BookingController extends Controller
         $booking->load(['tour.images', 'departure', 'payment']);
 
         return view('bookings.show', compact('booking'));
+    }
+
+    public function cancel(Request $request, $id)
+    {
+        // 1. Tìm đơn hàng chính chủ
+        $booking = Booking::where('id', $id)
+            ->where('user_id', Auth::id())
+            ->firstOrFail();
+
+        // 2. Validate cơ bản (Lý do hủy luôn bắt buộc)
+        $request->validate([
+            'cancel_reason' => 'required|string|min:2|max:255',
+        ], [
+            'cancel_reason.required' => 'Vui lòng nhập lý do hủy tour.',
+        ]);
+
+        // --- TRƯỜNG HỢP A: ĐÃ THANH TOÁN (Gửi yêu cầu hoàn tiền) ---
+        if ($booking->status === 'paid') {
+            // Validate thêm thông tin ngân hàng
+            $request->validate([
+                'refund_bank' => 'required|string',
+                'refund_account' => 'required|string',
+                'refund_holder' => 'required|string',
+            ], [
+                'refund_bank.required' => 'Vui lòng nhập tên ngân hàng.',
+                'refund_account.required' => 'Vui lòng nhập số tài khoản nhận tiền.',
+                'refund_holder.required' => 'Vui lòng nhập tên chủ tài khoản.',
+            ]);
+
+            // Cập nhật trạng thái "Yêu cầu hủy"
+            $booking->update([
+                'status' => 'cancel_requested', // Trạng thái mới (bạn cần thêm vào enum nếu DB set cứng, hoặc cứ để string)
+                'cancel_reason' => 'Khách yêu cầu hủy: ' . $request->cancel_reason,
+                'cancel_requested_at' => now(),
+                'refund_bank' => $request->refund_bank,
+                'refund_account' => $request->refund_account,
+                'refund_holder' => $request->refund_holder,
+            ]);
+
+            return back()->with('success', 'Đã gửi yêu cầu hủy tour. Nhân viên sẽ liên hệ với bạn sớm nhất!');
+        }
+
+        // --- TRƯỜNG HỢP B: CHƯA THANH TOÁN (Hủy ngay lập tức) ---
+        if (in_array($booking->status, ['pending', 'confirmed'])) {
+            
+            // Logic hoàn trả chỗ trống (Restock Seats)
+            if ($booking->departure) {
+                $seatsToRestore = $booking->adults + $booking->children;
+                $booking->departure->increment('seats_available', $seatsToRestore);
+            }
+
+            // Cập nhật trạng thái Hủy
+            $booking->update([
+                'status' => 'cancelled',
+                'cancel_reason' => 'Khách tự hủy: ' . $request->cancel_reason
+            ]);
+
+            return redirect()->route('bookings.show', $booking->id)
+                ->with('success', 'Đã hủy đặt tour thành công.');
+        }
+
+        return back()->with('error', 'Trạng thái đơn hàng không hợp lệ để hủy.');
     }
     public function destroy($id)
     {
@@ -239,5 +328,71 @@ class BookingController extends Controller
         }
 
         return back()->with('error', 'Vui lòng chọn file.');
+    }
+    // --- THÊM VÀO CUỐI FILE BookingController.php ---
+    public function checkCoupon(Request $request)
+    {
+        // 1. Lấy dữ liệu gửi lên
+        $code = strtoupper($request->code);
+        $totalAmount = $request->total_amount; 
+      $userId = Auth::id();
+
+        // 2. Tìm mã trong DB
+        $promotion = \App\Models\Promotion::where('code', $code)->first();
+
+        // --- KIỂM TRA 5 LỚP BẢO MẬT ---
+
+        // Check 1: Mã có tồn tại và đang hoạt động?
+        if (!$promotion || $promotion->status !== 'active') {
+            return response()->json(['success' => false, 'message' => 'Mã giảm giá không tồn tại hoặc đã bị khóa.']);
+        }
+
+        // Check 2: Còn hạn sử dụng?
+        $now = now();
+        if ($now->lt($promotion->start_date) || $now->gt($promotion->end_date)) {
+            return response()->json(['success' => false, 'message' => 'Mã giảm giá chưa mở hoặc đã hết hạn.']);
+        }
+
+        // Check 3: Còn số lượng trong kho?
+        if ($promotion->used_count >= $promotion->quantity) {
+            return response()->json(['success' => false, 'message' => 'Rất tiếc, mã này đã hết lượt sử dụng.']);
+        }
+
+        // Check 4: Đơn hàng đủ tiền tối thiểu?
+        if ($totalAmount < $promotion->min_order_value) {
+            return response()->json([
+                'success' => false, 
+                'message' => 'Đơn hàng phải từ ' . number_format($promotion->min_order_value) . 'đ mới được dùng mã này.'
+            ]);
+        }
+
+        // Check 5: Khách đã dùng chưa? (Quan trọng)
+        $hasUsed = \Illuminate\Support\Facades\DB::table('promotion_usages')
+            ->where('user_id', $userId)
+            ->where('promotion_id', $promotion->id)
+            ->exists();
+
+        if ($hasUsed) {
+            return response()->json(['success' => false, 'message' => 'Bạn đã dùng mã này rồi (Mỗi khách chỉ được 1 lần).']);
+        }
+
+        // --- TÍNH TOÁN TIỀN GIẢM ---
+        $discount = 0;
+        if ($promotion->discount_type == 'percent') {
+            $discount = ($totalAmount * $promotion->discount_amount) / 100;
+        } else {
+            $discount = $promotion->discount_amount;
+        }
+
+        // Không giảm quá số tiền tour
+        if ($discount > $totalAmount) $discount = $totalAmount;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Áp dụng mã thành công!',
+            'discount_amount' => $discount,
+            'promotion_id' => $promotion->id,
+            'new_total' => $totalAmount - $discount
+        ]);
     }
 }

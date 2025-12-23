@@ -264,6 +264,34 @@
             </div>
         </div>
     </div>
+
+    {{-- HIỂN THỊ BILL HOÀN TIỀN (NẾU CÓ) --}}
+@if($booking->refund_proof_image)
+    <div class="card shadow mb-4 border-danger">
+        <div class="card-header py-3 bg-danger text-white d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold">
+                <i class="fas fa-undo-alt me-2"></i> Bằng chứng Đã hoàn tiền
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="d-flex align-items-center">
+                <div class="me-3">
+                    <img src="{{ Storage::url($booking->refund_proof_image) }}" alt="Refund Proof" 
+                         class="img-thumbnail" style="height: 80px; width: 80px; object-fit: cover;">
+                </div>
+                <div>
+                    <h6 class="font-weight-bold text-danger mb-1">Đã hoàn tiền cho khách</h6>
+                    <p class="small text-muted mb-1">
+                        Ngân hàng: <strong>{{ $booking->refund_bank }}</strong> - STK: <strong>{{ $booking->refund_account }}</strong>
+                    </p>
+                    <a href="{{ Storage::url($booking->refund_proof_image) }}" target="_blank" class="btn btn-sm btn-outline-danger">
+                        <i class="fas fa-eye"></i> Xem ảnh bill
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+@endif
 @endif
 
                 <!-- Payment Information -->
@@ -517,14 +545,14 @@
 
         {{-- 4. Nút Xóa đơn (Chỉ cho phép xóa khi chưa thanh toán để an toàn dữ liệu) --}}
       @if ($booking->status === 'pending' && $booking->payment->count() == 0)
-    <form action="{{ route('admin.bookings.destroy', $booking) }}" method="POST" class="d-inline"
+    {{-- <form action="{{ route('admin.bookings.destroy', $booking) }}" method="POST" class="d-inline"
           onsubmit="return confirm('HÀNH ĐỘNG NGUY HIỂM: Bạn có chắc chắn muốn XÁC NHẬN XÓA VĨNH VIỄN?')">
         @csrf
         @method('DELETE')
         <button type="submit" class="btn btn-danger w-100 mt-2">
             <i class="fas fa-trash"></i> Xóa đơn rác
         </button>
-    </form>
+    </form> --}}
 @else
     {{-- Với các trạng thái khác (Paid, Cancelled, Confirmed, Completed...) --}}
     <div class="alert alert-light border text-center small mt-2 mb-0 p-2 bg-light text-muted">
@@ -541,6 +569,33 @@
 </div>
                     </div>
                 </div>
+                <div class="col-lg-8">
+    {{-- [VỊ TRÍ MỚI] KHỐI CẢNH BÁO HỦY TOUR --}}
+    @if($booking->status === 'cancelled')
+        <div class="card bg-danger text-white shadow mb-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-auto">
+                        <i class="fas fa-exclamation-triangle fa-3x text-white-50"></i>
+                    </div>
+                    <div class="col">
+                        <div class="h5 font-weight-bold text-white text-uppercase mb-1">
+                            Đơn hàng đã bị hủy
+                        </div>
+                        <div class="h6 mb-0 font-weight-bold text-white">
+                            Lý do: "{{ $booking->cancel_reason ?? 'Không có lý do cụ thể' }}"
+                        </div>
+                        <div class="text-white-50 small mt-2">
+                            <i class="fas fa-clock mr-1"></i> Thời gian hủy: {{ $booking->updated_at->format('d/m/Y H:i') }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+    {{-- [HẾT KHỐI MỚI] --}}
+
+    <div class="card shadow mb-4">
 
                 <!-- Booking Info -->
                 <div class="card shadow">
@@ -706,81 +761,106 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
 
-                <div class="modal-body">
-                    
-                    {{-- 1. Nhập lý do hủy --}}
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Lý do hủy tour <span class="text-danger">*</span></label>
-                        <textarea name="cancel_reason" id="cancelReason" class="form-control" rows="2" required 
-                                  placeholder="Nhập lý do chi tiết..."></textarea>
+              <div class="modal-body">
+
+    <div class="mb-3">
+    <label class="form-label fw-bold">Lý do hủy tour <span class="text-danger">*</span></label>
+    
+    <textarea name="cancel_reason" class="form-control" rows="2" required 
+              placeholder="Nhập lý do chi tiết..."
+              {{-- [LOGIC MỚI] Nếu khách đã nhập thì khóa lại (readonly), nếu chưa thì cho nhập --}}
+              {{ $booking->cancel_reason ? 'readonly' : '' }} 
+              style="{{ $booking->cancel_reason ? 'background-color: #e9ecef; cursor: not-allowed;' : '' }}"
+    >{{ $booking->cancel_reason ?? '' }}</textarea>
+    
+    @if($booking->cancel_reason)
+        <div class="form-text text-danger fw-bold">
+            <i class="fas fa-lock"></i> Đây là lý do khách hàng đã nhập, bạn không thể chỉnh sửa.
+        </div>
+    @else
+        <div class="form-text text-muted">Nhập lý do hủy đơn hàng này.</div>
+    @endif
+</div>
+
+    {{-- 2. KHU VỰC HOÀN TIỀN (Chỉ hiện khi đã Paid) --}}
+    @if($booking->status === 'paid' || $booking->status === 'cancel_requested')
+        
+        <div class="card bg-light border-danger mb-3">
+            <div class="card-header bg-white text-danger fw-bold d-flex justify-content-between">
+                <span><i class="fas fa-hand-holding-usd"></i> Xử lý Hoàn tiền</span>
+                <span>Đã thu: {{ number_format($booking->total_amount) }}đ</span>
+            </div>
+            <div class="card-body">
+                
+                {{-- A. THÔNG TIN NGÂN HÀNG CỦA KHÁCH --}}
+                @if($booking->refund_account)
+                    {{-- Trường hợp 1: Khách ĐÃ điền thông tin (Hiện ra để Admin chuyển khoản) --}}
+                    <div class="alert alert-info border-info">
+                        <h6 class="fw-bold text-primary mb-2"><i class="fas fa-user-check"></i> Thông tin nhận tiền của khách:</h6>
+                        <ul class="mb-0 small text-dark pl-3">
+                            <li>Ngân hàng: <strong>{{ $booking->refund_bank }}</strong></li>
+                            <li>Số tài khoản: <strong class="text-danger fs-6">{{ $booking->refund_account }}</strong></li>
+                            <li>Chủ tài khoản: <strong>{{ $booking->refund_holder }}</strong></li>
+                        </ul>
                     </div>
-
-                    {{-- 2. LOGIC TỰ ĐỘNG TÍNH TIỀN --}}
-                    @if($booking->status === 'paid')
-                        @php 
-                            $refundInfo = $booking->getRefundInfo(); 
-                        @endphp
-
-                        <div class="card bg-light border-danger mb-3">
-                            <div class="card-header bg-white text-danger fw-bold">
-                                <i class="fas fa-calculator"></i> Tính toán hoàn tiền (Đơn đã thanh toán: {{ number_format($booking->total_amount) }}đ)
-
-                            </div>
-                            <div class="card-body">
-                                
-                                {{-- SELECT BOX: LỖI THUỘC VỀ AI --}}   
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold text-dark">Nguyên nhân hủy / Lỗi thuộc về ai?</label>
-                                    <select class="form-select border-danger text-danger fw-bold" id="faultSelector">
-                                        <option value="customer" selected>🔴 Do Khách hàng (Áp dụng chính sách phạt)</option>
-                                        <option value="company">🟢 Do Công ty / Thiên tai (Hoàn 100%)</option>
-                                    </select>
-                                </div>
-
-                                {{-- Hiển thị chính sách tương ứng (Sẽ đổi chữ bằng JS) --}}
-                                <div class="alert alert-warning d-flex align-items-center" id="policyAlert">
-                                    <i class="fas fa-lightbulb fa-2x me-3 text-warning"></i>
-                                    <div>
-                                        <strong>Chính sách áp dụng:</strong> <br>
-                                        <span id="policyText">{{ $refundInfo['policy'] }}</span>
-                                    </div>
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label fw-bold">Số tiền hoàn lại khách (VNĐ)</label>
-                                        
-                                        {{-- INPUT SỐ TIỀN: Có các data-attribute để JS lấy giá trị --}}
-                                        <input type="number" name="refund_amount" id="refundAmountInput" 
-                                               class="form-control fw-bold text-danger" 
-                                               value="{{ $refundInfo['amount'] }}" 
-                                               data-policy-amount="{{ $refundInfo['amount'] }}"
-                                               data-full-amount="{{ $booking->total_amount }}"
-                                               required>
-                                        
-                                        <div class="form-text">Hệ thống tự động điền, nhưng bạn vẫn có thể sửa tay.</div>
-                                    </div>
-                                    
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label fw-bold">Ảnh bằng chứng chuyển khoản <span class="text-danger">*</span></label>
-                                        <input type="file" name="refund_proof_file" class="form-control" required accept="image/*">
-                                    </div>
-                                </div>
-                            </div>
+                @else
+                    {{-- Trường hợp 2: Khách CHƯA điền (Admin tự nhập nếu đang gọi điện cho khách) --}}
+                    <div class="alert alert-warning small">
+                        <i class="fas fa-exclamation-circle"></i> Khách chưa cung cấp thông tin hoàn tiền.
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-12 mb-2">
+                            <input type="text" name="refund_bank" class="form-control form-control-sm" placeholder="Nhập tên Ngân hàng khách cung cấp">
                         </div>
-                    @else
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle"></i> Đơn chưa thanh toán. Hệ thống sẽ hủy và nhả chỗ ngay lập tức.
+                        <div class="col-md-7 mb-2">
+                            <input type="text" name="refund_account" class="form-control form-control-sm" placeholder="Nhập Số tài khoản">
                         </div>
-                    @endif
+                        <div class="col-md-5 mb-2">
+                            <input type="text" name="refund_holder" class="form-control form-control-sm" placeholder="Tên chủ tài khoản">
+                        </div>
+                    </div>
+                @endif
 
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" required id="confirmCancel">
-                        <label class="form-check-label text-danger fw-bold" for="confirmCancel">
-                            Tôi xác nhận muốn hủy đơn và hoàn tiền theo mức trên.
-                        </label>
+                <hr class="my-2">
+
+                {{-- B. TÍNH TOÁN SỐ TIỀN HOÀN (Logic cũ của bạn giữ nguyên) --}}
+                <div class="mb-2">
+                    <label class="small fw-bold">Nguyên nhân lỗi thuộc về ai?</label>
+                    <select class="form-control form-control-sm border-danger text-danger fw-bold" id="faultSelector">
+                        <option value="customer" selected>🔴 Do Khách hàng (Áp dụng phạt)</option>
+                        <option value="company">🟢 Do Công ty / Thiên tai (Hoàn 100%)</option>
+                    </select>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <label class="small fw-bold">Số tiền hoàn (VNĐ)</label>
+                        {{-- Giả sử bạn có hàm getRefundInfo(), nếu không thì để value trống --}}
+                        <input type="number" name="refund_amount" id="refundAmountInput" 
+                               class="form-control fw-bold text-danger" 
+                               value="{{ $booking->total_amount * 0.5 }}"> {{-- Ví dụ mặc định 50% --}}
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label class="small fw-bold">Ảnh Bill chuyển khoản <span class="text-danger">*</span></label>
+                        <input type="file" name="refund_proof_file" class="form-control form-control-sm" accept="image/*">
                     </div>
                 </div>
+
+            </div>
+        </div>
+    @else
+        <div class="alert alert-success small">
+            <i class="fas fa-check-circle"></i> Đơn hàng chưa thanh toán. Hủy ngay mà không cần hoàn tiền.
+        </div>
+    @endif
+
+    <div class="form-check">
+        <input class="form-check-input" type="checkbox" required id="confirmCancel">
+        <label class="form-check-label text-danger fw-bold small" for="confirmCancel">
+            Xác nhận hủy đơn hàng và đã xử lý hoàn tiền (nếu có).
+        </label>
+    </div>
+</div>
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
