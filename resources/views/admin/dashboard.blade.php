@@ -144,7 +144,9 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <canvas id="revenueChart" height="300"></canvas>
+                    <div style="height: 300px; position: relative;">
+                        <canvas id="revenueChart" style="height: 100% !important; max-height: 300px !important;"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -158,7 +160,9 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <canvas id="popularToursChart" height="300"></canvas>
+                    <div style="height: 300px; position: relative;">
+                        <canvas id="popularToursChart" style="height: 100% !important; max-height: 300px !important;"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -257,6 +261,24 @@
 
 <!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+/* CSS để cố định chiều cao biểu đồ */
+.chart-container {
+    height: 300px !important;
+    max-height: 300px !important;
+    position: relative !important;
+}
+
+#revenueChart, #popularToursChart {
+    height: 100% !important;
+    max-height: 300px !important;
+}
+
+.card-body canvas {
+    height: 300px !important;
+    max-height: 300px !important;
+}
+</style>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     initializeCharts();
@@ -285,6 +307,10 @@ function initializeCharts() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            aspectRatio: 2.5,
+            layout: {
+                padding: 10
+            },
             plugins: {
                 legend: {
                     display: false
@@ -293,6 +319,7 @@ function initializeCharts() {
             scales: {
                 y: {
                     beginAtZero: true,
+                    max: 600,
                     grid: {
                         color: 'rgba(0,0,0,0.05)'
                     }

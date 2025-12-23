@@ -96,6 +96,7 @@
 /* Guides Table */
 .guides-table {
     width: 100%;
+    table-layout: fixed;
     border-collapse: collapse;
     background: white;
     border-radius: 8px;
@@ -110,6 +111,9 @@
     text-align: left;
     font-size: 14px;
     border: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .guides-table td {
@@ -117,6 +121,8 @@
     border-bottom: 1px solid #e5e7eb;
     vertical-align: middle;
     font-size: 14px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .guides-table tbody tr:hover {
@@ -125,13 +131,12 @@
 }
 
 /* Column widths for guides table */
-.guides-table .col-avatar { width: 8%; }
-.guides-table .col-name { width: 20%; }
-.guides-table .col-contact { width: 18%; }
-.guides-table .col-experience { width: 12%; }
-.guides-table .col-rating { width: 12%; }
+.guides-table .col-name { width: 22%; }
+.guides-table .col-contact { width: 22%; }
+.guides-table .col-experience { width: 20%; }
+.guides-table .col-rating { width: 16%; }
 .guides-table .col-status { width: 12%; }
-.guides-table .col-actions { width: 18%; }
+.guides-table .col-actions { width: 8%; }
 
 /* Status badges */
 .status-badge {
@@ -175,13 +180,14 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     border-radius: 6px;
     border: none;
     cursor: pointer;
     transition: all 0.2s ease;
-    margin: 0 2px;
+    margin: 0 1px;
+    font-size: 12px;
 }
 
 .action-btn:hover {
@@ -308,21 +314,22 @@
     .schedules-table td,
     .guides-table th,
     .guides-table td {
-        padding: 10px 8px;
-        font-size: 13px;
+        padding: 10px 6px;
+        font-size: 12px;
     }
     
     .action-btn {
-        width: 28px;
-        height: 28px;
+        width: 24px;
+        height: 24px;
         margin: 0 1px;
+        font-size: 10px;
     }
     
     .guide-avatar,
     .guide-avatar-placeholder {
-        width: 32px;
-        height: 32px;
-        font-size: 14px;
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
     }
     
     /* Hide less important columns on mobile */
@@ -331,6 +338,12 @@
     .col-experience {
         display: none;
     }
+    
+    /* Adjust guides table for mobile */
+    .guides-table .col-name { width: 35%; }
+    .guides-table .col-contact { width: 30%; }
+    .guides-table .col-rating { width: 20%; }
+    .guides-table .col-actions { width: 15%; }
 }
 
 @media (max-width: 480px) {
