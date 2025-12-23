@@ -31,6 +31,7 @@
     <link href="{{ asset('css/admin-modern.css') }}" rel="stylesheet">
     <link href="{{ asset('css/dashboard-professional.css') }}" rel="stylesheet">
     <link href="{{ asset('css/admin-tables.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/admin-tables-fixed.css') }}" rel="stylesheet">
     <link href="{{ asset('css/admin-icons.css') }}" rel="stylesheet">
     <style>
         :root {

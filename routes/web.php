@@ -520,7 +520,15 @@ Route::get('/admin/schedules/{tourId}', function ($tourId) {
 // ============================================
 
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
+    // Dashboard
+    Route::get('/', [\App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard.index');
+    
+    // Dashboard API endpoints
+    Route::get('/api/dashboard/stats', [\App\Http\Controllers\Admin\DashboardController::class, 'getStats']);
+    Route::get('/api/dashboard/recent-departures', [\App\Http\Controllers\Admin\DashboardController::class, 'getRecentDepartures']);
+    Route::get('/api/dashboard/revenue', [\App\Http\Controllers\Admin\DashboardController::class, 'getRevenueData']);
+    Route::get('/api/dashboard/popular-tours', [\App\Http\Controllers\Admin\DashboardController::class, 'getPopularTours']);
 
     // Tours management
     Route::get('/tours', [AdminController::class, 'tours'])->name('tours.index');
@@ -819,4 +827,23 @@ Route::middleware(['auth', 'staff'])->prefix('staff')->name('staff.')->group(fun
 // Test route for guide auto sync
 Route::get('/test-guide-auto-sync', function () {
     return view('test-guide-auto-sync');
+});
+// Test dashboard route
+Route::get('/test-dashboard', function () {
+    $stats = [
+        'total_tours' => 25,
+        'total_departures' => 48,
+        'upcoming_departures' => 12,
+        'total_guides' => 15,
+        'active_guides' => 12,
+        'total_customers' => 234,
+        'new_customers' => 18
+    ];
+    
+    return view('admin.dashboard', compact('stats'));
+});
+
+// Test table components
+Route::get('/test-tables', function () {
+    return view('test-tables');
 });

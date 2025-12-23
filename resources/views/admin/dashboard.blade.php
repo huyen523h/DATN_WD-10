@@ -1,791 +1,533 @@
 @extends('layouts.admin')
 
-@section('title', 'Admin Dashboard - Tour365')
-
-@section('breadcrumb')
-    <li class="breadcrumb-item active">Dashboard</li>
-@endsection
+@section('title', 'Dashboard - Quản lý Tour')
 
 @section('content')
-    <!-- Welcome Header -->
-    <div class="fade-in">
-        <div class="card mb-6 welcome-banner">
-            <div class="card-body">
-                <div class="welcome-content">
-                    <div class="welcome-left">
-                        <div class="welcome-avatar">
-                            <i class="fas fa-user-circle"></i>
+<div class="container-fluid px-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">
+                <i class="fas fa-tachometer-alt me-2 text-primary"></i>
+                Dashboard Tổng quan
+            </h1>
+            <p class="text-muted mb-0">Chào mừng trở lại! Đây là tổng quan hệ thống của bạn.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" onclick="refreshDashboard()">
+                <i class="fas fa-sync-alt me-1"></i>Làm mới
+            </button>
+            <div class="dropdown">
+                <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-calendar me-1"></i>Hôm nay
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#" onclick="filterByPeriod('today')">Hôm nay</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="filterByPeriod('week')">Tuần này</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="filterByPeriod('month')">Tháng này</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="filterByPeriod('year')">Năm này</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-primary bg-gradient rounded-3 p-3">
+                                <i class="fas fa-route text-white fa-2x"></i>
+                            </div>
                         </div>
-                        <div class="welcome-text">
-                            <h1>Chào mừng trở lại, {{ Auth::user()->name }}!</h1>
-                            <p>Quản lý hệ thống Tour365 một cách hiệu quả</p>
-                        </div>
-                    </div>
-                    <div class="welcome-right">
-                        <div class="welcome-date">
-                            <i class="fas fa-calendar-alt"></i>
-                            <span>{{ now()->format('d/m/Y') }}</span>
-                        </div>
-                        <div class="welcome-time">
-                            <i class="fas fa-clock"></i>
-                            <span>{{ now()->format('H:i') }}</span>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="text-muted small">Tổng số tour</div>
+                            <div class="h4 mb-0 text-gray-800" id="total-tours">{{ $stats['total_tours'] ?? 0 }}</div>
+                            <div class="text-success small">
+                                <i class="fas fa-arrow-up me-1"></i>
+                                <span id="tours-growth">+12%</span> so với tháng trước
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Stats Cards -->
-        <div class="stats-grid mb-6">
-            <div class="stat-card slide-in-left">
-                <div class="stat-header">
-                    <div class="stat-icon stat-icon-primary">
-                        <i class="fas fa-map-marked-alt"></i>
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-success bg-gradient rounded-3 p-3">
+                                <i class="fas fa-calendar-check text-white fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="text-muted small">Lịch khởi hành</div>
+                            <div class="h4 mb-0 text-gray-800" id="total-departures">{{ $stats['total_departures'] ?? 0 }}</div>
+                            <div class="text-info small">
+                                <i class="fas fa-calendar me-1"></i>
+                                <span id="upcoming-departures">{{ $stats['upcoming_departures'] ?? 0 }}</span> sắp tới
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div class="stat-value">{{ $stats['total_tours'] }}</div>
-                <div class="stat-label">Tổng Tours</div>
-                <div class="stat-change positive">
-                    <i class="fas fa-arrow-up"></i>
-                    <span>+12% tháng này</span>
-                </div>
-            </div>
-
-            <div class="stat-card slide-in-left" style="animation-delay: 0.1s;">
-                <div class="stat-header">
-                    <div class="stat-icon stat-icon-success">
-                        <i class="fas fa-calendar-check"></i>
-                    </div>
-                </div>
-                <div class="stat-value">{{ $stats['total_bookings'] }}</div>
-                <div class="stat-label">Tổng Đặt Tour</div>
-                <div class="stat-change positive">
-                    <i class="fas fa-arrow-up"></i>
-                    <span>+8% tháng này</span>
-                </div>
-            </div>
-
-            <div class="stat-card slide-in-left" style="animation-delay: 0.2s;">
-                <div class="stat-header">
-                    <div class="stat-icon stat-icon-warning">
-                        <i class="fas fa-users"></i>
-                    </div>
-                </div>
-                <div class="stat-value">{{ $stats['total_customers'] }}</div>
-                <div class="stat-label">Tổng Khách Hàng</div>
-                <div class="stat-change positive">
-                    <i class="fas fa-arrow-up"></i>
-                    <span>+15% tháng này</span>
-                </div>
-            </div>
-
-            <div class="stat-card slide-in-left" style="animation-delay: 0.3s;">
-                <div class="stat-header">
-                    <div class="stat-icon stat-icon-danger">
-                        <i class="fas fa-clock"></i>
-                    </div>
-                </div>
-                <div class="stat-value">{{ $stats['pending_bookings'] }}</div>
-                <div class="stat-label">Chờ Xử Lý</div>
-                <div class="stat-change negative">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <span>Cần xử lý</span>
                 </div>
             </div>
         </div>
 
-        <!-- Charts and Recent Activity -->
-        <div class="charts-section mb-6">
-            <!-- Revenue Chart -->
-            <div class="chart-card slide-in-right">
-                <div class="chart-header">
-                    <h5 class="chart-title">
-                        <i class="fas fa-chart-line"></i>
-                        Doanh thu theo tháng
-                    </h5>
-                    <div class="chart-actions">
-                        <button class="chart-btn" title="Tải xuống">
-                            <i class="fas fa-download"></i>
-                        </button>
-                        <button class="chart-btn" title="Phóng to">
-                            <i class="fas fa-expand"></i>
-                        </button>
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-warning bg-gradient rounded-3 p-3">
+                                <i class="fas fa-user-tie text-white fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="text-muted small">Hướng dẫn viên</div>
+                            <div class="h4 mb-0 text-gray-800" id="total-guides">{{ $stats['total_guides'] ?? 0 }}</div>
+                            <div class="text-success small">
+                                <i class="fas fa-check-circle me-1"></i>
+                                <span id="active-guides">{{ $stats['active_guides'] ?? 0 }}</span> đang hoạt động
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-info bg-gradient rounded-3 p-3">
+                                <i class="fas fa-users text-white fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="text-muted small">Khách hàng</div>
+                            <div class="h4 mb-0 text-gray-800" id="total-customers">{{ $stats['total_customers'] ?? 0 }}</div>
+                            <div class="text-primary small">
+                                <i class="fas fa-user-plus me-1"></i>
+                                <span id="new-customers">{{ $stats['new_customers'] ?? 0 }}</span> mới tháng này
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row g-4 mb-4">
+        <div class="col-xl-8">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-0 pb-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-chart-line me-2 text-primary"></i>
+                            Doanh thu theo tháng
+                        </h5>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                2024
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#">2024</a></li>
+                                <li><a class="dropdown-item" href="#">2023</a></li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
                 <div class="card-body">
                     <canvas id="revenueChart" height="300"></canvas>
                 </div>
             </div>
+        </div>
 
-            <!-- Popular Tours -->
-            <div class="chart-card slide-in-right" style="animation-delay: 0.2s;">
-                <div class="chart-header">
-                    <h5 class="chart-title">
-                        <i class="fas fa-chart-pie"></i>
-                        Tours phổ biến
+        <div class="col-xl-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-0 pb-0">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-pie me-2 text-primary"></i>
+                        Tour phổ biến
                     </h5>
-                    <div class="chart-actions">
-                        <button class="chart-btn" title="Xem chi tiết">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                    </div>
                 </div>
                 <div class="card-body">
-                    <canvas id="toursChart" height="200"></canvas>
+                    <canvas id="popularToursChart" height="300"></canvas>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Recent Bookings and Quick Stats -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Recent Bookings -->
-            <div class="lg:col-span-2">
-                <div class="recent-bookings">
-                    <div class="table-header">
-                        <h3 class="table-title">
-                            <i class="fas fa-calendar-check"></i>
-                            Đặt tour gần đây
-                        </h3>
-                        <a href="{{ route('admin.bookings') }}" class="btn btn-primary btn-sm">
-                            <i class="fas fa-eye mr-1"></i>
-                            Xem tất cả
+    <!-- Tables Row -->
+    <div class="row g-4">
+        <div class="col-xl-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 pb-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-calendar-alt me-2 text-primary"></i>
+                            Lịch khởi hành gần đây
+                        </h5>
+                        <a href="{{ route('admin.tour-schedule-management') }}" class="btn btn-sm btn-outline-primary">
+                            Xem tất cả <i class="fas fa-arrow-right ms-1"></i>
                         </a>
                     </div>
-                    @if ($recent_bookings->count() > 0)
-                        <div class="overflow-x-auto">
-                            <table class="professional-table">
-                                <thead>
-                                    <tr>
-                                        <th
-                                            class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Khách hàng</th>
-                                        <th
-                                            class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Tour</th>
-                                        <th
-                                            class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Ngày đặt</th>
-                                        <th
-                                            class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Tổng tiền</th>
-                                        <th
-                                            class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Trạng thái</th>
-                                        <th
-                                            class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Thao tác</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-200">
-                                    @foreach ($recent_bookings as $booking)
-                                        <tr class="hover:bg-gray-50 transition-colors">
-                                            <td class="px-6 py-4">
-                                                <div class="flex items-center">
-                                                    <div
-                                                        class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center mr-3">
-                                                        <i class="fas fa-user text-indigo-600"></i>
-                                                    </div>
-                                                    <div>
-                                                        <div class="text-sm font-medium text-gray-900">
-                                                            {{ $booking->user->name }}</div>
-                                                        <div class="text-sm text-gray-500">{{ $booking->user->email }}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td class="px-6 py-4">
-                                                <div class="text-sm font-medium text-gray-900">{{ $booking->tour->title }}
-                                                </div>
-                                                <div class="text-sm text-gray-500">
-                                                    <i class="fas fa-calendar-alt mr-1"></i>
-                                                    {{ $booking->TourDeparture?->departure_date ?? 'Chưa xác định' }}
-                                                </div>
-                                            </td>
-                                            <td class="px-6 py-4">
-                                                <div class="text-sm text-gray-900">
-                                                    <i class="fas fa-clock mr-1 text-gray-400"></i>
-                                                    {{ $booking->created_at->format('d/m/Y H:i') }}
-                                                </div>
-                                            </td>
-                                            <td class="px-6 py-4">
-                                                <div class="text-sm font-bold text-green-600">
-                                                    {{ number_format($booking->total_amount, 0, ',', '.') }}đ
-                                                </div>
-                                            </td>
-                                            <td class="px-6 py-4">
-                                                @switch($booking->status)
-                                                    @case('pending')
-                                                        <span class="badge badge-warning">
-                                                            <i class="fas fa-circle mr-1" style="font-size: 8px;"></i>
-                                                            Chờ xác nhận
-                                                        </span>
-                                                    @break
-
-                                                    @case('confirmed')
-                                                        <span class="badge badge-success">
-                                                            <i class="fas fa-circle mr-1" style="font-size: 8px;"></i>
-                                                            Đã xác nhận
-                                                        </span>
-                                                    @break
-
-                                                    @case('cancelled')
-                                                        <span class="badge badge-danger">
-                                                            <i class="fas fa-circle mr-1" style="font-size: 8px;"></i>
-                                                            Đã hủy
-                                                        </span>
-                                                    @break
-
-                                                    @case('completed')
-                                                        <span class="badge badge-info">
-                                                            <i class="fas fa-circle mr-1" style="font-size: 8px;"></i>
-                                                            Hoàn thành
-                                                        </span>
-                                                    @break
-
-                                                    @default
-                                                        <span class="badge badge-secondary">
-                                                            {{ $booking->status }}
-                                                        </span>
-                                                @endswitch
-                                            </td>
-                                            <td class="px-6 py-4 text-center">
-                                                <a href="{{ route('admin.bookings.show', $booking) }}"
-                                                    class="btn btn-primary btn-sm" title="Xem chi tiết">
-                                                    <i class="fas fa-eye"></i>
-                                                </a>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    @else
-                        <div class="text-center py-8">
-                            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <i class="fas fa-calendar-times text-2xl text-gray-400"></i>
-                            </div>
-                            <h4 class="text-lg font-medium text-gray-900 mb-2">Chưa có đặt tour nào</h4>
-                            <p class="text-gray-500">Các đặt tour mới sẽ hiển thị ở đây</p>
-                        </div>
-                    @endif
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="border-0 ps-4">Tour</th>
+                                    <th class="border-0">Ngày khởi hành</th>
+                                    <th class="border-0">HDV chính</th>
+                                    <th class="border-0">HDV dự phòng</th>
+                                    <th class="border-0">Trạng thái</th>
+                                    <th class="border-0 pe-4">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-departures">
+                                <!-- Data will be loaded via AJAX -->
+                                <tr>
+                                    <td colspan="6" class="text-center py-4">
+                                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                                        Đang tải dữ liệu...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Quick Stats and Actions -->
-        <div class="space-y-6">
-            <!-- Quick Stats -->
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="text-lg font-semibold text-gray-900">
-                        <i class="fas fa-chart-bar text-indigo-600 mr-2"></i>
-                        Thống kê nhanh
-                    </h3>
+        <div class="col-xl-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 pb-0">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-bell me-2 text-primary"></i>
+                        Thông báo mới nhất
+                    </h5>
                 </div>
                 <div class="card-body">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="text-center p-4 bg-indigo-50 rounded-lg">
-                            <i class="fas fa-map-marked-alt text-indigo-600 text-2xl mb-2"></i>
-                            <div class="text-lg font-bold text-gray-900">5</div>
-                            <div class="text-sm text-gray-500">Tours hôm nay</div>
-                        </div>
-                        <div class="text-center p-4 bg-green-50 rounded-lg">
-                            <i class="fas fa-calendar-check text-green-600 text-2xl mb-2"></i>
-                            <div class="text-lg font-bold text-gray-900">12</div>
-                            <div class="text-sm text-gray-500">Đặt tour hôm nay</div>
-                        </div>
-                        <div class="text-center p-4 bg-blue-50 rounded-lg">
-                            <i class="fas fa-user-plus text-blue-600 text-2xl mb-2"></i>
-                            <div class="text-lg font-bold text-gray-900">3</div>
-                            <div class="text-sm text-gray-500">Khách hàng mới</div>
-                        </div>
-                        <div class="text-center p-4 bg-yellow-50 rounded-lg">
-                            <i class="fas fa-money-bill-wave text-yellow-600 text-2xl mb-2"></i>
-                            <div class="text-lg font-bold text-gray-900">15.5M</div>
-                            <div class="text-sm text-gray-500">Doanh thu hôm nay</div>
+                    <div id="recent-notifications">
+                        <!-- Notifications will be loaded via AJAX -->
+                        <div class="text-center py-3">
+                            <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                            Đang tải thông báo...
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Recent Banners -->
-            <div class="card mb-6">
-                <div class="card-header">
-                    <h3 class="text-lg font-semibold text-gray-900">
-                        <i class="fas fa-image text-indigo-600 mr-2"></i>
-                        Banner gần đây
-                    </h3>
-                    <a href="{{ route('admin.banners') }}" class="btn btn-primary btn-sm">
-                        <i class="fas fa-eye mr-1"></i>
-                        Xem tất cả
-                    </a>
-                </div>
-                <div class="card-body">
-                    @php
-                        $recent_banners = \App\Models\Banner::orderBy('created_at', 'desc')->limit(3)->get();
-                    @endphp
-                    @if($recent_banners->count() > 0)
-                        <div class="space-y-3">
-                            @foreach($recent_banners as $banner)
-                                <div class="flex items-center p-3 bg-gray-50 rounded-lg">
-                                    <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mr-3">
-                                        <i class="fas fa-image text-indigo-600"></i>
-                                    </div>
-                                    <div class="flex-1">
-                                        <div class="text-sm font-medium text-gray-900">{{ $banner->title }}</div>
-                                        <div class="text-xs text-gray-500">
-                                            {{ $banner->type }} • {{ $banner->position }}
-                                        </div>
-                                    </div>
-                                    <div class="text-right">
-                                        <div class="text-xs text-gray-500">
-                                            {{ $banner->created_at->format('d/m/Y') }}
-                                        </div>
-                                        @if($banner->is_active)
-                                            <span class="badge badge-success badge-sm">Hoạt động</span>
-                                        @else
-                                            <span class="badge badge-secondary badge-sm">Tạm dừng</span>
-                                        @endif
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    @else
-                        <div class="text-center py-4">
-                            <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                                <i class="fas fa-image text-gray-400"></i>
-                            </div>
-                            <p class="text-sm text-gray-500">Chưa có banner nào</p>
-                        </div>
-                    @endif
                 </div>
             </div>
 
             <!-- Quick Actions -->
-            <div class="quick-actions">
-                <h3 class="quick-actions-title">
-                    <i class="fas fa-bolt"></i>
-                    Thao tác nhanh
-                </h3>
-                <div class="actions-grid">
-                    <a href="{{ route('admin.tours.index') }}" class="action-item">
-                        <div class="action-icon">
-                            <i class="fas fa-plus"></i>
-                        </div>
-                        <div class="action-text">
-                            <div class="action-title">Thêm tour mới</div>
-                            <div class="action-desc">Tạo tour du lịch mới</div>
-                        </div>
-                    </a>
-                    <a href="{{ route('admin.bookings') }}" class="action-item">
-                        <div class="action-icon">
-                            <i class="fas fa-list"></i>
-                        </div>
-                        <div class="action-text">
-                            <div class="action-title">Xem đặt tour</div>
-                            <div class="action-desc">Quản lý đặt tour</div>
-                        </div>
-                    </a>
-                    <a href="{{ route('admin.customers') }}" class="action-item">
-                        <div class="action-icon">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <div class="action-text">
-                            <div class="action-title">Quản lý khách hàng</div>
-                            <div class="action-desc">Danh sách khách hàng</div>
-                        </div>
-                    </a>
-                    <a href="{{ route('admin.banners') }}" class="action-item">
-                        <div class="action-icon">
-                            <i class="fas fa-image"></i>
-                        </div>
-                        <div class="action-text">
-                            <div class="action-title">Quản lý Banner</div>
-                            <div class="action-desc">Thêm/sửa banner</div>
-                        </div>
-                    </a>
-                    <a href="{{ route('admin.reports') }}" class="action-item">
-                        <div class="action-icon">
-                            <i class="fas fa-cog"></i>
-                        </div>
-                        <div class="action-text">
-                            <div class="action-title">Cài đặt hệ thống</div>
-                            <div class="action-desc">Cấu hình hệ thống</div>
-                        </div>
-                    </a>
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-header bg-white border-0 pb-0">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-bolt me-2 text-primary"></i>
+                        Thao tác nhanh
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ route('admin.tour-schedule-management') }}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-plus me-2"></i>Tạo lịch khởi hành mới
+                        </a>
+                        <a href="{{ route('admin.guides.create') }}" class="btn btn-outline-success btn-sm">
+                            <i class="fas fa-user-plus me-2"></i>Thêm hướng dẫn viên
+                        </a>
+                        <a href="{{ route('admin.tours.create') }}" class="btn btn-outline-info btn-sm">
+                            <i class="fas fa-route me-2"></i>Tạo tour mới
+                        </a>
+                        <button class="btn btn-outline-warning btn-sm" onclick="exportReport()">
+                            <i class="fas fa-download me-2"></i>Xuất báo cáo
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    </div>
-@endsection
-
-@section('styles')
-    <style>
-        .mb-6 {
-            margin-bottom: 1.5rem;
-        }
-
-        .mb-8 {
-            margin-bottom: 2rem;
-        }
-
-        .py-8 {
-            padding-top: 2rem;
-            padding-bottom: 2rem;
-        }
-
-        .text-2xl {
-            font-size: 1.5rem;
-        }
-
-        .text-lg {
-            font-size: 1.125rem;
-        }
-
-        .text-sm {
-            font-size: 0.875rem;
-        }
-
-        .text-xs {
-            font-size: 0.75rem;
-        }
-
-        .font-bold {
-            font-weight: 700;
-        }
-
-        .font-semibold {
-            font-weight: 600;
-        }
-
-        .font-medium {
-            font-weight: 500;
-        }
-
-        .text-gray-900 {
-            color: var(--gray-900);
-        }
-
-        .text-gray-500 {
-            color: var(--gray-500);
-        }
-
-        .text-indigo-600 {
-            color: var(--primary-600);
-        }
-
-        .text-green-600 {
-            color: var(--success-600);
-        }
-
-        .text-blue-600 {
-            color: var(--info-600);
-        }
-
-        .text-yellow-600 {
-            color: var(--warning-600);
-        }
-
-        .text-gray-400 {
-            color: var(--gray-400);
-        }
-
-        .mr-1 {
-            margin-right: 0.25rem;
-        }
-
-        .mr-2 {
-            margin-right: 0.5rem;
-        }
-
-        .mr-3 {
-            margin-right: 0.75rem;
-        }
-
-        .mr-4 {
-            margin-right: 1rem;
-        }
-
-        .mb-1 {
-            margin-bottom: 0.25rem;
-        }
-
-        .mb-2 {
-            margin-bottom: 0.5rem;
-        }
-
-        .mb-4 {
-            margin-bottom: 1rem;
-        }
-
-        .px-6 {
-            padding-left: 1.5rem;
-            padding-right: 1.5rem;
-        }
-
-        .py-4 {
-            padding-top: 1rem;
-            padding-bottom: 1rem;
-        }
-
-        .py-8 {
-            padding-top: 2rem;
-            padding-bottom: 2rem;
-        }
-
-        .w-10 {
-            width: 2.5rem;
-        }
-
-        .h-10 {
-            height: 2.5rem;
-        }
-
-        .w-16 {
-            width: 4rem;
-        }
-
-        .h-16 {
-            height: 4rem;
-        }
-
-        .w-12 {
-            width: 3rem;
-        }
-
-        .h-12 {
-            height: 3rem;
-        }
-
-        .bg-indigo-100 {
-            background-color: var(--primary-100);
-        }
-
-        .bg-indigo-50 {
-            background-color: var(--primary-50);
-        }
-
-        .bg-green-50 {
-            background-color: var(--success-50);
-        }
-
-        .bg-blue-50 {
-            background-color: var(--info-50);
-        }
-
-        .bg-yellow-50 {
-            background-color: var(--warning-50);
-        }
-
-        .bg-gray-100 {
-            background-color: var(--gray-100);
-        }
-
-        .bg-gray-50 {
-            background-color: var(--gray-50);
-        }
-
-        .rounded-lg {
-            border-radius: var(--radius);
-        }
-
-        .rounded-full {
-            border-radius: 9999px;
-        }
-
-        .flex {
-            display: flex;
-        }
-
-        .items-center {
-            align-items: center;
-        }
-
-        .justify-center {
-            justify-content: center;
-        }
-
-        .justify-between {
-            justify-content: space-between;
-        }
-
-        .text-center {
-            text-align: center;
-        }
-
-        .text-left {
-            text-align: left;
-        }
-
-        .text-right {
-            text-align: right;
-        }
-
-        .uppercase {
-            text-transform: uppercase;
-        }
-
-        .tracking-wider {
-            letter-spacing: 0.05em;
-        }
-
-        .divide-y>*+* {
-            border-top: 1px solid var(--gray-200);
-        }
-
-        .divide-gray-200>*+* {
-            border-color: var(--gray-200);
-        }
-
-        .hover\:bg-gray-50:hover {
-            background-color: var(--gray-50);
-        }
-
-        .hover\:bg-gray-100:hover {
-            background-color: var(--gray-100);
-        }
-
-        .transition-colors {
-            transition: background-color 0.3s ease;
-        }
-
-        .overflow-x-auto {
-            overflow-x: auto;
-        }
-
-        .grid {
-            display: grid;
-        }
-
-        .grid-cols-2 {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        .gap-3 {
-            gap: 0.75rem;
-        }
-
-        .gap-4 {
-            gap: 1rem;
-        }
-
-        .gap-6 {
-            gap: 1.5rem;
-        }
-
-        .space-y-3>*+* {
-            margin-top: 0.75rem;
-        }
-
-        .space-y-6>*+* {
-            margin-top: 1.5rem;
-        }
-
-        .p-3 {
-            padding: 0.75rem;
-        }
-
-        .p-4 {
-            padding: 1rem;
-        }
-
-        .opacity-90 {
-            opacity: 0.9;
-        }
-
-        @media (min-width: 1024px) {
-            .lg\:col-span-2 {
-                grid-column: span 2 / span 2;
-            }
-
-            .lg\:col-span-3 {
-                grid-column: span 3 / span 3;
-            }
-
-            .lg\:grid-cols-3 {
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-            }
-        }
-    </style>
-@endsection
-
-@section('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Revenue Chart
-            const revenueCtx = document.getElementById('revenueChart').getContext('2d');
-            new Chart(revenueCtx, {
-                type: 'line',
-                data: {
-                    labels: ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6'],
-                    datasets: [{
-                        label: 'Doanh thu (triệu VNĐ)',
-                        data: [12, 19, 3, 5, 2, 3],
-                        borderColor: '#6366F1',
-                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                        tension: 0.4,
-                        fill: true,
-                        pointBackgroundColor: '#6366F1',
-                        pointBorderColor: '#ffffff',
-                        pointBorderWidth: 2,
-                        pointRadius: 6
-                    }]
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCharts();
+    loadDashboardData();
+    
+    // Auto refresh every 5 minutes
+    setInterval(loadDashboardData, 300000);
+});
+
+function initializeCharts() {
+    // Revenue Chart
+    const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+    new Chart(revenueCtx, {
+        type: 'line',
+        data: {
+            labels: ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'],
+            datasets: [{
+                label: 'Doanh thu (triệu VNĐ)',
+                data: [120, 150, 180, 220, 280, 320, 350, 380, 420, 450, 480, 520],
+                borderColor: '#6366F1',
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0,0,0,0.05)'
+                    }
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.05)'
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            }
-                        }
+                x: {
+                    grid: {
+                        display: false
                     }
                 }
-            });
+            }
+        }
+    });
 
-            // Tours Chart
-            const toursCtx = document.getElementById('toursChart').getContext('2d');
-            new Chart(toursCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Trong nước', 'Nước ngoài', 'Du lịch sinh thái', 'Du lịch văn hóa'],
-                    datasets: [{
-                        data: [40, 30, 20, 10],
-                        backgroundColor: ['#6366F1', '#10B981', '#F59E0B', '#EF4444'],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                padding: 20,
-                                usePointStyle: true
-                            }
-                        }
-                    }
+    // Popular Tours Chart
+    const toursCtx = document.getElementById('popularToursChart').getContext('2d');
+    new Chart(toursCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Sapa', 'Hạ Long', 'Đà Nẵng', 'Phú Quốc', 'Khác'],
+            datasets: [{
+                data: [30, 25, 20, 15, 10],
+                backgroundColor: [
+                    '#6366F1',
+                    '#10B981',
+                    '#F59E0B',
+                    '#EF4444',
+                    '#8B5CF6'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
                 }
-            });
-        });
-    </script>
+            }
+        }
+    });
+}
 
-    <!-- Check-in/Check-out Statistics Widget -->
-    {{-- @include('components.check-in-out-stats') --}}
+async function loadDashboardData() {
+    try {
+        // Load recent departures
+        const departuresResponse = await fetch('/api/dashboard/recent-departures');
+        const departuresData = await departuresResponse.json();
+        
+        if (departuresData.success) {
+            renderRecentDepartures(departuresData.data);
+        }
+
+        // Load notifications
+        const notificationsResponse = await fetch('/api/tour-schedules/notifications/recent');
+        const notificationsData = await notificationsResponse.json();
+        
+        if (notificationsData.success) {
+            renderNotifications(notificationsData.data);
+        }
+    } catch (error) {
+        console.error('Error loading dashboard data:', error);
+    }
+}
+
+function renderRecentDepartures(departures) {
+    const tbody = document.getElementById('recent-departures');
+    
+    if (departures.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-4 text-muted">
+                    <i class="fas fa-calendar-times fa-2x mb-2 d-block"></i>
+                    Không có lịch khởi hành nào
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = departures.map(departure => `
+        <tr>
+            <td class="ps-4">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <div class="bg-primary bg-gradient rounded-2 p-2">
+                            <i class="fas fa-route text-white"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <div class="fw-semibold">${departure.tour_title}</div>
+                        <div class="text-muted small">${departure.tour_code || 'N/A'}</div>
+                    </div>
+                </div>
+            </td>
+            <td>
+                <div class="fw-semibold">${formatDate(departure.departure_date)}</div>
+                <div class="text-muted small">${departure.departure_time || 'Chưa xác định'}</div>
+            </td>
+            <td>
+                <div class="d-flex align-items-center">
+                    <div class="bg-success bg-gradient rounded-circle p-1 me-2">
+                        <i class="fas fa-user text-white" style="font-size: 10px;"></i>
+                    </div>
+                    <span class="small">${departure.guide_name || 'Chưa gán'}</span>
+                </div>
+            </td>
+            <td>
+                <div class="d-flex align-items-center">
+                    <div class="bg-warning bg-gradient rounded-circle p-1 me-2">
+                        <i class="fas fa-user text-white" style="font-size: 10px;"></i>
+                    </div>
+                    <span class="small">${departure.backup_guide_name || 'Chưa gán'}</span>
+                </div>
+            </td>
+            <td>
+                <span class="badge ${getStatusBadgeClass(departure.preparation_status)}">
+                    ${getStatusText(departure.preparation_status)}
+                </span>
+            </td>
+            <td class="pe-4">
+                <button class="btn btn-sm btn-outline-primary" onclick="editDeparture(${departure.id})">
+                    <i class="fas fa-edit"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function renderNotifications(notifications) {
+    const container = document.getElementById('recent-notifications');
+    
+    if (notifications.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-3 text-muted">
+                <i class="fas fa-bell-slash fa-2x mb-2 d-block"></i>
+                Không có thông báo mới
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = notifications.map(notification => `
+        <div class="d-flex align-items-start mb-3 ${notification.read_at ? 'opacity-75' : ''}">
+            <div class="flex-shrink-0">
+                <div class="bg-${getNotificationColor(notification.type)} bg-gradient rounded-circle p-2">
+                    <i class="fas fa-${getNotificationIcon(notification.type)} text-white" style="font-size: 12px;"></i>
+                </div>
+            </div>
+            <div class="flex-grow-1 ms-3">
+                <div class="fw-semibold small">${notification.title}</div>
+                <div class="text-muted small">${notification.message}</div>
+                <div class="text-muted" style="font-size: 11px;">${formatTimeAgo(notification.created_at)}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Utility functions
+function formatDate(dateString) {
+    return new Date(dateString).toLocaleDateString('vi-VN');
+}
+
+function formatTimeAgo(dateString) {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffInMinutes = Math.floor((now - date) / (1000 * 60));
+    
+    if (diffInMinutes < 60) return `${diffInMinutes} phút trước`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)} giờ trước`;
+    return `${Math.floor(diffInMinutes / 1440)} ngày trước`;
+}
+
+function getStatusBadgeClass(status) {
+    const classes = {
+        'pending': 'bg-warning',
+        'ready': 'bg-success',
+        'confirmed': 'bg-primary',
+        'cancelled': 'bg-danger',
+        'draft': 'bg-secondary'
+    };
+    return classes[status] || 'bg-secondary';
+}
+
+function getStatusText(status) {
+    const texts = {
+        'pending': 'Đang chuẩn bị',
+        'ready': 'Sẵn sàng',
+        'confirmed': 'Đã xác nhận',
+        'cancelled': 'Đã hủy',
+        'draft': 'Nháp'
+    };
+    return texts[status] || 'Không xác định';
+}
+
+function getNotificationColor(type) {
+    const colors = {
+        'info': 'primary',
+        'success': 'success',
+        'warning': 'warning',
+        'error': 'danger',
+        'departure': 'info',
+        'guide': 'success'
+    };
+    return colors[type] || 'primary';
+}
+
+function getNotificationIcon(type) {
+    const icons = {
+        'info': 'info-circle',
+        'success': 'check-circle',
+        'warning': 'exclamation-triangle',
+        'error': 'exclamation-circle',
+        'departure': 'calendar',
+        'guide': 'user-tie'
+    };
+    return icons[type] || 'bell';
+}
+
+function refreshDashboard() {
+    loadDashboardData();
+    location.reload();
+}
+
+function filterByPeriod(period) {
+    console.log('Filter by period:', period);
+    // Implement filtering logic
+}
+
+function editDeparture(id) {
+    window.location.href = `/admin/tour-schedule-management?departure=${id}`;
+}
+
+function exportReport() {
+    console.log('Export report');
+    // Implement export logic
+}
+</script>
 @endsection
