@@ -6,18 +6,20 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Tour;
 use App\Models\TourDeparture;
+use App\Models\User;
 use App\Models\Vehicle;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class DepartureController extends Controller
 {
 
     // Hiển thị danh sách khởi hành
-    public function index()
+    public function index(Request $request)
     {
         //Cập nhập trạng thái tour đã kt khi ngày khởi hành<hiệntaij
         $today = Carbon::today();
@@ -25,24 +27,81 @@ class DepartureController extends Controller
             ->where('status', '!=', 'finished')
             ->update(['status' => 'finished']);
 
-        $departures = TourDeparture::with('tour')
-            ->orderByDesc('id')
-            ->paginate(10);
+        $query = TourDeparture::with(['tour', 'guide', 'backupGuide', 'vehicle']);
+        
+        // Lọc theo tour_id nếu có
+        if ($request->has('tour_id') && $request->tour_id) {
+            $query->where('tour_id', $request->tour_id);
+        }
+        
+        $departures = $query->orderByDesc('id')->paginate(10);
 
-        return view('admin.tour_departures.index', compact('departures'));
+        // Lấy tour nếu có tour_id để hiển thị context
+        $tour = null;
+        if ($request->has('tour_id') && $request->tour_id) {
+            $tour = Tour::find($request->tour_id);
+        }
+
+        // Tính toán stats
+        $totalDepartures = $departures->total();
+        $availableDepartures = $query->clone()->where('status', 'available')->count();
+        $soldOutDepartures = $query->clone()->where('status', 'sold_out')->count();
+        $finishedDepartures = $query->clone()->where('status', 'finished')->count();
+        $totalSeats = $query->clone()->sum('seats_total');
+        $availableSeats = $query->clone()->sum('seats_available');
+        $bookedSeats = $totalSeats - $availableSeats;
+
+        return view('admin.tour_departures.index', compact('departures', 'tour', 'totalDepartures', 'availableDepartures', 'soldOutDepartures', 'finishedDepartures', 'totalSeats', 'availableSeats', 'bookedSeats'));
     }
 
     // Hiển thị form thêm mới
-    public function create()
+    public function create(Request $request)
     {
         $tours = Tour::all();
-        return view('admin.tour_departures.create', compact('tours'));
+        
+        // Lấy tour nếu có tour_id để hiển thị context
+        $tour = null;
+        if ($request->has('tour_id') && $request->tour_id) {
+            $tour = Tour::find($request->tour_id);
+        }
+        
+        return view('admin.tour_departures.create', compact('tours', 'tour'));
     }
     // Hiển thi chi tiết
     public function show($id)
     {
-        $departure = TourDeparture::findOrFail($id);
-        return view('admin.tour_departures.show', compact('departure'));
+        $departure = TourDeparture::with(['tour.schedules' => function($query) use ($id) {
+            $query->where(function($q) use ($id) {
+                $q->whereNull('departure_id')
+                  ->orWhere('departure_id', $id);
+            })->with('guide')->orderBy('day_number');
+        }, 'guide', 'backupGuide', 'vehicle'])->findOrFail($id);
+        
+        // Đồng bộ lại số chỗ trống dựa trên bookings thực tế
+        // Chỉ tính người lớn + trẻ em, loại trừ booking đã hủy/expired
+        $bookedSeats = Booking::where('departure_id', $departure->id)
+            ->whereNotIn('status', ['cancelled', 'expired'])
+            ->sum(DB::raw('adults + children'));
+
+        $calculatedAvailable = max($departure->seats_total - $bookedSeats, 0);
+
+        if ($departure->seats_available !== $calculatedAvailable) {
+            $departure->seats_available = $calculatedAvailable;
+            $departure->save();
+        }
+        
+        // Lấy danh sách guides và vehicles để hiển thị trong form
+        $guides = User::whereHas('roles', function($q) {
+                $q->where('name', 'guide');
+            })
+            ->orWhereHas('roles', function($q) {
+                $q->where('name', 'guide');
+            })
+            ->get();
+        
+        $vehicles = Vehicle::all();
+        
+        return view('admin.tour_departures.show', compact('departure', 'guides', 'vehicles'));
     }
 
     // Lưu khởi hành mới
@@ -59,9 +118,10 @@ class DepartureController extends Controller
             'infant_price' => 'nullable|numeric|min:0',
         ]);
 
-        TourDeparture::create($request->all());
+        $departure = TourDeparture::create($request->all());
 
-        return redirect()->route('admin.departures.index')
+        // Redirect về tour manage hub
+        return redirect()->route('admin.tours.manage', $request->tour_id)
             ->with('success', 'Thêm khởi hành thành công!');
     }
     public function edit($id)
@@ -144,7 +204,9 @@ class DepartureController extends Controller
                 $notificationService->notifyTourScheduleChanged($booking, $oldDateFormatted, $newDateFormatted);
             }
         }
-        return redirect()->route('admin.departures.index')
+        
+        // Redirect về tour manage hub
+        return redirect()->route('admin.tours.manage', $departure->tour_id)
             ->with('success', 'Cập nhật khởi hành thành công!');
     }
 
@@ -172,55 +234,85 @@ class DepartureController extends Controller
                 ->with('warning', 'Ngày này có khách đang chờ thanh toán — vui lòng huỷ hoặc chuyển lịch trước khi xoá.');
         }
 
+        $tourId = $departure->tour_id;
         $departure->delete();
 
-        return redirect()->route('admin.departures.index')
+        // Redirect về tour manage hub
+        return redirect()->route('admin.tours.manage', $tourId)
             ->with('success', 'Xoá lịch khởi hành thành công!');
     }
 
-    // Hàm cập nhật thông tin điều hành (HDV, Xe, Lịch trình)
+    // Hàm cập nhật thông tin vận hành (HDV, Xe, Nhà xe, Giờ tập trung, Điểm đón)
     public function updateOperating(Request $request, $id)
     {
-      $departure = TourDeparture::findOrFail($id);
+        $departure = TourDeparture::findOrFail($id);
 
         $validated = $request->validate([
-            'guide_id' => 'required|exists:users,id', 
-            'vehicle_id' => 'required|exists:vehicles,id',
-            'itinerary_file' => 'nullable|file|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx|max:10240',
+            'guide_id' => 'nullable|exists:users,id', 
+            'backup_guide_id' => 'nullable|exists:users,id|different:guide_id',
+            'vehicle_id' => 'nullable|exists:vehicles,id',
+            'bus_company' => 'nullable|string|max:255',
+            'assembly_time' => 'nullable|date_format:H:i',
+            'pickup_point' => 'nullable|string',
+            'departure_instructions' => 'nullable|string',
         ], [
-            'guide_id.required' => 'Vui lòng chọn Hướng dẫn viên.',
-            'vehicle_id.required' => 'Vui lòng chọn xe.',
+            'backup_guide_id.different' => 'Hướng dẫn viên dự phòng phải khác hướng dẫn viên chính.',
         ]);
 
-        // Lấy thông tin xe từ vehicle_id
-        $vehicle = Vehicle::findOrFail($validated['vehicle_id']);
-        
-        // Chuẩn bị thông tin xe hiển thị
-        $vehicleDetails = trim(($vehicle->brand ? $vehicle->brand . ' ' : '') .
-            ($vehicle->color ? $vehicle->color . ' ' : '') .
-            '(' . $vehicle->license_plate . ')');
+        // Nếu có vehicle_id, lấy thông tin xe
+        if (isset($validated['vehicle_id']) && $validated['vehicle_id']) {
+            $vehicle = Vehicle::findOrFail($validated['vehicle_id']);
+            
+            // Chuẩn bị thông tin xe hiển thị
+            $vehicleDetails = trim(($vehicle->brand ? $vehicle->brand . ' ' : '') .
+                ($vehicle->color ? $vehicle->color . ' ' : '') .
+                '(' . $vehicle->license_plate . ')');
 
-        $driverContact = trim(($vehicle->driver_name ? $vehicle->driver_name . ' - ' : '') .
-            ($vehicle->driver_phone ?? ''));
+            $driverContact = trim(($vehicle->driver_name ? $vehicle->driver_name . ' - ' : '') .
+                ($vehicle->driver_phone ?? ''));
 
-        // Cập nhật departure với vehicle_id và thông tin chi tiết
-        $validated['vehicle_type'] = $vehicle->vehicle_type;
-        $validated['vehicle_details'] = $vehicleDetails;
-        $validated['driver_contact'] = $driverContact ?: null;
-
-        // Xử lý file upload
-        if ($request->hasFile('itinerary_file')) {
-            // Xóa file cũ nếu có
-            if ($departure->itinerary_file) {
-                Storage::disk('public')->delete($departure->itinerary_file);
-            }
-            // Lưu file mới
-            $path = $request->file('itinerary_file')->store('itineraries', 'public');
-            $validated['itinerary_file'] = $path;
+            // Cập nhật thông tin xe chi tiết
+            $validated['vehicle_type'] = $vehicle->vehicle_type;
+            $validated['vehicle_details'] = $vehicleDetails;
+            $validated['driver_contact'] = $driverContact ?: null;
         }
 
         $departure->update($validated);
 
-        return back()->with('success', 'Đã cập nhật thông tin điều hành thành công!');
+        return redirect()->route('admin.departures.show', $departure->id)
+            ->with('success', 'Đã cập nhật thông tin vận hành thành công!');
+    }
+
+    // Cập nhật thông tin điều hành (Ghi chú, Trạng thái tour, File danh sách khách)
+    public function updateManagement(Request $request, $id)
+    {
+        $departure = TourDeparture::findOrFail($id);
+
+        $validated = $request->validate([
+            'management_notes' => 'nullable|string',
+            'tour_status' => 'required|in:preparing,running,completed,has_issue',
+            'guest_list_file' => 'nullable|file|mimes:pdf|max:10240',
+        ], [
+            'tour_status.required' => 'Vui lòng chọn trạng thái tour.',
+            'tour_status.in' => 'Trạng thái tour không hợp lệ.',
+            'guest_list_file.mimes' => 'File danh sách khách phải là file PDF.',
+            'guest_list_file.max' => 'File danh sách khách không được vượt quá 10MB.',
+        ]);
+
+        // Xử lý file upload danh sách khách
+        if ($request->hasFile('guest_list_file')) {
+            // Xóa file cũ nếu có
+            if ($departure->guest_list_file) {
+                Storage::disk('public')->delete($departure->guest_list_file);
+            }
+            // Lưu file mới
+            $path = $request->file('guest_list_file')->store('guest_lists', 'public');
+            $validated['guest_list_file'] = $path;
+        }
+
+        $departure->update($validated);
+
+        return redirect()->route('admin.departures.show', $departure->id)
+            ->with('success', 'Đã cập nhật thông tin điều hành thành công!');
     }
 }

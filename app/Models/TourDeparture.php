@@ -44,6 +44,13 @@ class TourDeparture extends Model
         'emergency_phone',
         'special_notes',
         'preparation_status',
+        // Thông tin điều hành
+        'tour_status', // preparing, running, completed, has_issue
+        'management_notes', // Ghi chú điều hành
+        'guest_list_file', // File PDF danh sách khách
+        'assembly_time', // Giờ tập trung
+        'pickup_point', // Điểm đón
+        'bus_company', // Nhà xe
     ];
     // THÊM QUAN HỆ VỚI USER (GUIDE)
     public function guide()
@@ -66,6 +73,7 @@ class TourDeparture extends Model
         'start_time'     => 'datetime:H:i',
         'end_time'       => 'datetime:H:i',
         'departure_time' => 'datetime:H:i',
+        'assembly_time' => 'datetime:H:i',
         'price'         => 'decimal:2',
         'child_price'   => 'decimal:2',
         'infant_price'  => 'decimal:2',

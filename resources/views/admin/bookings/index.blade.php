@@ -242,9 +242,19 @@
                                     {{ $group['group_confirmed'] ? 'Đã chốt' : 'Chưa chốt' }}: {{ $group['group_confirmed'] ? $group['confirmed_guests_count'] : $group['total_guests'] }} khách
                                 </span>
                                 <button class="btn btn-sm btn-outline-success"
+                                    @if(!($group['can_confirm_group'] ?? true)) 
+                                        disabled 
+                                        title="Không thể chốt đoàn! Có {{ count($group['unconfirmed_bookings'] ?? []) }} booking chưa xác nhận và {{ count($group['unpaid_bookings'] ?? []) }} booking chưa thanh toán."
+                                    @endif
                                     onclick="openConfirmGroupModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}', {{ $group['group_confirmed'] ? $group['confirmed_guests_count'] : $group['total_guests'] }})">
                                     <i class="fas fa-sync-alt me-1"></i> Cập nhật chốt đoàn
                                 </button>
+                                @if(!($group['can_confirm_group'] ?? true))
+                                    <small class="text-danger d-block mt-1">
+                                        <i class="fas fa-exclamation-triangle"></i> 
+                                        Chưa thể chốt: {{ count($group['unconfirmed_bookings'] ?? []) }} booking chưa xác nhận, {{ count($group['unpaid_bookings'] ?? []) }} booking chưa thanh toán
+                                    </small>
+                                @endif
                                 
                                 @if($group['guide'])
                                     <span class="badge bg-info">
@@ -365,23 +375,11 @@
                                             {{ $booking->created_at->format('d/m/Y') }}
                                         </td>
                                         <td class="px-3 text-end">
-                                            <div class="btn-group" role="group">
-                                                <a href="{{ route('admin.bookings.show', $booking->id) }}" 
-                                                   class="btn btn-sm btn-outline-primary" 
-                                                   title="Xem chi tiết">
-                                                    <i class="fas fa-eye"></i>
-                                                </a>
-                                                <form action="{{ route('admin.bookings.destroy', $booking->id) }}" 
-                                                      method="POST" 
-                                                      class="d-inline"
-                                                      onsubmit="return confirm('Bạn có chắc muốn xóa đơn này?');">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </form>
-                                            </div>
+                                            <a href="{{ route('admin.bookings.show', $booking->id) }}" 
+                                               class="btn btn-sm btn-outline-primary" 
+                                               title="Xem chi tiết">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
                                         </td>
                                     </tr>
                                 @endforeach
@@ -694,11 +692,6 @@
                             sendBookingEmail(bookingId);
                             break;
 
-                        case 'delete':
-                            if (confirm('Bạn có chắc chắn muốn XÓA VĨNH VIỄN đặt tour này?')) {
-                                deleteBooking(bookingId);
-                            }
-                            break;
                     }
                 });
             });
@@ -793,15 +786,6 @@
                 }
             }
 
-            // HÀM XÓA BOOKING (Đã sửa)
-            async function deleteBooking(bookingId) {
-                // Gọi route DELETE
-                const data = await sendRequest(`/admin/bookings/${bookingId}`, 'DELETE');
-                if (data && data.success) {
-                    showNotification(data.message, 'success');
-                    location.reload(); // Tải lại trang
-                }
-            }
 
             function showNotification(message, type) {
                 const notification = document.createElement('div');

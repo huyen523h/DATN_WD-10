@@ -449,18 +449,52 @@
                 @if($booking->status === 'paid' || $booking->status === 'completed')
                     
                     @if(!$booking->passenger_manifest_file)
-                        <div class="alert alert-warning small border-warning">
-                            <i class="fas fa-exclamation-circle"></i> Chưa có danh sách. Vui lòng upload để mua bảo hiểm.
+                        <div class="alert alert-warning small border-warning mb-3">
+                            <i class="fas fa-exclamation-circle"></i> 
+                            <strong>Chưa có danh sách đoàn.</strong> Vui lòng tải file mẫu, gửi cho khách hàng điền thông tin, sau đó upload file đã điền lên hệ thống.
                         </div>
                     @endif
                     
-                    <p class="small text-muted mb-1">Upload hộ khách (nếu khách gửi Zalo):</p>
+                    {{-- Nút tải file mẫu - Nổi bật --}}
+                    <div class="mb-3 p-3 bg-light rounded border">
+                        <label class="form-label fw-bold mb-2">
+                            <i class="fas fa-file-download text-success"></i> Tải file mẫu danh sách đoàn
+                        </label>
+                        <a href="{{ route('admin.bookings.download-manifest-template') }}" 
+                           class="btn btn-success" target="_blank">
+                            <i class="fas fa-download"></i> Tải file mẫu danh sách đoàn
+                        </a>
+                        <small class="text-muted d-block mt-2">
+                            <i class="fas fa-info-circle"></i> File CSV - Khách hàng có thể mở bằng Excel hoặc Google Sheets để điền thông tin
+                        </small>
+                    </div>
+                    
+                    <hr class="my-3">
+                    
+                    {{-- Form upload file đã điền --}}
+                    <div class="mb-2">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-upload text-primary"></i> Upload file đã điền thông tin
+                        </label>
+                        <p class="small text-muted mb-2">
+                            Sau khi khách hàng điền thông tin vào file mẫu và gửi lại, vui lòng upload file đã điền lên hệ thống tại đây.
+                        </p>
+                    </div>
                     <form action="{{ route('admin.bookings.upload-manifest', $booking->id) }}" method="POST" enctype="multipart/form-data">
                         @csrf
-                        <div class="input-group input-group-sm">
-                            <input type="file" name="manifest_file" class="form-control" required>
-                            <button class="btn btn-primary" type="submit">Up</button>
+                        <div class="input-group">
+                            <input type="file" 
+                                   name="manifest_file" 
+                                   class="form-control" 
+                                   accept=".csv,.xls,.xlsx" 
+                                   required>
+                            <button class="btn btn-primary" type="submit">
+                                <i class="fas fa-cloud-upload-alt"></i> Cập nhật danh sách
+                            </button>
                         </div>
+                        <small class="text-muted d-block mt-1">
+                            <i class="fas fa-info-circle"></i> Chấp nhận file: CSV, XLS, XLSX (tối đa 5MB)
+                        </small>
                     </form>
 
                 @else
@@ -515,27 +549,15 @@
             </button>
         @endif
 
-        {{-- 4. Nút Xóa đơn (Chỉ cho phép xóa khi chưa thanh toán để an toàn dữ liệu) --}}
-      @if ($booking->status === 'pending' && $booking->payment->count() == 0)
-    <form action="{{ route('admin.bookings.destroy', $booking) }}" method="POST" class="d-inline"
-          onsubmit="return confirm('HÀNH ĐỘNG NGUY HIỂM: Bạn có chắc chắn muốn XÁC NHẬN XÓA VĨNH VIỄN?')">
-        @csrf
-        @method('DELETE')
-        <button type="submit" class="btn btn-danger w-100 mt-2">
-            <i class="fas fa-trash"></i> Xóa đơn rác
-        </button>
-    </form>
-@else
-    {{-- Với các trạng thái khác (Paid, Cancelled, Confirmed, Completed...) --}}
-    <div class="alert alert-light border text-center small mt-2 mb-0 p-2 bg-light text-muted">
-        <i class="fas fa-archive"></i> 
-        @if($booking->status === 'cancelled')
-            Đơn hủy được lưu trữ để đối soát.
-        @else
-            Đơn hàng có dữ liệu quan trọng không thể xóa.
-        @endif
-    </div>
-@endif
+        {{-- Thông báo: Đơn hàng không thể xóa --}}
+        <div class="alert alert-light border text-center small mt-2 mb-0 p-2 bg-light text-muted">
+            <i class="fas fa-archive"></i> 
+            @if($booking->status === 'cancelled')
+                Đơn hủy được lưu trữ để đối soát.
+            @else
+                Đơn hàng có dữ liệu quan trọng không thể xóa.
+            @endif
+        </div>
 
     </div>
 </div>
