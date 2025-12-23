@@ -237,41 +237,6 @@
                                         <p class="text-muted">Đang tải đánh giá...</p>
                                     </div>
                                 </div>
-
-                                <hr class="my-4">
-
-                                <div>
-                                    <h4 class="mb-3">Viết đánh giá của bạn</h4>
-                                    @auth
-                                        <form id="reviewForm">
-                                            <div id="reviewErrors" class="alert alert-danger d-none"></div>
-                                            <div id="reviewSuccess" class="alert alert-success d-none"></div>
-                                            <div class="mb-3">
-                                                <label for="rating" class="form-label">Bạn đánh giá bao nhiêu sao?</label>
-                                                <select name="rating" id="rating" required class="form-select">
-                                                    <option value="5">5 sao ★★★★★</option>
-                                                    <option value="4">4 sao ★★★★☆</option>
-                                                    <option value="3">3 sao ★★★☆☆</option>
-                                                    <option value="2">2 sao ★★☆☆☆</option>
-                                                    <option value="1">1 sao ★☆☆☆☆</option>
-                                                </select>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label for="comment" class="form-label">Bình luận</label>
-                                                <textarea id="comment" name="comment" rows="4" class="form-control"
-                                                    placeholder="Chia sẻ cảm nhận của bạn về chuyến đi..."></textarea>
-                                            </div>
-                                            <button type="submit" id="submitReviewBtn" class="btn btn-primary">
-                                                <i class="fas fa-paper-plane"></i> Gửi đánh giá
-                                            </button>
-                                        </form>
-                                    @else
-                                        <div class="alert alert-info">
-                                            Vui lòng <a href="{{ route('login') }}" class="alert-link">đăng nhập</a> để gửi
-                                            đánh giá của bạn.
-                                        </div>
-                                    @endauth
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -394,77 +359,6 @@
                 });
         }
         fetchReviews();
-
-        const reviewForm = document.getElementById('reviewForm');
-        if (reviewForm) {
-            reviewForm.addEventListener('submit', function(event) {
-                event.preventDefault();
-
-                const submitBtn = document.getElementById('submitReviewBtn');
-                const reviewErrors = document.getElementById('reviewErrors');
-                const reviewSuccess = document.getElementById('reviewSuccess');
-
-                if (!authToken) {
-                    reviewErrors.classList.remove('d-none');
-                    reviewErrors.innerText = 'Lỗi xác thực. Vui lòng đăng nhập lại.';
-                    return;
-                }
-
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang gửi...';
-                reviewErrors.classList.add('d-none');
-                reviewSuccess.classList.add('d-none');
-
-                const formData = {
-                    rating: document.getElementById('rating').value,
-                    comment: document.getElementById('comment').value
-                };
-
-                fetch(`/api/tours/${tourId}/reviews`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json',
-                            'Authorization': `Bearer ${authToken}`
-                        },
-                        body: JSON.stringify(formData)
-                    })
-                    .then(response => response.json().then(data => ({
-                        status: response.status,
-                        body: data
-                    })))
-                    .then(({
-                        status,
-                        body
-                    }) => {
-                        if (status === 201) {
-                            reviewSuccess.classList.remove('d-none');
-                            reviewSuccess.innerText = body.message;
-                            reviewForm.reset();
-                        } else {
-                            reviewErrors.classList.remove('d-none');
-                            if (body.errors) {
-                                let errorText = '';
-                                for (const key in body.errors) {
-                                    errorText += body.errors[key][0] + '\n';
-                                }
-                                reviewErrors.innerText = errorText;
-                            } else {
-                                reviewErrors.innerText = body.message || 'Đã có lỗi xảy ra.';
-                            }
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Lỗi khi gửi đánh giá:', error);
-                        reviewErrors.classList.remove('d-none');
-                        reviewErrors.innerText = 'Lỗi kết nối. Vui lòng thử lại.';
-                    })
-                    .finally(() => {
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Gửi đánh giá';
-                    });
-            });
-        }
         });
     </script>
 @endsection

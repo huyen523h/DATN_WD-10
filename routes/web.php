@@ -566,8 +566,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         ->name('departures.update_management');
 
         // route mới 4/12/2025
-        Route::get('/bookings/download-manifest-template', [AdminController::class, 'downloadManifestTemplate'])->name('admin.bookings.download-manifest-template');
-        Route::post('/bookings/{booking}/admin-upload-manifest', [AdminController::class, 'uploadManifest'])->name('admin.bookings.upload-manifest');
+        // Route::get('/bookings/download-manifest-template', [AdminController::class, 'downloadManifestTemplate'])->name('admin.bookings.download-manifest-template');
+        // Route::post('/bookings/{booking}/admin-upload-manifest', [AdminController::class, 'uploadManifest'])->name('admin.bookings.upload-manifest');
+        Route::get('/bookings/download-manifest-template', [AdminController::class, 'downloadManifestTemplate'])->name('bookings.download-manifest-template');
+        Route::post('/bookings/{booking}/admin-upload-manifest', [AdminController::class, 'uploadManifest'])->name('bookings.upload-manifest');
 
     // Guides management
     Route::resource('guides', GuideWebController::class);
