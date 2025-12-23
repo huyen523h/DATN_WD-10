@@ -60,6 +60,10 @@ Route::get('/notifications/recent', [TourScheduleController::class, 'getRecentNo
 Route::get('/notifications/new', [TourScheduleController::class, 'getNewNotifications']);
 Route::post('/notifications/mark-all-read', [TourScheduleController::class, 'markAllNotificationsAsRead']);
 
+// Dashboard endpoints (alias for admin dashboard widgets)
+Route::get('/dashboard/recent-departures', [TourScheduleController::class, 'getRecentDepartures']);
+Route::get('/tour-schedules/notifications/recent', [TourScheduleController::class, 'getRecentNotifications']);
+
 // Public Promotion API routes (no authentication required)
 Route::prefix('promotions')->group(function () {
     Route::get('/', [PromotionController::class, 'index']); // GET /api/promotions

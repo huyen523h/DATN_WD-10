@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Tour;
 use App\Models\TourDeparture;
+use App\Models\TourSchedule;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Services\NotificationService;
@@ -90,16 +91,70 @@ class DepartureController extends Controller
             $departure->save();
         }
         
-        // Lấy danh sách guides và vehicles để hiển thị trong form
-        $guides = User::whereHas('roles', function($q) {
-                $q->where('name', 'guide');
-            })
-            ->orWhereHas('roles', function($q) {
+        // Lấy danh sách guides và vehicles (lọc trống theo khoảng ngày tour này)
+        $startDate = Carbon::parse($departure->departure_date)->startOfDay();
+        $durationDays = $this->getTourDurationDays($departure->tour);
+        $endDate = (clone $startDate)->addDays($durationDays);
+
+        $allGuides = User::whereHas('roles', function($q) {
                 $q->where('name', 'guide');
             })
             ->get();
-        
-        $vehicles = Vehicle::all();
+
+        $guides = $allGuides->filter(function($guide) use ($departure, $startDate, $endDate) {
+            // Luôn giữ HDV đang gán cho departure này
+            if ($departure->guide_id === $guide->id || $departure->backup_guide_id === $guide->id) {
+                return true;
+            }
+
+            $conflicts = TourDeparture::where('id', '!=', $departure->id)
+                ->where(function($q) use ($guide) {
+                    $q->where('guide_id', $guide->id)
+                      ->orWhere('backup_guide_id', $guide->id);
+                })
+                ->with('tour')
+                ->get();
+
+            foreach ($conflicts as $conflict) {
+                $confStart = $conflict->departure_date instanceof Carbon
+                    ? $conflict->departure_date->copy()->startOfDay()
+                    : Carbon::parse($conflict->departure_date)->startOfDay();
+                $confDuration = $this->getTourDurationDays($conflict->tour);
+                $confEnd = (clone $confStart)->addDays($confDuration);
+
+                if ($startDate <= $confEnd && $endDate >= $confStart) {
+                    return false; // bận
+                }
+            }
+
+            return true; // trống
+        })->values();
+
+        $allVehicles = Vehicle::all();
+        $vehicles = $allVehicles->filter(function($vehicle) use ($departure, $startDate, $endDate) {
+            if ($departure->vehicle_id === $vehicle->id) {
+                return true;
+            }
+
+            $conflicts = TourDeparture::where('id', '!=', $departure->id)
+                ->where('vehicle_id', $vehicle->id)
+                ->with('tour')
+                ->get();
+
+            foreach ($conflicts as $conflict) {
+                $confStart = $conflict->departure_date instanceof Carbon
+                    ? $conflict->departure_date->copy()->startOfDay()
+                    : Carbon::parse($conflict->departure_date)->startOfDay();
+                $confDuration = $this->getTourDurationDays($conflict->tour);
+                $confEnd = (clone $confStart)->addDays($confDuration);
+
+                if ($startDate <= $confEnd && $endDate >= $confStart) {
+                    return false;
+                }
+            }
+
+            return true;
+        })->values();
         
         return view('admin.tour_departures.show', compact('departure', 'guides', 'vehicles'));
     }
@@ -245,19 +300,73 @@ class DepartureController extends Controller
     // Hàm cập nhật thông tin vận hành (HDV, Xe, Nhà xe, Giờ tập trung, Điểm đón)
     public function updateOperating(Request $request, $id)
     {
-        $departure = TourDeparture::findOrFail($id);
+        $departure = TourDeparture::with('tour')->findOrFail($id);
 
         $validated = $request->validate([
             'guide_id' => 'nullable|exists:users,id', 
-            'backup_guide_id' => 'nullable|exists:users,id|different:guide_id',
             'vehicle_id' => 'nullable|exists:vehicles,id',
             'bus_company' => 'nullable|string|max:255',
             'assembly_time' => 'nullable|date_format:H:i',
             'pickup_point' => 'nullable|string',
             'departure_instructions' => 'nullable|string',
-        ], [
-            'backup_guide_id.different' => 'Hướng dẫn viên dự phòng phải khác hướng dẫn viên chính.',
         ]);
+
+        $tour = $departure->tour;
+        $startDate = Carbon::parse($departure->departure_date)->startOfDay();
+        $durationDays = $this->getTourDurationDays($tour);
+        $endDate = (clone $startDate)->addDays($durationDays);
+
+        // Check trùng lịch cho HDV chính
+        if (!empty($validated['guide_id'])) {
+            $guide = User::findOrFail($validated['guide_id']);
+            $conflicts = TourDeparture::where('guide_id', $guide->id)
+                ->where('id', '!=', $departure->id)
+                ->with('tour')
+                ->get();
+
+            foreach ($conflicts as $conflict) {
+                $confStart = $conflict->departure_date instanceof Carbon
+                    ? $conflict->departure_date->copy()->startOfDay()
+                    : Carbon::parse($conflict->departure_date)->startOfDay();
+
+                $confDuration = $this->getTourDurationDays($conflict->tour);
+                $confEnd = (clone $confStart)->addDays($confDuration);
+
+                if ($startDate <= $confEnd && $endDate >= $confStart) {
+                    return back()
+                        ->withErrors([
+                            'guide_id' => 'HDV ' . $guide->name . ' bận từ ' . $confStart->format('d/m/Y') . ' đến ' . $confEnd->format('d/m/Y') . '. Vui lòng chọn HDV khác.'
+                        ])
+                        ->withInput();
+                }
+            }
+        }
+
+        // Check trùng lịch cho Xe
+        if (!empty($validated['vehicle_id'])) {
+            $vehicle = Vehicle::findOrFail($validated['vehicle_id']);
+            $conflicts = TourDeparture::where('vehicle_id', $vehicle->id)
+                ->where('id', '!=', $departure->id)
+                ->with('tour')
+                ->get();
+
+            foreach ($conflicts as $conflict) {
+                $confStart = $conflict->departure_date instanceof Carbon
+                    ? $conflict->departure_date->copy()->startOfDay()
+                    : Carbon::parse($conflict->departure_date)->startOfDay();
+
+                $confDuration = $this->getTourDurationDays($conflict->tour);
+                $confEnd = (clone $confStart)->addDays($confDuration);
+
+                if ($startDate <= $confEnd && $endDate >= $confStart) {
+                    return back()
+                        ->withErrors([
+                            'vehicle_id' => 'Xe ' . $vehicle->license_plate . ' bận từ ' . $confStart->format('d/m/Y') . ' đến ' . $confEnd->format('d/m/Y') . '. Vui lòng chọn xe khác.'
+                        ])
+                        ->withInput();
+                }
+            }
+        }
 
         // Nếu có vehicle_id, lấy thông tin xe
         if (isset($validated['vehicle_id']) && $validated['vehicle_id']) {
@@ -276,6 +385,9 @@ class DepartureController extends Controller
             $validated['vehicle_details'] = $vehicleDetails;
             $validated['driver_contact'] = $driverContact ?: null;
         }
+
+        // Luôn bỏ HDV dự phòng
+        $validated['backup_guide_id'] = null;
 
         $departure->update($validated);
 
@@ -314,5 +426,27 @@ class DepartureController extends Controller
 
         return redirect()->route('admin.departures.show', $departure->id)
             ->with('success', 'Đã cập nhật thông tin điều hành thành công!');
+    }
+
+    /**
+     * Tính số ngày của tour, ưu tiên duration_days, sau đó max day_number của schedule, mặc định 3 ngày
+     */
+    protected function getTourDurationDays(?Tour $tour): int
+    {
+        if (!$tour) {
+            return 3;
+        }
+
+        if (!empty($tour->duration_days)) {
+            return (int) $tour->duration_days;
+        }
+
+        $maxDay = TourSchedule::where(function ($q) use ($tour) {
+                $q->whereNull('tour_id')->orWhere('tour_id', $tour->id);
+            })
+            ->whereNull('departure_id')
+            ->max('day_number');
+
+        return $maxDay ? (int) $maxDay : 3;
     }
 }

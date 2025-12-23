@@ -96,11 +96,11 @@
                                                 Đặt lúc: {{ $booking->created_at->format('d/m/Y H:i') }}
                                             </small>
                                             <div class="d-flex gap-2 flex-wrap">
-                                                <a href="{{ route('bookings.show', $booking) }}"
-                                                    class="btn btn-outline-primary btn-sm">
-                                                    <i class="fas fa-eye"></i> Xem chi tiết
-                                                </a>
-                                                @if($booking->status !== 'cancelled' && $booking->status !== 'paid' && $booking->status !== 'completed')
+                                            <a href="{{ route('bookings.show', $booking) }}"
+                                                class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-eye"></i> Xem chi tiết
+                                            </a>
+                                           @if($booking->status !== 'cancelled' && $booking->status !== 'paid' && $booking->status !== 'completed')
                                                     <!-- Terms checkbox for this booking -->
                                                     <div class="form-check d-inline-flex align-items-center ms-2">
                                                         <input class="form-check-input" type="checkbox" 
@@ -122,12 +122,12 @@
                                                           class="d-inline ms-1"
                                                           id="momoForm{{ $booking->id }}"
                                                           onsubmit="return validateTermsBeforePayment(event, {{ $booking->id }})">
-                                                        @csrf
-                                                        <button type="submit" class="btn btn-danger btn-sm">
-                                                            <i class="fas fa-wallet"></i> Thanh toán qua MOMO
-                                                        </button>
-                                                    </form>
-                                                @endif
+        @csrf
+        <button type="submit" class="btn btn-danger btn-sm">
+            <i class="fas fa-wallet"></i> Thanh toán qua MOMO
+        </button>
+    </form>
+@endif
                                             </div>
                                         </div>
                                     </div>

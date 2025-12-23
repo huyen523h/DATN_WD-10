@@ -1017,7 +1017,7 @@
             }
         }
 
-        // Assign guide function
+        // Assign guide function with conflict validation (multi-day)
         async function assignGuide(guideId, type) {
             if (!currentDepartureId || currentDepartureId === '') {
                 showNotification('Vui lòng nhập Departure ID trước khi gán hướng dẫn viên', 'warning');
@@ -1025,8 +1025,11 @@
             }
 
             const fieldName = type === 'main' ? 'guide_id' : 'backup_guide_id';
-            
+            const btnMessage = type === 'main' ? 'HDV chính' : 'HDV dự phòng';
+
             try {
+                showNotification(`Đang gán ${btnMessage}...`, 'info');
+
                 const response = await fetch(`/api/departures/${currentDepartureId}`, {
                     method: 'PUT',
                     headers: {
@@ -1034,27 +1037,32 @@
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                     },
                     body: JSON.stringify({
-                        [fieldName]: guideId
+                        [fieldName]: guideId,
+                        _validate_conflict: true // flag để backend check trùng lịch như phần đặt tour
                     })
                 });
 
                 const result = await response.json();
                 
                 if (result.success) {
-                    showNotification(`Đã gán hướng dẫn viên ${type === 'main' ? 'chính' : 'dự phòng'} thành công!`, 'success');
+                    showNotification(`Đã gán ${btnMessage} thành công!`, 'success');
                     
                     // Update departure data immediately
-                    updateDeparturesTab(result.data);
+                    if (typeof updateDeparturesTab === 'function') {
+                        updateDeparturesTab(result.data);
+                    }
                     
                     // Sync all data across tabs
-                    syncAllData();
+                    if (typeof syncAllData === 'function') {
+                        syncAllData();
+                    }
                     
                     // Trigger notification event
                     if (window.notificationSystem) {
                         window.notificationSystem.addNotification({
                             id: Date.now(),
                             title: 'Phân công HDV',
-                            message: `Đã gán HDV ${type === 'main' ? 'chính' : 'dự phòng'} cho departure ID: ${currentDepartureId}`,
+                            message: `Đã gán ${btnMessage} cho departure ID: ${currentDepartureId}`,
                             type: 'guide',
                             created_at: new Date().toISOString(),
                             read_at: null

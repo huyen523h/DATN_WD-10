@@ -362,9 +362,17 @@
                             
                             <div class="row mb-3">
                                 <div class="col-md-6">
-                                    <label for="vehicle_id" class="form-label fw-bold">
-                                        <i class="fas fa-car"></i> Xe
-                                    </label>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <label for="vehicle_id" class="form-label fw-bold mb-0">
+                                            <i class="fas fa-car"></i> Xe
+                                        </label>
+                                        @if($canEditAll)
+                                            <button type="button" class="btn btn-sm btn-outline-primary" id="refresh-vehicle-btn"
+                                                    onclick="loadAvailableVehicles('vehicle_id', '{{ $departure->vehicle_id }}', '{{ optional($departure->vehicle)->license_plate }}')">
+                                                <i class="fas fa-sync-alt"></i> Lấy xe trống
+                                            </button>
+                                        @endif
+                                    </div>
                                     <select 
                                         class="form-select @error('vehicle_id') is-invalid @enderror" 
                                         id="vehicle_id" 
@@ -384,6 +392,7 @@
                                             </option>
                                         @endforeach
                                     </select>
+                                    <small class="form-text text-muted">Danh sách xe trống sẽ được lọc theo ngày khởi hành {{ optional($departure->departure_date)->format('d/m/Y') }} và số ngày tour.</small>
                                     @error('vehicle_id')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -511,7 +520,7 @@
                         @else
                             <!-- Trường hợp ĐÃ có HDV -->
                             <div class="row mb-4">
-                                <div class="col-md-6">
+                                <div class="col-md-12">
                                     <div class="card border-success">
                                         <div class="card-header bg-success text-white">
                                             <h6 class="mb-0"><i class="fas fa-user-tie"></i> HDV chính</h6>
@@ -542,38 +551,6 @@
                                         </div>
                                     </div>
                                 </div>
-                                
-                                <div class="col-md-6">
-                                    <div class="card border-info">
-                                        <div class="card-header bg-info text-white">
-                                            <h6 class="mb-0"><i class="fas fa-user-shield"></i> HDV phụ</h6>
-                                        </div>
-                                        <div class="card-body">
-                                            @if($departure->backupGuide)
-                                                <div class="d-flex align-items-center mb-3">
-                                                    <div class="avatar-circle bg-info text-white me-3">
-                                                        <i class="fas fa-user fa-2x"></i>
-                                                    </div>
-                                                    <div>
-                                                        <h5 class="mb-1">{{ $departure->backupGuide->name }}</h5>
-                                                        @if($departure->backupGuide->phone)
-                                                            <p class="text-muted mb-0">
-                                                                <i class="fas fa-phone"></i> {{ $departure->backupGuide->phone }}
-                                                            </p>
-                                                        @endif
-                                                        @if($departure->backupGuide->email)
-                                                            <p class="text-muted mb-0">
-                                                                <i class="fas fa-envelope"></i> {{ $departure->backupGuide->email }}
-                                                            </p>
-                                                        @endif
-                                                    </div>
-                                                </div>
-                                            @else
-                                                <p class="text-muted mb-0">Chưa gán</p>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
                         @endif
 
@@ -589,10 +566,18 @@
                                         @method('PUT')
                                         
                                         <div class="row mb-3">
-                                            <div class="col-md-6">
-                                                <label for="guide_id_form" class="form-label fw-bold">
-                                                    <i class="fas fa-user-tie"></i> Hướng dẫn viên chính
-                                                </label>
+                                            <div class="col-md-12">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <label for="guide_id_form" class="form-label fw-bold mb-0">
+                                                        <i class="fas fa-user-tie"></i> Hướng dẫn viên
+                                                    </label>
+                                                    @if($canEditAll)
+                                                        <button type="button" class="btn btn-sm btn-outline-primary" id="refresh-guide-btn"
+                                                                onclick="loadAvailableGuides('guide_id_form', '{{ $departure->guide_id }}', '{{ optional($departure->guide)->name }}', '{{ optional($departure->guide)->email }}')">
+                                                            <i class="fas fa-sync-alt"></i> Lấy HDV trống
+                                                        </button>
+                                                    @endif
+                                                </div>
                                                 <select 
                                                     class="form-select @error('guide_id') is-invalid @enderror" 
                                                     id="guide_id_form" 
@@ -612,39 +597,15 @@
                                                     <div class="invalid-feedback">{{ $message }}</div>
                                                 @enderror
                                             </div>
-                                            
-                                            <div class="col-md-6">
-                                                <label for="backup_guide_id_form" class="form-label fw-bold">
-                                                    <i class="fas fa-user-shield"></i> Hướng dẫn viên dự phòng
-                                                </label>
-                                                <select 
-                                                    class="form-select @error('backup_guide_id') is-invalid @enderror" 
-                                                    id="backup_guide_id_form" 
-                                                    name="backup_guide_id">
-                                                    <option value="">-- Chọn hướng dẫn viên dự phòng --</option>
-                                                    @foreach($guides as $guide)
-                                                        <option value="{{ $guide->id }}" 
-                                                            {{ old('backup_guide_id', $departure->backup_guide_id) == $guide->id ? 'selected' : '' }}>
-                                                            {{ $guide->name }}
-                                                            @if($guide->phone)
-                                                                - {{ $guide->phone }}
-                                                            @endif
-                                                        </option>
-                                                    @endforeach
-                                                </select>
-                                                @error('backup_guide_id')
-                                                    <div class="invalid-feedback">{{ $message }}</div>
-                                                @enderror
-                                            </div>
                                         </div>
 
                                         <div class="d-flex gap-2">
                                             <button type="submit" class="btn btn-success">
                                                 <i class="fas fa-save"></i> Lưu phân công
                                             </button>
-                                            @if($departure->guide || $departure->backupGuide)
-                                                <button type="button" class="btn btn-outline-danger" onclick="if(confirm('Bạn có chắc muốn gỡ tất cả HDV?')) { document.getElementById('guide_id_form').value=''; document.getElementById('backup_guide_id_form').value=''; this.form.submit(); }">
-                                                    <i class="fas fa-times"></i> Gỡ tất cả
+                                            @if($departure->guide)
+                                                <button type="button" class="btn btn-outline-danger" onclick="if(confirm('Bạn có chắc muốn gỡ HDV?')) { document.getElementById('guide_id_form').value=''; this.form.submit(); }">
+                                                    <i class="fas fa-times"></i> Gỡ HDV
                                                 </button>
                                             @endif
                                         </div>
@@ -1114,6 +1075,136 @@
                 e.preventDefault();
                 alert('Không thể lưu khi lịch đã kết thúc hoặc đã hoàn thành');
                 return false;
+            @endif
+        });
+
+        const DEPARTURE_DATE = @json(optional($departure->departure_date)->format('Y-m-d'));
+        const TOUR_ID = @json($departure->tour_id);
+        const AVAILABLE_GUIDES_URL = @json(route('admin.bookings.available-guides'));
+        const AVAILABLE_VEHICLES_URL = @json(route('admin.bookings.available-vehicles'));
+
+        function setLoading(buttonId, isLoading, defaultLabel) {
+            if (!buttonId) return;
+            const btn = document.getElementById(buttonId);
+            if (!btn) return;
+            if (isLoading) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Đang tải';
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = defaultLabel || btn.dataset.defaultLabel || btn.innerHTML;
+            }
+        }
+
+        function buildGuideLabel(name, email) {
+            let label = name || 'HDV';
+            if (email) {
+                label += ` (${email})`;
+            }
+            return label;
+        }
+
+        async function loadAvailableGuides(selectId, currentId = '', currentName = '', currentEmail = '') {
+            const btnId = selectId === 'guide_id_form' ? 'refresh-guide-btn'
+                : (selectId === 'backup_guide_id_form' ? 'refresh-backup-guide-btn' : null);
+            setLoading(btnId, true, '<i class="fas fa-sync-alt"></i> Lấy HDV trống');
+            try {
+                const url = `${AVAILABLE_GUIDES_URL}?departure_date=${encodeURIComponent(DEPARTURE_DATE || '')}&tour_id=${encodeURIComponent(TOUR_ID || '')}`;
+                const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                const data = await response.json();
+                if (!data.success) {
+                    throw new Error(data.message || 'Không lấy được danh sách HDV');
+                }
+
+                const select = document.getElementById(selectId);
+                if (!select) return;
+
+                const options = data.data || [];
+                let html = '<option value="">-- Chọn hướng dẫn viên --</option>';
+
+                const hasCurrent = currentId && options.some(g => String(g.id) === String(currentId));
+                const currentLabel = buildGuideLabel(currentName, currentEmail);
+                if (currentId && currentLabel && !hasCurrent) {
+                    html += `<option value="${currentId}" selected>${currentLabel} (đang gán - có thể bận)</option>`;
+                }
+
+                options.forEach(guide => {
+                    const label = buildGuideLabel(guide.name, guide.email);
+                    html += `<option value="${guide.id}" ${String(guide.id) === String(currentId) ? 'selected' : ''}>${label}</option>`;
+                });
+
+                select.innerHTML = html;
+                select.disabled = options.length === 0 && !currentId;
+            } catch (error) {
+                console.error(error);
+                alert('Không tải được danh sách HDV trống. Vui lòng thử lại.');
+            } finally {
+                setLoading(btnId, false, '<i class="fas fa-sync-alt"></i> Lấy HDV trống');
+            }
+        }
+
+        async function loadAvailableVehicles(selectId, currentId = '', currentLabel = '') {
+            const btnId = 'refresh-vehicle-btn';
+            setLoading(btnId, true, '<i class="fas fa-sync-alt"></i> Lấy xe trống');
+            try {
+                const url = `${AVAILABLE_VEHICLES_URL}?departure_date=${encodeURIComponent(DEPARTURE_DATE || '')}&tour_id=${encodeURIComponent(TOUR_ID || '')}`;
+                const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                const data = await response.json();
+                if (!data.success) {
+                    throw new Error(data.message || 'Không lấy được danh sách xe');
+                }
+
+                const select = document.getElementById(selectId);
+                if (!select) return;
+
+                const options = data.data || [];
+                let html = '<option value="">-- Chọn xe --</option>';
+
+                const hasCurrent = currentId && options.some(v => String(v.id) === String(currentId));
+                if (currentId && currentLabel && !hasCurrent) {
+                    html += `<option value="${currentId}" selected>${currentLabel} (đang gán - có thể bận)</option>`;
+                }
+
+                options.forEach(vehicle => {
+                    const label = vehicle.label || vehicle.license_plate;
+                    html += `<option value="${vehicle.id}" ${String(vehicle.id) === String(currentId) ? 'selected' : ''}>${label}</option>`;
+                });
+
+                select.innerHTML = html;
+                select.disabled = options.length === 0 && !currentId;
+            } catch (error) {
+                console.error(error);
+                alert('Không tải được danh sách xe trống. Vui lòng thử lại.');
+            } finally {
+                setLoading(btnId, false, '<i class="fas fa-sync-alt"></i> Lấy xe trống');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            @if($canEditAll)
+                if (document.getElementById('guide_id_form')) {
+                    loadAvailableGuides(
+                        'guide_id_form',
+                        @json($departure->guide_id),
+                        @json(optional($departure->guide)->name),
+                        @json(optional($departure->guide)->email)
+                    );
+                }
+                if (document.getElementById('backup_guide_id_form')) {
+                    loadAvailableGuides(
+                        'backup_guide_id_form',
+                        @json($departure->backup_guide_id),
+                        @json(optional($departure->backupGuide)->name),
+                        @json(optional($departure->backupGuide)->email)
+                    );
+                }
+                if (document.getElementById('vehicle_id')) {
+                    loadAvailableVehicles(
+                        'vehicle_id',
+                        @json($departure->vehicle_id),
+                        @json(optional($departure->vehicle)->license_plate)
+                    );
+                }
             @endif
         });
     </script>
