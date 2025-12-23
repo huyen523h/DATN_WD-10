@@ -564,7 +564,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         // Cập nhật thông tin điều hành (Ghi chú, Trạng thái tour, File danh sách khách)
         Route::put('/departures/{id}/management', [\App\Http\Controllers\Admin\DepartureController::class, 'updateManagement'])
         ->name('departures.update_management');
-
         
         Route::get('/bookings/download-manifest-template', [AdminController::class, 'downloadManifestTemplate'])->name('bookings.download-manifest-template');
         Route::post('/bookings/{booking}/admin-upload-manifest', [AdminController::class, 'uploadManifest'])->name('bookings.upload-manifest');
