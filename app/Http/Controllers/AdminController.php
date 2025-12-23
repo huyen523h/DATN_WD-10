@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use App\Models\Tour;
 use App\Models\Booking;
 use App\Models\Banner;
@@ -1494,8 +1496,38 @@ class AdminController extends Controller
 
         $booking->update($updateData);
 
-        // 5. Gửi thông báo (Tùy chọn)
-        // Notification::send($booking->user, new BookingCancelled($booking));
+        // 5. Gửi thông báo / email cho khách
+        try {
+            if ($booking->user) {
+                $notificationService = new NotificationService();
+                $title = 'Đặt tour đã bị hủy';
+                $message = 'Đơn đặt tour "' . ($booking->tour->title ?? 'N/A') . '" của bạn đã bị hủy. Lý do: ' . $request->cancel_reason;
+
+                // Gửi notification (và email nếu cấu hình)
+                $notificationService->sendNotification(
+                    $booking->user,
+                    'booking_cancelled',
+                    $title,
+                    $message,
+                    $booking->id,
+                    'booking',
+                    true // gửi email nếu có
+                );
+
+                // Gửi email thẳng (fallback) nếu user có email
+                if ($booking->user->email) {
+                    Mail::raw($message, function($mail) use ($booking, $title) {
+                        $mail->to($booking->user->email)
+                            ->subject($title);
+                    });
+                }
+            }
+        } catch (\Exception $e) {
+            // Không chặn luồng chính nếu gửi thông báo lỗi
+            Log::warning('Không thể gửi thông báo hủy booking: ' . $e->getMessage(), [
+                'booking_id' => $booking->id
+            ]);
+        }
 
         return back()->with('success', 'Đã hủy đơn hàng và cập nhật thông tin hoàn tiền thành công!');
     }
