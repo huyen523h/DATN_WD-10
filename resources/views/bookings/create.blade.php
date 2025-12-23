@@ -118,25 +118,31 @@
                             <!-- Promotion Code -->
                             @if ($promotions->count() > 0)
                                 <div class="mb-4">
-                                    <label for="promotion_code" class="form-label">Mã giảm giá</label>
-                                    <div class="input-group">
-                                        <input type="text"
-                                            class="form-control @error('promotion_code') is-invalid @enderror"
-                                            id="promotion_code" name="promotion_code" value="{{ old('promotion_code') }}">
-                                        <button class="btn btn-outline-secondary" type="button" id="applyPromotion">
-                                            Áp dụng
-                                        </button>
-                                    </div>
-                                    @error('promotion_code')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                    <div class="form-text">
-                                        Mã khuyến mãi có sẵn:
-                                        @foreach ($promotions as $promotion)
-                                            <span class="badge bg-light text-dark">{{ $promotion->code }}</span>
-                                        @endforeach
-                                    </div>
-                                </div>
+    <label class="form-label fw-bold text-warning">Mã giảm giá</label>
+    <div class="input-group">
+        {{-- Sửa id="promotion_code" thành id="couponCode" --}}
+        <input type="text" class="form-control text-uppercase" id="couponCode" name="promotion_code" placeholder="Nhập mã (VD: VIP100K)">
+        
+        {{-- Sửa id="applyPromotion" thành id="btnApplyCoupon" --}}
+        <button class="btn btn-dark" type="button" id="btnApplyCoupon">Áp dụng</button>
+    </div>
+    <div id="couponMessage" class="small mt-1 fw-bold"></div>
+
+    {{-- Input ẩn bắt buộc --}}
+    <input type="hidden" name="promotion_id" id="appliedPromotionId">
+    <input type="hidden" name="discount_amount" id="appliedDiscountAmount" value="0">
+
+    @if ($promotions->count() > 0)
+        <div class="form-text mt-2">
+            Mã có sẵn:
+            @foreach ($promotions as $promotion)
+                <span class="badge bg-light text-dark border" style="cursor:pointer" onclick="document.getElementById('couponCode').value='{{ $promotion->code }}'">
+                    {{ $promotion->code }}
+                </span>
+            @endforeach
+        </div>
+    @endif
+</div>
                             @endif
 
                             <!-- Additional Services -->
@@ -225,12 +231,14 @@
 @section('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            let serverDiscountAmount = 0;
             const departureSelect = document.getElementById('departure_id');
             const adultsInput = document.getElementById('adults');
             const childrenInput = document.getElementById('children');
             const infantsInput = document.getElementById('infants');
             const bookingForm = document.getElementById('bookingForm');
-            const promotionInput = document.getElementById('promotion_code');
+            // const promotionInput = document.getElementById('promotion_code');
+            const promotionInput = document.getElementById('couponCode');
             const bookingSummary = document.getElementById('bookingSummary');
             const childrenError = document.getElementById('childrenError');
             const infantsError = document.getElementById('infantsError');
@@ -316,7 +324,8 @@
 
                 //Tính tổng
                 const subtotal = adultTotal + childTotal + infantTotal + additionalTotal;
-                const discount = promotionInput.value ? subtotal * 0.1 : 0;
+                // const discount = promotionInput.value ? subtotal * 0.1 : 0;
+                const discount = serverDiscountAmount;
                 const total = subtotal - discount;
 
                 //Render giao diện + cảnh báo nếu vi phạm quy tắc
@@ -402,15 +411,16 @@
                 ${additionalList}
 
                 ${discount > 0 ? `
-                    <div class="d-flex justify-content-between text-success">
-                        <span>Giảm giá (${promotionInput.value})</span>
+                   <div class="d-flex justify-content-between text-success fw-bold border-top mt-2 pt-2">
+                        <span><i class="fas fa-tag"></i> Voucher giảm:</span>
                         <span>-${formatVND(discount)}</span>
                     </div>` : ''}
 
                 <hr>
                 <div class="d-flex justify-content-between">
                     <strong>Tổng cộng:</strong>
-                    <strong class="text-primary">${formatVND(total)}</strong>
+                   
+                    <strong class="text-primary" id="finalTotalDisplay">${formatVND(total)}</strong>
                 </div>
 
                 <div class="mt-3">
@@ -472,6 +482,68 @@
                     }
                 });
             }
+
+            $('#btnApplyCoupon').click(function() {
+                var code = $('#couponCode').val().trim();
+                
+                // Lấy tổng tiền hiện tại từ giao diện (bỏ chữ đ và dấu chấm)
+                var currentTotalText = $('#finalTotalDisplay').text().replace(/[^\d]/g, '');
+                var currentTotal = parseFloat(currentTotalText) || 0;
+                
+                // Cộng ngược lại tiền đã giảm (nếu có) để ra giá gốc
+                currentTotal += serverDiscountAmount;
+                
+                if(code === '') {
+                    $('#couponMessage').html('<span class="text-danger">Vui lòng nhập mã!</span>');
+                    return;
+                }
+
+                var btn = $(this);
+                var originalText = btn.text();
+                btn.html('...').prop('disabled', true);
+                $('#couponMessage').html('');
+
+                $.ajax({
+                    url: "{{ route('check.coupon') }}",
+                    method: "POST",
+                    data: {
+                        _token: "{{ csrf_token() }}",
+                        code: code,
+                        total_amount: currentTotal
+                    },
+                    success: function(response) {
+                        btn.html(originalText).prop('disabled', false);
+
+                        if(response.success) {
+                            // 1. Thành công -> Cập nhật biến
+                            $('#couponMessage').html('<span class="text-success"><i class="fas fa-check"></i> ' + response.message + '</span>');
+                            serverDiscountAmount = response.discount_amount;
+                            
+                            // 2. Điền input ẩn
+                            $('#appliedPromotionId').val(response.promotion_id);
+                            $('#appliedDiscountAmount').val(response.discount_amount);
+                            
+                            // 3. Gọi hàm updateBookingSummary của bạn để tính lại tiền
+                            updateBookingSummary();
+                            
+                            // 4. Khóa ô nhập
+                            $('#couponCode').prop('readonly', true);
+                            btn.text('Đã dùng').prop('disabled', true).removeClass('btn-dark').addClass('btn-success');
+
+                        } else {
+                            // Thất bại
+                            $('#couponMessage').html('<span class="text-danger">' + response.message + '</span>');
+                            serverDiscountAmount = 0;
+                            updateBookingSummary(); // Tính lại về giá gốc
+                        }
+                    },
+                    error: function() {
+                        btn.html(originalText).prop('disabled', false);
+                        $('#couponMessage').html('<span class="text-danger">Lỗi kết nối!</span>');
+                    }
+                });
+            });
         });
+
     </script>
 @endsection

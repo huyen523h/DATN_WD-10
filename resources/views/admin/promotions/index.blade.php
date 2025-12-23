@@ -132,6 +132,7 @@
                             <table class="table table-hover mb-0">
                                 <thead class="bg-light">
                                     <tr>
+                                        <th></th>
                                         <th class="border-0 py-3 px-4 fw-semibold text-muted">Mã giảm giá</th>
                                         <th class="border-0 py-3 px-4 fw-semibold text-muted">Mô tả</th>
                                         <th class="border-0 py-3 px-4 fw-semibold text-muted">Giá trị</th>
@@ -173,29 +174,47 @@
                                                 @endif
                                             </div>
                                         </td>
-                                        <td class="py-4 px-4">
-                                            <div class="d-flex flex-column">
-                                                <small class="text-muted">
-                                                    <i class="fas fa-calendar-alt me-1"></i>
-                                                    Từ: {{ $promotion->start_date->format('d/m/Y') }}
-                                                </small>
-                                                <small class="text-muted">
-                                                    <i class="fas fa-calendar-times me-1"></i>
-                                                    Đến: {{ $promotion->end_date->format('d/m/Y') }}
-                                                </small>
-                                                @if($promotion->end_date->isPast())
-                                                    <span class="badge bg-danger bg-opacity-10 text-danger mt-1">
-                                                        <i class="fas fa-exclamation-triangle me-1"></i>
-                                                        Đã hết hạn
-                                                    </span>
-                                                @elseif($promotion->end_date->diffInDays(now()) <= 7)
-                                                    <span class="badge bg-warning bg-opacity-10 text-warning mt-1">
-                                                        <i class="fas fa-clock me-1"></i>
-                                                        Sắp hết hạn
-                                                    </span>
-                                                @endif
-                                            </div>
-                                        </td>
+                                      <td class="py-4 px-4">
+    <div class="d-flex flex-column">
+        <small class="text-muted">
+            <i class="fas fa-calendar-alt me-1"></i>
+            Từ: {{ $promotion->start_date->format('d/m/Y') }}
+        </small>
+        <small class="text-muted">
+            <i class="fas fa-calendar-times me-1"></i>
+            Đến: {{ $promotion->end_date->format('d/m/Y') }}
+        </small>
+
+        {{-- LOGIC HIỂN THỊ THÔNG MINH --}}
+        @php
+            $now = now();
+            // Tính số ngày còn lại (false để lấy giá trị dương/âm thực tế)
+            $daysLeft = $now->diffInDays($promotion->end_date, false);
+        @endphp
+
+        @if ($now < $promotion->start_date)
+            {{-- Trường hợp 1: Chưa đến ngày bắt đầu --}}
+            <span class="badge bg-info bg-opacity-10 text-info mt-1">
+                <i class="fas fa-hourglass-start me-1"></i> Chưa bắt đầu
+            </span>
+        @elseif ($now > $promotion->end_date)
+            {{-- Trường hợp 2: Đã quá ngày kết thúc --}}
+            <span class="badge bg-danger bg-opacity-10 text-danger mt-1">
+                <i class="fas fa-exclamation-triangle me-1"></i> Đã hết hạn
+            </span>
+        @elseif ($daysLeft >= 0 && $daysLeft <= 7)
+            {{-- Trường hợp 3: Đang chạy nhưng còn dưới 7 ngày --}}
+            <span class="badge bg-warning bg-opacity-10 text-warning mt-1">
+                <i class="fas fa-clock me-1"></i> Sắp hết hạn ({{ (int)$daysLeft }} ngày)
+            </span>
+        @else
+            {{-- Trường hợp 4: Đang diễn ra bình thường --}}
+            <span class="badge bg-success bg-opacity-10 text-success mt-1">
+                <i class="fas fa-check-circle me-1"></i> Đang diễn ra
+            </span>
+        @endif
+    </div>
+</td>
                                         <td class="py-4 px-4">
                                             <span class="badge 
                                                 @if($promotion->status === 'active') 
@@ -215,22 +234,41 @@
                                                    data-bs-toggle="tooltip">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
-                                                <button class="btn btn-outline-info btn-sm" 
-                                                        title="Xem chi tiết"
-                                                        data-bs-toggle="tooltip">
-                                                    <i class="fas fa-eye"></i>
-                                                </button>
-                                                <form action="{{ route('admin.promotions.destroy', $promotion) }}" 
-                                                      method="POST" class="d-inline">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button class="btn btn-outline-danger btn-sm" 
-                                                            onclick="return confirm('Bạn có chắc chắn muốn xóa mã giảm giá này?')" 
-                                                            title="Xóa"
-                                                            data-bs-toggle="tooltip">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </form>
+                                                <a href="{{ route('admin.promotions.show', $promotion) }}" 
+                                                   class="btn btn-outline-info btn-sm" 
+                                                    title="Xem chi tiết"
+                                                   data-bs-toggle="tooltip">
+                                                       <i class="fas fa-eye"></i></a>
+
+                                               {{-- LOGIC NÚT XÓA: Kiểm tra xem mã đã được dùng chưa --}}
+@if($promotion->used_count > 0)
+    {{-- TRƯỜNG HỢP 1: Đã có người dùng -> CẤM XÓA --}}
+    {{-- Hiển thị nút màu xám, bấm vào sẽ báo lỗi đẹp --}}
+    <button type="button" class="btn btn-outline-secondary btn-sm" 
+            onclick="Swal.fire({
+                icon: 'error',
+                title: 'Không thể xóa!',
+                text: 'Mã này đã có {{ $promotion->used_count }} lượt sử dụng. Để bảo vệ dữ liệu lịch sử, bạn chỉ có thể Tắt trạng thái (Khóa mã).',
+                confirmButtonText: 'Đã hiểu',
+                confirmButtonColor: '#3085d6'
+            })"
+            title="Đã sử dụng (Không thể xóa)"
+            data-bs-toggle="tooltip">
+        <i class="fas fa-trash-alt"></i>
+    </button>
+@else
+    {{-- TRƯỜNG HỢP 2: Chưa ai dùng -> CHO PHÉP XÓA --}}
+    <form action="{{ route('admin.promotions.destroy', $promotion) }}" method="POST" class="d-inline delete-form">
+        @csrf
+        @method('DELETE')
+        {{-- Nút này sẽ kích hoạt Javascript bên dưới --}}
+        <button type="button" class="btn btn-outline-danger btn-sm btn-delete-confirm" 
+                title="Xóa mã này"
+                data-bs-toggle="tooltip">
+            <i class="fas fa-trash"></i>
+        </button>
+    </form>
+@endif
                                             </div>
                                         </td>
                                     </tr>
@@ -342,7 +380,41 @@
             return new bootstrap.Tooltip(tooltipTriggerEl);
         });
     });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Kích hoạt Tooltip (để hiện chữ khi di chuột vào)
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+
+        // Xử lý sự kiện bấm nút Xóa (cho trường hợp được phép xóa)
+        const deleteButtons = document.querySelectorAll('.btn-delete-confirm');
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault(); // Chặn form gửi đi ngay lập tức
+                const form = this.closest('.delete-form'); // Tìm form bao quanh nút này
+
+                Swal.fire({
+                    title: 'Bạn chắc chắn muốn xóa?',
+                    text: "Hành động này không thể hoàn tác!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Vâng, xóa nó!',
+                    cancelButtonText: 'Hủy bỏ'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit(); // Nếu người dùng bấm "Vâng", lúc này mới gửi form đi
+                    }
+                });
+            });
+        });
+    });
 </script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 @endsection
+
 
 

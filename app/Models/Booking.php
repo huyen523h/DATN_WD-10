@@ -30,6 +30,13 @@ class Booking extends Model
         'expires_at',
         'cancel_reason',
         'receipt_image',
+        'refund_bank',
+        'refund_account',
+        'refund_holder',
+        'refund_proof_image',
+        'cancel_requested_at',
+        'promotion_id',    // Để liên kết với bảng Promotion
+        'discount_amount', // Để lưu số tiền đã giảm
     ];
 
     protected $casts = [

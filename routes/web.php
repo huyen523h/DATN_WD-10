@@ -23,6 +23,7 @@ use App\Http\Controllers\EmployeeAuthController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\GroupTourController;
 use App\Http\Controllers\Admin\GroupRequestController;
+use App\Http\Controllers\Admin\PromotionController;
 
 
 
@@ -314,9 +315,9 @@ Route::get('/logout', [AuthController::class, 'logout'])->name('logout.get')->mi
 // CUSTOMER ROUTES (Authenticated Users)
 // ============================================
 
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', function () {
-        return view('profile.index');
+    Route::middleware('auth')->group(function () {
+        Route::get('/profile', function () {
+            return view('profile.index');
     })->name('profile.index');
 
     // Route upload danh sách đoàn 
@@ -326,6 +327,10 @@ Route::middleware('auth')->group(function () {
     // Route tải file mẫu danh sách đoàn (cho khách hàng)
     Route::get('/bookings/download-manifest-template', [\App\Http\Controllers\AdminController::class, 'downloadManifestTemplate'])
         ->name('bookings.download-manifest-template');
+
+    // Route kiểm tra mã giảm giá (Ajax)
+  Route::post('/check-coupon', [App\Http\Controllers\BookingController::class, 'checkCoupon'])
+        ->name('check.coupon');
 
 
     // Lịch sử yêu cầu tour đoàn
@@ -351,6 +356,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
     Route::get('/bookings/{booking}', [BookingController::class, 'show'])->name('bookings.show');
     Route::delete('/bookings/{booking}', [BookingController::class, 'destroy'])->name('bookings.destroy');
+
+    // Route User tự hủy tour
+    Route::post('/bookings/{booking}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel');
 
     // Wishlist routes
     Route::get('/wishlists', [WishlistsController::class, 'index'])->name('wishlists.index');
@@ -638,13 +646,14 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::delete('/payments/{payment}', [AdminController::class, 'deletePayment'])->name('payments.destroy');
 
     // Promotions management
-    Route::get('/promotions', [AdminController::class, 'promotions'])->name('promotions');
-    Route::get('/promotions/create', [AdminController::class, 'createPromotion'])->name('promotions.create');
-    Route::post('/promotions', [AdminController::class, 'storePromotion'])->name('promotions.store');
-    Route::get('/promotions/{promotion}', [AdminController::class, 'showPromotion'])->name('promotions.show');
-    Route::get('/promotions/{promotion}/edit', [AdminController::class, 'editPromotion'])->name('promotions.edit');
-    Route::put('/promotions/{promotion}', [AdminController::class, 'updatePromotion'])->name('promotions.update');
-    Route::delete('/promotions/{promotion}', [AdminController::class, 'deletePromotion'])->name('promotions.destroy');
+    // Route::get('/promotions', [AdminController::class, 'promotions'])->name('promotions');
+    // Route::get('/promotions/create', [AdminController::class, 'createPromotion'])->name('promotions.create');
+    // Route::post('/promotions', [AdminController::class, 'storePromotion'])->name('promotions.store');
+    // Route::get('/promotions/{promotion}', [AdminController::class, 'showPromotion'])->name('promotions.show');
+    // Route::get('/promotions/{promotion}/edit', [AdminController::class, 'editPromotion'])->name('promotions.edit');
+    // Route::put('/promotions/{promotion}', [AdminController::class, 'updatePromotion'])->name('promotions.update');
+    // Route::delete('/promotions/{promotion}', [AdminController::class, 'deletePromotion'])->name('promotions.destroy');
+  Route::resource('promotions', PromotionController::class);
 
     // Check-in/Check-out management
     Route::get('/check-in-out', [CheckInOutController::class, 'index'])->name('check-in-out.index');

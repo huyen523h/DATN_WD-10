@@ -1453,65 +1453,51 @@ class AdminController extends Controller
 
         return back()->with('success', 'Đã cập nhật lại ảnh phiếu thu mới thành công!');
     }
-    /**
-     * Hủy đơn hàng & xử lý hoàn tiền (nếu có)
-     */
-    public function cancelBooking(Request $request, Booking $booking)
+
+    public function cancelBooking(Request $request, $bookingId)
     {
-        $rules = [
-            'cancel_reason' => 'required|string|max:1000',
-        ];
+        $booking = Booking::findOrFail($bookingId);
 
-        // Nếu đơn đã thanh toán (PAID), bắt buộc phải nhập số tiền hoàn và upload ảnh chứng từ
-        if ($booking->status === 'paid') {
-            $rules['refund_amount'] = 'required|numeric|min:0';
-            $rules['refund_proof_file'] = 'required|image|max:2048';
-        }
-
-        $request->validate($rules, [
-            'cancel_reason.required' => 'Vui lòng nhập lý do hủy tour.',
-            'refund_proof_file.required' => 'Bắt buộc phải upload ảnh bằng chứng chuyển khoản hoàn tiền.',
+        // 1. Validate dữ liệu
+        $request->validate([
+            'cancel_reason' => 'required|string',
+            'refund_proof_file' => 'nullable|image|max:2048', // Ảnh bằng chứng hoàn tiền
         ]);
 
-        try {
-            DB::transaction(function () use ($request, $booking) {
-                // A. Xử lý hoàn tiền (nếu đã thanh toán)
-                if ($booking->status === 'paid') {
-                    $path = null;
-                    if ($request->hasFile('refund_proof_file')) {
-                        $path = $request->file('refund_proof_file')->store('refunds', 'public');
-                    }
-
-                    Payment::create([
-                        'booking_id'       => $booking->id,
-                        'user_id'          => Auth::id(),
-                        'amount'           => -1 * abs($request->refund_amount),
-                        'payment_method'   => 'refund',
-                        'status'           => 'completed',
-                        'transaction_code' => 'REFUND_' . now()->format('YmdHis') . '_' . $booking->id,
-                        'note'             => 'Hoàn tiền hủy tour. Lý do: ' . $request->cancel_reason,
-                        'refund_proof'     => $path,
-                        'payment_date'     => now(),
-                    ]);
-                }
-
-                // B. Cập nhật trạng thái booking
-                $booking->update([
-                    'status' => 'cancelled',
-                    'cancel_reason' => $request->cancel_reason,
-                ]);
-
-                // C. Trả lại chỗ cho departure (nếu có)
-                if ($booking->departure) {
-                    $seatsToRestore = $booking->adults + $booking->children;
-                    $booking->departure->increment('seats_available', $seatsToRestore);
-                }
-            });
-
-            return back()->with('success', 'Đã hủy đơn hàng và cập nhật sổ sách thành công!');
-        } catch (\Exception $e) {
-            return back()->with('error', 'Có lỗi xảy ra: ' . $e->getMessage());
+        // 2. Xử lý upload ảnh bằng chứng (Nếu có)
+        $refundProofPath = null;
+        if ($request->hasFile('refund_proof_file')) {
+            $refundProofPath = $request->file('refund_proof_file')->store('refund_proofs', 'public');
         }
+
+        // 3. Logic Hoàn chỗ (Restock Seats) - QUAN TRỌNG
+        // Chỉ hoàn chỗ nếu chưa hoàn (tránh cộng dồn nếu khách đã hủy trước đó)
+        if ($booking->status !== 'cancelled' && $booking->departure) {
+            $seatsToRestore = $booking->adults + $booking->children;
+            $booking->departure->increment('seats_available', $seatsToRestore);
+        }
+
+        // 4. Cập nhật dữ liệu
+        $updateData = [
+            'status' => 'cancelled',
+            // Nếu admin nhập lý do mới thì ghi đè, không thì giữ nguyên lý do khách nhập
+            'cancel_reason' => $request->cancel_reason, 
+            'refund_proof_image' => $refundProofPath, // Lưu ảnh
+        ];
+
+        // Nếu Admin nhập thông tin ngân hàng hộ khách (trường hợp Admin tự hủy)
+        if ($request->filled('refund_bank')) {
+            $updateData['refund_bank'] = $request->refund_bank;
+            $updateData['refund_account'] = $request->refund_account;
+            $updateData['refund_holder'] = $request->refund_holder;
+        }
+
+        $booking->update($updateData);
+
+        // 5. Gửi thông báo (Tùy chọn)
+        // Notification::send($booking->user, new BookingCancelled($booking));
+
+        return back()->with('success', 'Đã hủy đơn hàng và cập nhật thông tin hoàn tiền thành công!');
     }
 
  // hàm upload file tour theo đoàn 4/12/2025
