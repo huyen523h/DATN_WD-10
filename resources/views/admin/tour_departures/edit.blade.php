@@ -59,18 +59,8 @@
                         value="{{ old('seats_total', $departure->seats_total) }}" min="1" required>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label">Còn lại</label>
-                    <input type="number" name="seats_available" class="form-control"
-                        value="{{ old('seats_available', $departure->seats_available) }}" min="0" required>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Trạng thái</label>
-                    <select name="status" class="form-select" required>
-                        <option value="available" {{ $departure->status == 'available' ? 'selected' : '' }}>Còn chỗ
-                        </option>
-                        <option value="contact" {{ $departure->status == 'contact' ? 'selected' : '' }}>Liên hệ</option>
-                        <option value="sold_out" {{ $departure->status == 'sold_out' ? 'selected' : '' }}>Hết chỗ</option>
-                    </select>
+                    <label class="form-label">Còn lại (tự động)</label>
+                    <input type="number" class="form-control" value="{{ $departure->seats_available }}" disabled>
                 </div>
             </div>
 

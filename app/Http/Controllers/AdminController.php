@@ -21,6 +21,7 @@ use App\Http\Requests\BannerRequest;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Payment;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 class AdminController extends Controller
 {
@@ -314,8 +315,10 @@ class AdminController extends Controller
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
+            'short_description' => 'nullable|string|max:500',
             'description' => 'required|string',
             'category_id' => 'required|exists:categories,id',
+            'cover_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'duration' => 'nullable|string|max:50',
             'duration_days' => 'nullable|integer|min:1|max:60',
             'nights' => 'nullable|integer|min:0|max:59',
@@ -335,7 +338,7 @@ class AdminController extends Controller
             'availability_status' => 'nullable|in:available,contact,sold_out',
 
             'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'schedule_day_number.*' => 'nullable|integer|min:1|max:60',
+            'schedule_day.*' => 'nullable|integer|min:1|max:60',
             'schedule_title.*' => 'nullable|string|max:255',
             'schedule_description.*' => 'nullable|string',
             'departure_date.*' => 'nullable|date|after:today',
@@ -349,6 +352,7 @@ class AdminController extends Controller
 
         $tour = \App\Models\Tour::create([
             'title' => $validated['title'],
+            'short_description' => $validated['short_description'] ?? null,
             'description' => $validated['description'],
             'category_id' => $validated['category_id'],
             'duration' => $validated['duration'] ?? null,
@@ -369,24 +373,37 @@ class AdminController extends Controller
             'availability_status' => $validated['availability_status'] ?? 'available',
         ]);
 
+        // Xử lý ảnh đại diện (cover_image)
+        if ($request->hasFile('cover_image')) {
+            $coverPath = $request->file('cover_image')->store('tours', 'public');
+            \App\Models\TourImage::create([
+                'tour_id' => $tour->id,
+                'image_url' => \Illuminate\Support\Facades\Storage::url($coverPath),
+                'is_cover' => true,
+                'sort_order' => 0,
+            ]);
+        }
+
+        // Xử lý thư viện ảnh (images[])
         if ($request->hasFile('images')) {
+            $startOrder = $request->hasFile('cover_image') ? 1 : 0;
             foreach ($request->file('images') as $i => $image) {
                 $path = $image->store('tours', 'public');
                 \App\Models\TourImage::create([
                     'tour_id' => $tour->id,
                     'image_url' => \Illuminate\Support\Facades\Storage::url($path),
-                    'is_cover' => $i === 0,
-                    'sort_order' => $i + 1,
+                    'is_cover' => !$request->hasFile('cover_image') && $i === 0,
+                    'sort_order' => $startOrder + $i + 1,
                 ]);
             }
         }
 
-        if ($request->has('schedule_day_number')) {
-            foreach ($request->schedule_day_number as $i => $dayNum) {
+        if ($request->has('schedule_day') && is_array($request->schedule_day)) {
+            foreach ($request->schedule_day as $i => $dayNum) {
                 if (!empty($request->schedule_title[$i])) {
                     \App\Models\TourSchedule::create([
                         'tour_id' => $tour->id,
-                        'day_number' => $dayNum,
+                        'day_number' => $dayNum ?? ($i + 1),
                         'title' => $request->schedule_title[$i],
                         'description' => $request->schedule_description[$i] ?? '',
                     ]);
@@ -677,6 +694,153 @@ class AdminController extends Controller
         return view('admin.departures.customers', compact('departure', 'bookings'));
     }
 
+    /**
+     * Export danh sách khách của một departure dưới dạng CSV.
+     */
+    public function exportDepartureCustomers($departureId)
+    {
+        $departure = \App\Models\TourDeparture::with('tour')->findOrFail($departureId);
+        $bookings = \App\Models\Booking::where('departure_id', $departureId)
+            ->with('user')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $filename = 'departure_' . $departureId . '_customers.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename={$filename}",
+        ];
+
+        $callback = function () use ($bookings) {
+            $output = fopen('php://output', 'w');
+            // Header
+            fputcsv($output, ['Booking ID', 'Tên', 'Email', 'Điện thoại', 'Người lớn', 'Trẻ em', 'Em bé', 'Trạng thái', 'Ngày đặt']);
+            foreach ($bookings as $booking) {
+                fputcsv($output, [
+                    $booking->id,
+                    $booking->user->name ?? 'Khách lẻ',
+                    $booking->user->email ?? '',
+                    $booking->user->phone ?? '',
+                    $booking->adults,
+                    $booking->children,
+                    $booking->infants,
+                    $booking->status,
+                    $booking->created_at ? $booking->created_at->format('Y-m-d H:i') : '',
+                ]);
+            }
+            fclose($output);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Import khách từ CSV (name, phone, email, adults, children, infants) cho departure.
+     */
+    public function importDepartureCustomers(Request $request, $departureId)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:csv,txt|max:5120',
+        ]);
+
+        $departure = \App\Models\TourDeparture::with('tour')->findOrFail($departureId);
+
+        $path = $request->file('file')->getRealPath();
+
+        $handle = fopen($path, 'r');
+        if (!$handle) {
+            return back()->with('error', 'Không thể đọc file CSV.');
+        }
+
+        // Bỏ header
+        fgetcsv($handle);
+
+        $success = 0;
+        $fail = 0;
+        $errors = [];
+
+        \DB::beginTransaction();
+        try {
+            while (($row = fgetcsv($handle)) !== false) {
+                // Kỳ vọng: name, phone, email, adults, children, infants
+                [$name, $phone, $email, $adults, $children, $infants] = array_pad($row, 6, null);
+
+                $adults = (int) ($adults ?: 0);
+                $children = (int) ($children ?: 0);
+                $infants = (int) ($infants ?: 0);
+
+                // Ít nhất phải có 1 khách
+                if (($adults + $children + $infants) <= 0) {
+                    $fail++;
+                    $errors[] = "Dòng không hợp lệ (số khách = 0): " . implode(',', $row);
+                    continue;
+                }
+
+                // Tìm hoặc tạo user theo email, nếu không có email thì tạo guest
+                $user = null;
+                if ($email) {
+                    $user = \App\Models\User::where('email', $email)->first();
+                    if (!$user) {
+                        $user = \App\Models\User::create([
+                            'name' => $name ?: 'Khách lẻ',
+                            'email' => $email,
+                            'password' => bcrypt(Str::random(12)),
+                            'phone' => $phone,
+                            'role' => 'customer',
+                        ]);
+                    }
+                } else {
+                    // Guest user không email
+                    $user = \App\Models\User::create([
+                        'name' => $name ?: 'Khách lẻ',
+                        'email' => null,
+                        'password' => bcrypt(Str::random(12)),
+                        'phone' => $phone,
+                        'role' => 'customer',
+                    ]);
+                }
+
+                // Tạo booking tối giản
+                $booking = \App\Models\Booking::create([
+                    'user_id' => $user->id,
+                    'tour_id' => $departure->tour_id,
+                    'departure_id' => $departureId,
+                    'adults' => $adults,
+                    'children' => $children,
+                    'infants' => $infants,
+                    'status' => 'pending',
+                    'total_amount' => 0,
+                    'additional_services_total' => 0,
+                ]);
+
+                if ($booking) {
+                    $success++;
+                } else {
+                    $fail++;
+                    $errors[] = "Tạo booking thất bại: " . implode(',', $row);
+                }
+            }
+
+            fclose($handle);
+            \DB::commit();
+        } catch (\Throwable $e) {
+            fclose($handle);
+            \DB::rollBack();
+            return back()->with('error', 'Import lỗi: ' . $e->getMessage());
+        }
+
+        $message = "Import thành công {$success} dòng";
+        if ($fail > 0) {
+            $message .= ". Thất bại {$fail} dòng.";
+        }
+        if (!empty($errors)) {
+            $message .= ' Chi tiết: ' . implode(' | ', array_slice($errors, 0, 5));
+        }
+
+        return back()->with('success', $message);
+    }
+
     public function bookings(Request $request)
     {
         // Lấy tất cả bookings với relationships
@@ -793,19 +957,33 @@ class AdminController extends Controller
                 }
             }
             
+            $totalBookings = $sortedBookings->count();
+            $totalAmount = $sortedBookings->sum('total_amount');
+            $totalGuests = $sortedBookings->sum(function ($booking) {
+                return $booking->adults + $booking->children + $booking->infants;
+            });
+
+            // Trạng thái đoàn
+            $groupStatus = 'open';
+            if ($departure && $departure->group_confirmed) {
+                $groupStatus = 'locked';
+            }
+            if ($departure && $departure->status === 'finished') {
+                $groupStatus = 'finished';
+            }
+
             return [
                 'date' => $datePart === 'no-date' ? null : \Carbon\Carbon::parse($datePart),
                 'tour' => $tour,
                 'tour_id' => $tour ? $tour->id : null,
+                'departure_id' => $departure?->id,
                 'bookings' => $sortedBookings,
-                'total_guests' => $sortedBookings->sum(function ($booking) {
-                    return $booking->adults + $booking->children + $booking->infants;
-                }),
+                'total_guests' => $totalGuests,
                 'total_adults' => $sortedBookings->sum('adults'),
                 'total_children' => $sortedBookings->sum('children'),
                 'total_infants' => $sortedBookings->sum('infants'),
-                'total_amount' => $sortedBookings->sum('total_amount'),
-                'count' => $sortedBookings->count(),
+                'total_amount' => $totalAmount,
+                'count' => $totalBookings,
                 'departure' => $departure,
                 'group_confirmed' => $departure ? $departure->group_confirmed : false,
                 'confirmed_guests_count' => $departure ? $departure->confirmed_guests_count : null,
@@ -817,6 +995,8 @@ class AdminController extends Controller
                 'can_confirm_group' => $canConfirmGroup,
                 'unconfirmed_bookings' => $unconfirmedBookings,
                 'unpaid_bookings' => $unpaidBookings,
+                'total_bookings' => $totalBookings,
+                'group_status' => $groupStatus,
             ];
         });
 
@@ -836,7 +1016,184 @@ class AdminController extends Controller
             $tour = Tour::find($request->tour_id);
         }
 
-        return view('admin.bookings.index', compact('groupedBookings', 'bookings', 'guides', 'vehicles', 'tour'));
+        // Build payload cho frontend: chỉ group theo departure_id đang hiển thị, không lọc thêm
+        $visibleDepartureIds = $groupedBookings
+            ->pluck('departure_id')
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
+
+        $departureBookingPayload = Booking::with(['user', 'tour'])
+            ->whereIn('departure_id', $visibleDepartureIds)
+            ->get()
+            ->groupBy('departure_id')
+            ->mapWithKeys(function ($bookings, $departureId) {
+                $rows = $bookings->map(function ($booking) {
+                    return [
+                        'id' => $booking->id,
+                        'code' => str_pad($booking->id, 6, '0', STR_PAD_LEFT),
+                        'customer_name' => $booking->user->name,
+                        'customer_email' => $booking->user->email,
+                        'tour_title' => $booking->tour->title,
+                        'adults' => $booking->adults,
+                        'children' => $booking->children,
+                        'infants' => $booking->infants,
+                        'total_amount' => $booking->total_amount,
+                        'status' => $booking->status,
+                        'created_at' => optional($booking->created_at)->format('d/m/Y'),
+                        'profile_initial' => strtoupper(substr($booking->user->name ?? '', 0, 2)),
+                        'url' => route('admin.bookings.show', $booking->id),
+                    ];
+                })->values();
+
+                return [(int) $departureId => $rows];
+            });
+
+        return view('admin.bookings.index', compact(
+            'groupedBookings',
+            'bookings',
+            'guides',
+            'vehicles',
+            'tour',
+            'departureBookingPayload'
+        ));
+    }
+
+    /**
+     * Form tạo booking thủ công (Admin).
+     */
+    public function createManualBooking()
+    {
+        $tours = Tour::with('departures')->orderBy('title')->get();
+        $staffs = User::whereHas('roles', fn($q) => $q->where('name', 'staff'))
+            ->orderBy('name')
+            ->get();
+
+        $toursForJs = $tours->map(function ($tour) {
+            return [
+                'id' => $tour->id,
+                'departures' => $tour->departures->map(function ($d) {
+                    return [
+                        'id' => $d->id,
+                        'date' => $d->departure_date ? $d->departure_date->format('d/m/Y') : null,
+                        'seats_available' => $d->seats_available,
+                        'seats_total' => $d->seats_total,
+                        'status' => $d->status,
+                    ];
+                })->values()->toArray(),
+            ];
+        })->values()->toArray();
+
+        return view('admin.bookings.create-manual', compact('tours', 'staffs', 'toursForJs'));
+    }
+
+    /**
+     * Lưu booking thủ công (Admin).
+     */
+    public function storeManualBooking(Request $request)
+    {
+        $validated = $request->validate([
+            'tour_id' => 'required|exists:tours,id',
+            'departure_id' => 'required|exists:tour_departures,id',
+            'customer_name' => 'required|string|max:200',
+            'customer_phone' => 'required|string|max:50',
+            'customer_email' => 'nullable|email|max:200',
+            'note' => 'nullable|string|max:1000',
+            'adults' => 'required|integer|min:1',
+            'children' => 'nullable|integer|min:0',
+            'infants' => 'nullable|integer|min:0',
+            'staff_id' => 'nullable|exists:users,id',
+            'source' => 'required|in:website,zalo,facebook,phone',
+            'payment_status' => 'required|in:unpaid,deposit,paid',
+            'paid_amount' => 'nullable|numeric|min:0',
+            'payment_method' => 'nullable|string|max:100',
+        ]);
+
+        $adults = (int) $validated['adults'];
+        $children = (int) ($validated['children'] ?? 0);
+        $infants = (int) ($validated['infants'] ?? 0);
+
+        $tour = Tour::findOrFail($validated['tour_id']);
+        $departure = TourDeparture::findOrFail($validated['departure_id']);
+
+        // Kiểm tra departure thuộc tour
+        if ($departure->tour_id !== $tour->id) {
+            return back()->withInput()->withErrors(['departure_id' => 'Lịch khởi hành không thuộc tour đã chọn.']);
+        }
+
+        // Kiểm tra ngày khởi hành còn hiệu lực
+        if ($departure->departure_date && $departure->departure_date->isPast()) {
+            return back()->withInput()->withErrors(['departure_id' => 'Lịch khởi hành đã qua, vui lòng chọn lịch khác.']);
+        }
+
+        // Check chỗ trống (em bé không trừ chỗ)
+        $seatPassengers = $adults + $children;
+        if ($seatPassengers <= 0) {
+            return back()->withInput()->withErrors(['adults' => 'Tổng số khách phải lớn hơn 0.']);
+        }
+        if ($departure->seats_available < $seatPassengers) {
+            return back()->withInput()->withErrors(['departure_id' => 'Không đủ chỗ trống cho số khách.']);
+        }
+
+        // Tính tiền
+        $adultPrice = $departure->price ?? 0;
+        $childPrice = $departure->child_price ?? 0;
+        $infantPrice = $departure->infant_price ?? 0;
+
+        $totalAmount = ($adultPrice * $adults) + ($childPrice * $children) + ($infantPrice * $infants);
+
+        // Tạo / lấy user
+        $user = null;
+        if (!empty($validated['customer_email'])) {
+            $user = User::where('email', $validated['customer_email'])->first();
+        }
+        if (!$user) {
+            $user = User::create([
+                'name' => $validated['customer_name'],
+                'email' => $validated['customer_email'],
+                'phone' => $validated['customer_phone'],
+                'password' => bcrypt(Str::random(12)),
+                'role' => 'customer',
+            ]);
+        } else {
+            // Cập nhật phone nếu trống
+            if (empty($user->phone) && $validated['customer_phone']) {
+                $user->update(['phone' => $validated['customer_phone']]);
+            }
+        }
+
+        // Map trạng thái
+        $status = 'pending';
+        if ($validated['payment_status'] === 'paid') {
+            $status = 'paid';
+        } elseif ($validated['payment_status'] === 'deposit') {
+            $status = 'deposit';
+        }
+
+        \DB::transaction(function () use ($departure, $seatPassengers, $validated, $adults, $children, $infants, $totalAmount, $user, $status) {
+            // Tạo booking
+            Booking::create([
+                'user_id' => $user->id,
+                'tour_id' => $validated['tour_id'],
+                'departure_id' => $validated['departure_id'],
+                'adults' => $adults,
+                'children' => $children,
+                'infants' => $infants,
+                'total_amount' => $totalAmount,
+                'paid_amount' => $validated['paid_amount'] ?? 0,
+                'payment_method' => $validated['payment_method'] ?? null,
+                'status' => $status,
+                'note' => $validated['note'] ?? null,
+                'staff_id' => $validated['staff_id'] ?? null,
+                'source' => $validated['source'],
+            ]);
+
+            // Trừ chỗ
+            $departure->decrement('seats_available', $seatPassengers);
+        });
+
+        return redirect()->route('admin.bookings')->with('success', 'Đã tạo booking thủ công thành công.');
     }
 
     public function showBooking(Booking $booking): View

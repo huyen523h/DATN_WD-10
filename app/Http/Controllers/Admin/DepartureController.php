@@ -75,7 +75,7 @@ class DepartureController extends Controller
                 $q->whereNull('departure_id')
                   ->orWhere('departure_id', $id);
             })->with('guide')->orderBy('day_number');
-        }, 'guide', 'backupGuide', 'vehicle'])->findOrFail($id);
+        }, 'guide', 'backupGuide', 'vehicle', 'guideProfile'])->findOrFail($id);
         
         // Đồng bộ lại số chỗ trống dựa trên bookings thực tế
         // Chỉ tính người lớn + trẻ em, loại trừ booking đã hủy/expired
@@ -89,6 +89,9 @@ class DepartureController extends Controller
             $departure->seats_available = $calculatedAvailable;
             $departure->save();
         }
+
+        // Số khách đã đặt (người lớn + trẻ em)
+        $bookedGuests = $bookedSeats;
         
         // Lấy danh sách guides và vehicles để hiển thị trong form
         $guides = User::whereHas('roles', function($q) {
@@ -101,7 +104,26 @@ class DepartureController extends Controller
         
         $vehicles = Vehicle::all();
         
-        return view('admin.tour_departures.show', compact('departure', 'guides', 'vehicles'));
+        // Danh sách khách theo departure
+        $bookings = Booking::where('departure_id', $departure->id)
+            ->with(['user'])
+            ->orderByDesc('created_at')
+            ->get();
+
+        $adultCount = (int) $bookings->sum('adults');
+        $childCount = (int) $bookings->sum('children');
+        $infantCount = (int) $bookings->sum('infants');
+
+        return view('admin.tour_departures.show', compact(
+            'departure',
+            'guides',
+            'vehicles',
+            'bookedGuests',
+            'bookings',
+            'adultCount',
+            'childCount',
+            'infantCount'
+        ));
     }
 
     // Lưu khởi hành mới
@@ -111,14 +133,25 @@ class DepartureController extends Controller
             'tour_id' => 'required|exists:tours,id',
             'departure_date' => 'required|date',
             'seats_total' => 'required|integer|min:1',
-            'seats_available' => 'required|integer|min:0',
-            'status' => 'required|string',
             'price' => 'required|numeric|min:0',
             'child_price' => 'nullable|numeric|min:0',
             'infant_price' => 'nullable|numeric|min:0',
         ]);
 
-        $departure = TourDeparture::create($request->all());
+        $data = $request->only([
+            'tour_id',
+            'departure_date',
+            'seats_total',
+            'price',
+            'child_price',
+            'infant_price',
+        ]);
+        // Mặc định còn trống = tổng ghế khi mới tạo
+        $data['seats_available'] = $data['seats_total'];
+        // Trạng thái gốc trong DB: available (tự động hiển thị theo logic)
+        $data['status'] = 'available';
+
+        $departure = TourDeparture::create($data);
 
         // Redirect về tour manage hub
         return redirect()->route('admin.tours.manage', $request->tour_id)
@@ -141,8 +174,6 @@ class DepartureController extends Controller
             'tour_id' => 'required|exists:tours,id',
             'departure_date' => 'required|date',
             'seats_total' => 'required|integer|min:1',
-            'seats_available' => 'required|integer|min:0',
-            'status' => 'required|string',
             'price' => 'required|numeric|min:0',
             'child_price' => 'nullable|numeric|min:0',
             'infant_price' => 'nullable|numeric|min:0',
@@ -161,7 +192,16 @@ class DepartureController extends Controller
         $oldPrice = $departure->price;
         // Nếu thay đổi ngày hoặc giá → gửi thông báo cho khách có booking pending
 
-        $departure->update($request->all());
+        $data = $request->only([
+            'tour_id',
+            'departure_date',
+            'seats_total',
+            'price',
+            'child_price',
+            'infant_price',
+        ]);
+
+        $departure->update($data);
         if ($oldDate != $departure->departure_date || $oldPrice != $departure->price) {
             $pendingBookings = Booking::where('departure_id', $departure->id)
                 ->where('status', 'pending')
