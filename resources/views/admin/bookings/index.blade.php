@@ -194,10 +194,41 @@
                     $totalChildren = $group['total_children'] ?? collect($group['bookings'] ?? [])->sum('children');
                     $totalInfants = $group['total_infants'] ?? collect($group['bookings'] ?? [])->sum('infants');
                     $totalRevenue = $group['total_amount'] ?? collect($group['bookings'] ?? [])->where('status', '!=', 'cancelled')->sum('total_amount');
+                    
+                    // TRẠNG THÁI ĐOÀN (Header) - Độc lập với trạng thái booking
                     $isConfirmed = $group['group_confirmed'] ?? false;
-                    $isFinished = ($group['date'] && $group['date']->isPast()) ? true : false;
-                    $badgeLabel = $isFinished ? 'Đã kết thúc' : ($isConfirmed ? 'Đã chốt' : 'Chưa chốt');
-                    $badgeClass = $isFinished ? 'bg-dark' : ($isConfirmed ? 'bg-success' : 'bg-secondary');
+                    $departureDate = $group['date'] ?? null;
+                    $today = \Carbon\Carbon::today();
+                    
+                    // Logic trạng thái đoàn:
+                    // 1. Đã kết thúc: Ngày khởi hành + số ngày tour đã qua
+                    // 2. Đã khởi hành: Ngày khởi hành đã qua nhưng chưa kết thúc
+                    // 3. Đã chốt: Đã chốt đoàn nhưng chưa khởi hành
+                    // 4. Chưa chốt: Mặc định
+                    $tourDuration = $group['tour']->duration ?? 1; // Số ngày tour
+                    $endDate = $departureDate ? $departureDate->copy()->addDays($tourDuration) : null;
+                    
+                    if ($endDate && $today->gt($endDate)) {
+                        $groupStatus = 'finished';
+                        $badgeLabel = 'Đã kết thúc';
+                        $badgeClass = 'bg-dark';
+                        $badgeIcon = 'fa-flag-checkered';
+                    } elseif ($departureDate && $today->gte($departureDate) && $endDate && $today->lte($endDate)) {
+                        $groupStatus = 'departed';
+                        $badgeLabel = 'Đã khởi hành';
+                        $badgeClass = 'bg-primary';
+                        $badgeIcon = 'fa-plane-departure';
+                    } elseif ($isConfirmed) {
+                        $groupStatus = 'confirmed';
+                        $badgeLabel = 'Đã chốt';
+                        $badgeClass = 'bg-success';
+                        $badgeIcon = 'fa-check-double';
+                    } else {
+                        $groupStatus = 'pending';
+                        $badgeLabel = 'Chưa chốt';
+                        $badgeClass = 'bg-secondary';
+                        $badgeIcon = 'fa-hourglass-half';
+                    }
                 @endphp
                 <div class="card border-0 shadow-sm mb-4 departure-card">
                     <!-- Group Header -->
@@ -228,7 +259,11 @@
                                     <small class="d-block text-white-50">Doanh thu (không hủy)</small>
                                     <span class="fw-bold">{{ number_format($totalRevenue, 0, ',', '.') }}đ</span>
                                 </div>
-                                <span class="badge {{ $badgeClass }} rounded-pill px-3 py-2">{{ $badgeLabel }}</span>
+                                <span class="badge {{ $badgeClass }} rounded-pill px-3 py-2">
+                                    <i class="fas {{ $badgeIcon }} me-1"></i>{{ $badgeLabel }}
+                                </span>
+                                
+                                <!-- Nút Xem booking -->
                                 <button class="btn btn-sm btn-light text-primary fw-semibold d-flex align-items-center gap-2"
                                         type="button"
                                         data-bs-toggle="collapse"
@@ -240,54 +275,86 @@
                                         data-departure-id="{{ $group['departure_id'] ?? $departureKey }}">
                                     <i class="fas fa-list"></i> Xem booking
                                 </button>
+                                
+                                <!-- DROPDOWN ĐIỀU HÀNH - Đặt trong HEADER -->
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-light text-dark fw-semibold dropdown-toggle" type="button" 
+                                            data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fas fa-cogs me-1"></i> Điều hành
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow">
+                                        <li class="dropdown-header text-muted">
+                                            <small>Quản lý đoàn {{ $group['date'] ? $group['date']->format('d/m/Y') : '' }}</small>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item" href="javascript:void(0)" 
+                                               onclick="openAssignGuideModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}', {{ $group['tour_id'] ?? 'null' }}, {{ $group['departure_id'] ?? 'null' }})">
+                                                <i class="fas fa-user-tie me-2 text-info"></i> 
+                                                {{ $group['guide'] ? 'Đổi HDV' : 'Gán HDV' }}
+                                                @if($group['guide'])
+                                                    <small class="text-muted ms-2">({{ $group['guide']->name }})</small>
+                                                @endif
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" href="javascript:void(0)" 
+                                               onclick="openAssignVehicleModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}', {{ $group['tour_id'] ?? 'null' }}, {{ $group['departure_id'] ?? 'null' }})">
+                                                <i class="fas fa-bus me-2 text-warning"></i> 
+                                                {{ $group['vehicle_type'] ? 'Đổi xe' : 'Gán xe' }}
+                                                @if($group['vehicle_type'])
+                                                    <small class="text-muted ms-2">({{ $group['vehicle_type'] }} chỗ)</small>
+                                                @endif
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item" href="javascript:void(0)" 
+                                               onclick="openOperationNoteModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}', {{ $group['departure_id'] ?? 'null' }})">
+                                                <i class="fas fa-sticky-note me-2 text-secondary"></i> Ghi chú điều hành
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" href="javascript:void(0)" 
+                                               onclick="openSendPreTourInfoModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}')">
+                                                <i class="fas fa-paper-plane me-2 text-primary"></i> Gửi thông tin tour
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Group Summary (operations layer) -->
+                    <!-- Group Summary - Chỉ hiển thị thông tin tổng hợp -->
                     <div class="card-body bg-light py-3">
                         <div class="row align-items-center">
+                            <!-- Thống kê khách -->
                             <div class="col-md-2 text-center">
                                 <small class="text-muted d-block">Người lớn</small>
-                                <strong>{{ $totalAdults }}</strong>
+                                <strong class="text-primary">{{ $totalAdults }}</strong>
                             </div>
                             <div class="col-md-2 text-center">
                                 <small class="text-muted d-block">Trẻ em</small>
-                                <strong>{{ $totalChildren }}</strong>
+                                <strong class="text-info">{{ $totalChildren }}</strong>
                             </div>
                             <div class="col-md-2 text-center">
                                 <small class="text-muted d-block">Em bé</small>
-                                <strong>{{ $totalInfants }}</strong>
+                                <strong class="text-secondary">{{ $totalInfants }}</strong>
                             </div>
+                            
+                            <!-- Thông tin điều hành đã gán + Nút chốt đoàn -->
                             <div class="col-md-6">
-                                <div class="d-flex gap-2 flex-wrap">
-                                    <span class="badge bg-success">
-                                        <i class="fas fa-check-circle me-1"></i>
-                                        {{ $isConfirmed ? 'Đã chốt' : 'Chưa chốt' }}: {{ $isConfirmed ? ($group['confirmed_guests_count'] ?? $totalGuests) : $totalGuests }} khách
-                                    </span>
-                                    <button class="btn btn-sm btn-outline-success"
-                                        @if(!($group['can_confirm_group'] ?? true)) 
-                                            disabled 
-                                            title="Không thể chốt đoàn! Có {{ count($group['unconfirmed_bookings'] ?? []) }} booking chưa xác nhận và {{ count($group['unpaid_bookings'] ?? []) }} booking chưa thanh toán."
-                                        @endif
-                                        onclick="openConfirmGroupModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}', {{ $isConfirmed ? ($group['confirmed_guests_count'] ?? $totalGuests) : $totalGuests }})">
-                                        <i class="fas fa-sync-alt me-1"></i> Cập nhật chốt đoàn
-                                    </button>
-                                    @if(!($group['can_confirm_group'] ?? true))
-                                        <small class="text-danger d-block mt-1">
-                                            <i class="fas fa-exclamation-triangle"></i> 
-                                            Chưa thể chốt: {{ count($group['unconfirmed_bookings'] ?? []) }} booking chưa xác nhận, {{ count($group['unpaid_bookings'] ?? []) }} booking chưa thanh toán
-                                        </small>
-                                    @endif
-                                    
+                                <div class="d-flex gap-2 flex-wrap align-items-center">
+                                    <!-- Badges thông tin đã gán -->
                                     @if($group['guide'])
                                         <span class="badge bg-info">
                                             <i class="fas fa-user-tie me-1"></i>HDV: {{ $group['guide']->name }}
                                         </span>
                                     @else
-                                        <button class="btn btn-sm btn-info" onclick="openAssignGuideModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}', {{ $group['tour_id'] ?? 'null' }})">
-                                            <i class="fas fa-user-tie me-1"></i> Gán HDV
-                                        </button>
+                                        <span class="badge bg-light text-muted border">
+                                            <i class="fas fa-user-tie me-1"></i>Chưa gán HDV
+                                        </span>
                                     @endif
                                     
                                     @if($group['vehicle_type'])
@@ -300,15 +367,29 @@
                                             @endif
                                         </span>
                                     @else
-                                        <button class="btn btn-sm btn-warning" onclick="openAssignVehicleModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}', {{ $group['tour_id'] ?? 'null' }})">
-                                            <i class="fas fa-bus me-1"></i> Gán xe
-                                        </button>
+                                        <span class="badge bg-light text-muted border">
+                                            <i class="fas fa-bus me-1"></i>Chưa gán xe
+                                        </span>
                                     @endif
                                     
-                                    <button class="btn btn-sm btn-primary" onclick="openSendPreTourInfoModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}')">
-                                        <i class="fas fa-paper-plane me-1"></i> Gửi thông tin
+                                    <!-- Nút Chốt đoàn -->
+                                    <button class="btn btn-sm {{ $isConfirmed ? 'btn-success' : 'btn-outline-success' }}"
+                                        @if(!($group['can_confirm_group'] ?? true) && !$isConfirmed) 
+                                            disabled 
+                                            title="Không thể chốt đoàn! Có {{ count($group['unconfirmed_bookings'] ?? []) }} booking chưa xác nhận và {{ count($group['unpaid_bookings'] ?? []) }} booking chưa thanh toán."
+                                        @endif
+                                        onclick="openConfirmGroupModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}', {{ $isConfirmed ? ($group['confirmed_guests_count'] ?? $totalGuests) : $totalGuests }})">
+                                        <i class="fas {{ $isConfirmed ? 'fa-check-double' : 'fa-clipboard-check' }} me-1"></i> 
+                                        {{ $isConfirmed ? 'Đã chốt: ' . ($group['confirmed_guests_count'] ?? $totalGuests) . ' khách' : 'Chốt đoàn' }}
                                     </button>
                                 </div>
+                                
+                                @if(!($group['can_confirm_group'] ?? true) && !$isConfirmed)
+                                    <small class="text-danger d-block mt-2">
+                                        <i class="fas fa-exclamation-triangle"></i> 
+                                        Chưa thể chốt: {{ count($group['unconfirmed_bookings'] ?? []) }} booking chưa xác nhận, {{ count($group['unpaid_bookings'] ?? []) }} booking chưa thanh toán
+                                    </small>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -565,20 +646,12 @@
 
 @section('scripts')
     @parent
-    <script id="departure-bookings-data" type="application/json">@json($departureBookingPayload ?? [])</script>
     <script>
-        // Payload dữ liệu booking theo đoàn - parse từ JSON script tag
-        let departureBookings = {};
-        try {
-            const jsonScript = document.getElementById('departure-bookings-data');
-            if (jsonScript && jsonScript.textContent.trim()) {
-                departureBookings = JSON.parse(jsonScript.textContent);
-            }
-        } catch (e) {
-            console.error('[Init] Error parsing departureBookings:', e);
-        }
-        console.log('[Init] departureBookings:', departureBookings);
-        console.log('[Init] departureBookings keys:', Object.keys(departureBookings || {}));
+        // Cache để lưu bookings đã load (tránh gọi AJAX lại)
+        const bookingsCache = {};
+        
+        // URL base cho API (dùng prefix thay vì route với placeholder)
+        const BOOKINGS_API_BASE = '/admin/bookings/by-departure/';
 
         document.addEventListener('DOMContentLoaded', function() {
 
@@ -590,7 +663,7 @@
                     );
             }
 
-            // Lazy load bảng booking theo đoàn
+            // Helper functions
             function escapeHtml(string) {
                 const div = document.createElement('div');
                 div.appendChild(document.createTextNode(string ?? ''));
@@ -602,16 +675,38 @@
                 return number.toLocaleString('vi-VN') + ' VNĐ';
             }
 
+            /**
+             * TRẠNG THÁI BOOKING (mỗi dòng booking)
+             * - pending: Chờ xác nhận
+             * - confirmed: Đã xác nhận  
+             * - paid: Đã thanh toán
+             * - cancelled: Đã hủy
+             */
             function buildStatusBadge(status) {
                 const map = {
                     pending: { class: 'bg-warning text-dark', icon: 'fa-clock', label: 'Chờ xác nhận' },
-                    deposit: { class: 'bg-info text-dark', icon: 'fa-hand-holding-usd', label: 'Đặt cọc' },
-                    confirmed: { class: 'bg-success', icon: 'fa-check-circle', label: 'Đã xác nhận' },
+                    confirmed: { class: 'bg-info', icon: 'fa-check-circle', label: 'Đã xác nhận' },
                     paid: { class: 'bg-success', icon: 'fa-money-bill-wave', label: 'Đã thanh toán' },
-                    completed: { class: 'bg-secondary', icon: 'fa-check', label: 'Hoàn thành' },
                     cancelled: { class: 'bg-danger', icon: 'fa-times-circle', label: 'Đã hủy' },
                 };
                 return map[status] || { class: 'bg-secondary', icon: 'fa-question-circle', label: 'Khác' };
+            }
+
+            /**
+             * NGUỒN BOOKING
+             * - website: Website
+             * - zalo: Zalo
+             * - facebook: Facebook
+             * - phone: Điện thoại
+             */
+            function buildSourceBadge(source) {
+                const map = {
+                    website: { class: 'bg-primary', icon: 'fa-globe', label: 'Website' },
+                    zalo: { class: 'bg-info', icon: 'fa-comment-dots', label: 'Zalo' },
+                    facebook: { class: 'bg-primary', icon: 'fa-facebook', label: 'Facebook' },
+                    phone: { class: 'bg-success', icon: 'fa-phone', label: 'Điện thoại' },
+                };
+                return map[source] || { class: 'bg-secondary', icon: 'fa-question', label: source || 'Khác' };
             }
 
             function renderBookingTable(panel, bookings = []) {
@@ -631,52 +726,49 @@
 
                 const rows = bookings.map((booking) => {
                     const statusMeta = buildStatusBadge(booking.status);
+                    const sourceMeta = buildSourceBadge(booking.booking_source);
+                    const totalGuests = (booking.adults || 0) + (booking.children || 0) + (booking.infants || 0);
+                    const guestTooltip = `Người lớn: ${booking.adults || 0}, Trẻ em: ${booking.children || 0}, Em bé: ${booking.infants || 0}`;
+                    
                     return `
                         <tr>
                             <td class="px-3">
                                 <div class="d-flex align-items-center">
-                                    <i class="fas fa-building text-primary me-2"></i>
-                                    <strong>#${escapeHtml(booking.code)}</strong>
-                                    <span class="badge bg-secondary ms-2">BOOKING</span>
-                                </div>
-                            </td>
-                            <td class="px-3">
-                                <div class="d-flex align-items-center">
-                                    <div class="avatar-circle bg-purple text-white me-2" style="width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background-color: #6f42c1;">
+                                    <div class="avatar-circle me-2" style="width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background-color: #6f42c1; color: white; font-weight: bold; font-size: 12px;">
                                         ${escapeHtml(booking.profile_initial)}
                                     </div>
                                     <div>
-                                        <div class="fw-bold">${escapeHtml(booking.customer_name)}</div>
+                                        <div class="fw-semibold">${escapeHtml(booking.customer_name)}</div>
                                         <small class="text-muted">${escapeHtml(booking.customer_email)}</small>
+                                        <div><small class="text-primary">#${escapeHtml(booking.code)}</small></div>
                                     </div>
                                 </div>
                             </td>
-                            <td class="px-3">
-                                <div class="text-truncate" style="max-width: 300px;" title="${escapeHtml(booking.tour_title)}">
-                                    ${escapeHtml(booking.tour_title)}
-                                </div>
+                            <td class="px-3 text-center">
+                                <span class="badge bg-light text-dark border" 
+                                      style="cursor: help; font-size: 14px; padding: 8px 12px;"
+                                      data-bs-toggle="tooltip" 
+                                      data-bs-placement="top" 
+                                      title="${guestTooltip}">
+                                    <i class="fas fa-users me-1 text-primary"></i>
+                                    <strong>${totalGuests}</strong>
+                                </span>
                             </td>
-                            <td class="px-3">
-                                <div>
-                                    <span class="badge bg-info">
-                                        <i class="fas fa-user me-1"></i>${booking.adults} người lớn
-                                    </span>
-                                    ${booking.children > 0 ? `<br><span class="badge bg-info mt-1"><i class="fas fa-child me-1"></i>${booking.children} trẻ em</span>` : ''}
-                                    ${booking.infants > 0 ? `<br><span class="badge bg-info mt-1"><i class="fas fa-baby me-1"></i>${booking.infants} em bé</span>` : ''}
-                                </div>
+                            <td class="px-3 text-end">
+                                <span class="fw-bold text-success">${formatCurrency(booking.total_amount)}</span>
                             </td>
-                            <td class="px-3 fw-bold text-success">${formatCurrency(booking.total_amount)}</td>
-                            <td class="px-3">
+                            <td class="px-3 text-center">
+                                <span class="badge ${sourceMeta.class}" style="font-size: 11px;">
+                                    <i class="fas ${sourceMeta.icon} me-1"></i>${sourceMeta.label}
+                                </span>
+                            </td>
+                            <td class="px-3 text-center">
                                 <span class="badge ${statusMeta.class}">
                                     <i class="fas ${statusMeta.icon} me-1"></i>${statusMeta.label}
                                 </span>
                             </td>
-                            <td class="px-3">
-                                <i class="fas fa-calendar text-muted me-1"></i>
-                                ${escapeHtml(booking.created_at)}
-                            </td>
-                            <td class="px-3 text-end">
-                                <a href="${booking.url}" class="btn btn-sm btn-outline-primary" title="Xem chi tiết">
+                            <td class="px-3 text-center">
+                                <a href="${booking.url}" class="btn btn-sm btn-outline-primary" title="Xem chi tiết booking">
                                     <i class="fas fa-eye"></i>
                                 </a>
                             </td>
@@ -688,48 +780,106 @@
                 wrapper.innerHTML = `
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
-                            <thead class="bg-light">
+                            <thead class="table-light">
                                 <tr>
-                                    <th class="border-0 py-3 px-3">MÃ ĐẶT TOUR</th>
-                                    <th class="border-0 py-3 px-3">KHÁCH HÀNG</th>
-                                    <th class="border-0 py-3 px-3">TOUR</th>
-                                    <th class="border-0 py-3 px-3">SỐ KHÁCH</th>
-                                    <th class="border-0 py-3 px-3">TỔNG TIỀN</th>
-                                    <th class="border-0 py-3 px-3">TRẠNG THÁI</th>
-                                    <th class="border-0 py-3 px-3">NGÀY ĐẶT</th>
-                                    <th class="border-0 py-3 px-3 text-end">THAO TÁC</th>
+                                    <th class="border-0 py-3 px-3" style="min-width: 200px;">KHÁCH HÀNG</th>
+                                    <th class="border-0 py-3 px-3 text-center" style="width: 100px;">SỐ KHÁCH</th>
+                                    <th class="border-0 py-3 px-3 text-end" style="width: 140px;">TỔNG TIỀN</th>
+                                    <th class="border-0 py-3 px-3 text-center" style="width: 110px;">NGUỒN</th>
+                                    <th class="border-0 py-3 px-3 text-center" style="width: 130px;">TRẠNG THÁI</th>
+                                    <th class="border-0 py-3 px-3 text-center" style="width: 80px;">THAO TÁC</th>
                                 </tr>
                             </thead>
                             <tbody>${rows}</tbody>
                         </table>
                     </div>
                 `;
+                
+                // Initialize tooltips for guest count
+                const tooltipTriggerList = wrapper.querySelectorAll('[data-bs-toggle="tooltip"]');
+                tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el));
             }
 
-            function loadPanelOnce(panel) {
+            // AJAX: Fetch bookings từ server
+            async function fetchBookingsByDeparture(departureId) {
+                // Check cache first
+                if (bookingsCache[departureId]) {
+                    console.log('[AJAX] Using cached data for departure:', departureId);
+                    return bookingsCache[departureId];
+                }
+                
+                const url = BOOKINGS_API_BASE + departureId;
+                console.log('[AJAX] Fetching bookings from:', url);
+                
+                try {
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    console.log('[AJAX] Response:', result);
+                    
+                    if (result.success && result.data) {
+                        // Cache the result
+                        bookingsCache[departureId] = result.data;
+                        return result.data;
+                    }
+                    return [];
+                } catch (error) {
+                    console.error('[AJAX] Error fetching bookings:', error);
+                    return [];
+                }
+            }
+
+            async function loadPanelOnce(panel) {
                 if (!panel || panel.dataset.loaded === 'true') return;
-                const departureKey = panel.dataset.departureKey;
-                const bookings = departureBookings[departureKey] || [];
+                const departureId = panel.dataset.departureKey;
+                
+                // Show loading state
+                const wrapper = panel.querySelector('.booking-table-wrapper');
+                const placeholder = panel.querySelector('.booking-placeholder');
+                if (placeholder) {
+                    placeholder.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Đang tải danh sách booking...';
+                }
+                
+                const bookings = await fetchBookingsByDeparture(departureId);
                 renderBookingTable(panel, bookings);
                 panel.dataset.loaded = 'true';
             }
 
             function setupLazyBookingTables() {
-                // Debug: log available keys khi page load
-                console.log('[Xem booking] Available departure keys:', Object.keys(departureBookings || {}));
-                
                 const toggleButtons = document.querySelectorAll('[data-toggle-bookings]');
                 toggleButtons.forEach(btn => {
-                    btn.addEventListener('click', function () {
+                    btn.addEventListener('click', async function () {
                         const targetId = this.dataset.target;
-                        const departureId = String(this.dataset.departureId); // Ensure string
+                        const departureId = String(this.dataset.departureId);
                         const panel = document.getElementById(targetId) || this.closest('.departure-card')?.querySelector(`#${targetId}`);
                         console.log('[Xem booking] Click', { departureId, targetId, hasPanel: !!panel });
                         if (!panel) return;
 
-                        // Lấy dữ liệu từ departureBookings theo departureId (string key)
-                        const bookings = departureBookings?.[departureId] || [];
-                        console.log('[Xem booking] Load bookings', { departureId, count: bookings.length });
+                        // Check if already loaded
+                        if (panel.dataset.loaded === 'true') {
+                            console.log('[Xem booking] Already loaded, skipping fetch');
+                            return;
+                        }
+
+                        // Show loading state
+                        const placeholder = panel.querySelector('.booking-placeholder');
+                        if (placeholder) {
+                            placeholder.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Đang tải danh sách booking...';
+                        }
+
+                        // Fetch via AJAX
+                        const bookings = await fetchBookingsByDeparture(departureId);
+                        console.log('[Xem booking] Loaded bookings', { departureId, count: bookings.length });
 
                         renderBookingTable(panel, bookings);
                         panel.dataset.loaded = 'true';
@@ -739,8 +889,8 @@
                 // Phòng trường hợp người dùng mở collapse bằng các cách khác
                 const collapses = document.querySelectorAll('.collapse[data-departure-key]');
                 collapses.forEach(panel => {
-                    panel.addEventListener('show.bs.collapse', function () {
-                        loadPanelOnce(panel);
+                    panel.addEventListener('show.bs.collapse', async function () {
+                        await loadPanelOnce(panel);
                     });
                 });
             }
@@ -1139,21 +1289,22 @@
             });
         }
 
-        // B3: Gán HDV
-        async function openAssignGuideModal(departureDate, tourId) {
+        // B3: Gán HDV (từ dropdown Điều hành)
+        async function openAssignGuideModal(departureDate, tourId, departureId = null) {
             // Hiển thị modal với loading state
             const modalHtml = `
                 <div class="modal fade" id="assignGuideModal" tabindex="-1">
                     <div class="modal-dialog">
                         <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Gán hướng dẫn viên</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            <div class="modal-header bg-info text-white">
+                                <h5 class="modal-title"><i class="fas fa-user-tie me-2"></i>Gán hướng dẫn viên</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                             </div>
                             <form id="assignGuideForm">
                                 <div class="modal-body">
                                     <input type="hidden" name="departure_date" value="${departureDate}">
                                     <input type="hidden" name="tour_id" value="${tourId}">
+                                    <input type="hidden" name="departure_id" value="${departureId || ''}">
                                     <div class="mb-3">
                                         <label for="guide_id" class="form-label">Chọn hướng dẫn viên *</label>
                                         <select class="form-select" id="guide_id" name="guide_id" required>
@@ -1164,7 +1315,9 @@
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                                    <button type="submit" class="btn btn-info">Gán HDV</button>
+                                    <button type="submit" class="btn btn-info">
+                                        <i class="fas fa-check me-1"></i> Xác nhận gán HDV
+                                    </button>
                                 </div>
                             </form>
                         </div>
@@ -1236,21 +1389,22 @@
             });
         }
 
-        // B4: Gán xe (chọn từ danh sách Quản lý xe)
-        async function openAssignVehicleModal(departureDate, tourId) {
+        // B4: Gán xe (từ dropdown Điều hành)
+        async function openAssignVehicleModal(departureDate, tourId, departureId = null) {
             // Hiển thị modal với loading state
             const modalHtml = `
                 <div class="modal fade" id="assignVehicleModal" tabindex="-1">
                     <div class="modal-dialog">
                         <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Gán xe</h5>
+                            <div class="modal-header bg-warning">
+                                <h5 class="modal-title"><i class="fas fa-bus me-2"></i>Gán xe</h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                             </div>
                             <form id="assignVehicleForm">
                                 <div class="modal-body">
                                     <input type="hidden" name="departure_date" value="${departureDate}">
                                     <input type="hidden" name="tour_id" value="${tourId}">
+                                    <input type="hidden" name="departure_id" value="${departureId || ''}">
                                     <div class="mb-3">
                                         <label for="vehicle_id" class="form-label">Chọn xe *</label>
                                         <select class="form-select" id="vehicle_id" name="vehicle_id" required>
@@ -1261,7 +1415,9 @@
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                                    <button type="submit" class="btn btn-warning">Gán xe</button>
+                                    <button type="submit" class="btn btn-warning">
+                                        <i class="fas fa-check me-1"></i> Xác nhận gán xe
+                                    </button>
                                 </div>
                             </form>
                         </div>
@@ -1396,6 +1552,85 @@
             });
             
             document.getElementById('sendPreTourInfoModal').addEventListener('hidden.bs.modal', function() {
+                this.remove();
+            });
+        }
+
+        // B6: Ghi chú điều hành (từ dropdown Điều hành)
+        function openOperationNoteModal(departureDate, departureId = null) {
+            const modalHtml = `
+                <div class="modal fade" id="operationNoteModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header bg-secondary text-white">
+                                <h5 class="modal-title"><i class="fas fa-sticky-note me-2"></i>Ghi chú điều hành</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <form id="operationNoteForm">
+                                <div class="modal-body">
+                                    <input type="hidden" name="departure_date" value="${departureDate}">
+                                    <input type="hidden" name="departure_id" value="${departureId || ''}">
+                                    <div class="mb-3">
+                                        <label for="operation_note" class="form-label">Ghi chú cho đoàn</label>
+                                        <textarea class="form-control" id="operation_note" name="operation_note" rows="5" 
+                                                  placeholder="Nhập ghi chú điều hành cho đoàn này...&#10;Ví dụ:&#10;- Điểm đón khách: ...&#10;- Lưu ý đặc biệt: ...&#10;- Yêu cầu ăn uống: ..."></textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="internal_note" class="form-label">Ghi chú nội bộ (chỉ admin thấy)</label>
+                                        <textarea class="form-control" id="internal_note" name="internal_note" rows="3" 
+                                                  placeholder="Ghi chú nội bộ cho team điều hành..."></textarea>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-1"></i> Lưu ghi chú
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            const modal = new bootstrap.Modal(document.getElementById('operationNoteModal'));
+            modal.show();
+            
+            document.getElementById('operationNoteForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+                
+                // TODO: Implement API endpoint for saving operation notes
+                // For now, just show success message
+                showAlert('info', 'Chức năng lưu ghi chú đang được phát triển');
+                modal.hide();
+                
+                /* Uncomment when API is ready:
+                try {
+                    const response = await fetch('/admin/bookings/save-operation-note', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json'
+                        },
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        showAlert('success', data.message);
+                        modal.hide();
+                    } else {
+                        showAlert('danger', data.message || 'Có lỗi xảy ra');
+                    }
+                } catch (error) {
+                    showAlert('danger', 'Lỗi: ' + error.message);
+                }
+                */
+            });
+            
+            document.getElementById('operationNoteModal').addEventListener('hidden.bs.modal', function() {
                 this.remove();
             });
         }

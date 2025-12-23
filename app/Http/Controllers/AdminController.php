@@ -962,20 +962,44 @@ class AdminController extends Controller
                 return $booking->adults + $booking->children + $booking->infants;
             });
 
-            // Trạng thái đoàn
-            $groupStatus = 'open';
-            if ($departure && $departure->group_confirmed) {
-                $groupStatus = 'locked';
-            }
-            if ($departure && $departure->status === 'finished') {
-                $groupStatus = 'finished';
-            }
-
             // Lấy departure_id trực tiếp từ booking (đáng tin cậy hơn)
             $bookingDepartureId = $firstBooking->departure_id ?? $departure?->id;
             
+            // TRẠNG THÁI LỊCH KHỞI HÀNH (cho filter/dashboard)
+            // - upcoming: Sắp khởi hành (ngày khởi hành trong tương lai)
+            // - in_progress: Đang đi (đang trong thời gian tour)
+            // - completed: Hoàn thành (tour đã kết thúc)
+            $departureDate = $datePart !== 'no-date' ? \Carbon\Carbon::parse($datePart) : null;
+            $today = \Carbon\Carbon::today();
+            $tourDuration = $tour ? ($tour->duration ?? 1) : 1;
+            $endDate = $departureDate ? $departureDate->copy()->addDays($tourDuration) : null;
+            
+            if ($endDate && $today->gt($endDate)) {
+                $scheduleStatus = 'completed'; // Hoàn thành
+            } elseif ($departureDate && $today->gte($departureDate) && $endDate && $today->lte($endDate)) {
+                $scheduleStatus = 'in_progress'; // Đang đi
+            } else {
+                $scheduleStatus = 'upcoming'; // Sắp khởi hành
+            }
+            
+            // TRẠNG THÁI ĐOÀN (cho hiển thị)
+            // - pending: Chưa chốt
+            // - confirmed: Đã chốt
+            // - departed: Đã khởi hành
+            // - finished: Đã kết thúc
+            $groupConfirmed = $departure ? $departure->group_confirmed : false;
+            if ($scheduleStatus === 'completed') {
+                $groupStatus = 'finished';
+            } elseif ($scheduleStatus === 'in_progress') {
+                $groupStatus = 'departed';
+            } elseif ($groupConfirmed) {
+                $groupStatus = 'confirmed';
+            } else {
+                $groupStatus = 'pending';
+            }
+            
             return [
-                'date' => $datePart === 'no-date' ? null : \Carbon\Carbon::parse($datePart),
+                'date' => $departureDate,
                 'tour' => $tour,
                 'tour_id' => $tour ? $tour->id : null,
                 'departure_id' => $bookingDepartureId,
@@ -987,7 +1011,7 @@ class AdminController extends Controller
                 'total_amount' => $totalAmount,
                 'count' => $totalBookings,
                 'departure' => $departure,
-                'group_confirmed' => $departure ? $departure->group_confirmed : false,
+                'group_confirmed' => $groupConfirmed,
                 'confirmed_guests_count' => $departure ? $departure->confirmed_guests_count : null,
                 'guide' => $departure && $departure->guide ? $departure->guide : null,
                 'vehicle' => $departure && $departure->vehicle ? $departure->vehicle : null,
@@ -999,6 +1023,7 @@ class AdminController extends Controller
                 'unpaid_bookings' => $unpaidBookings,
                 'total_bookings' => $totalBookings,
                 'group_status' => $groupStatus,
+                'schedule_status' => $scheduleStatus, // Cho filter/dashboard
             ];
         });
 
@@ -1018,43 +1043,50 @@ class AdminController extends Controller
             $tour = Tour::find($request->tour_id);
         }
 
-        // Build payload cho frontend: dùng trực tiếp bookings từ groupedBookings
-        $departureBookingPayload = [];
-        foreach ($groupedBookings as $group) {
-            $departureId = $group['departure_id'] ?? null;
-            if (!$departureId) continue;
-            
-            $groupBookings = $group['bookings'] ?? collect();
-            $rows = $groupBookings->map(function ($booking) {
-                return [
-                    'id' => $booking->id,
-                    'code' => str_pad($booking->id, 6, '0', STR_PAD_LEFT),
-                    'customer_name' => $booking->user->name ?? 'Không rõ',
-                    'customer_email' => $booking->user->email ?? '',
-                    'tour_title' => $booking->tour->title ?? 'Không rõ tour',
-                    'adults' => $booking->adults,
-                    'children' => $booking->children,
-                    'infants' => $booking->infants,
-                    'total_amount' => $booking->total_amount,
-                    'status' => $booking->status,
-                    'created_at' => optional($booking->created_at)->format('d/m/Y'),
-                    'profile_initial' => strtoupper(substr($booking->user->name ?? 'U', 0, 2)),
-                    'url' => route('admin.bookings.show', $booking->id),
-                ];
-            })->values()->toArray();
-            
-            // Dùng string key để đảm bảo JSON encode giữ đúng key
-            $departureBookingPayload[(string) $departureId] = $rows;
-        }
-
         return view('admin.bookings.index', compact(
             'groupedBookings',
             'bookings',
             'guides',
             'vehicles',
-            'tour',
-            'departureBookingPayload'
+            'tour'
         ));
+    }
+
+    /**
+     * API: Lấy danh sách bookings theo departure_id (AJAX lazy load)
+     */
+    public function getBookingsByDeparture($departureId)
+    {
+        $bookings = Booking::with(['user', 'tour'])
+            ->where('departure_id', $departureId)
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        $rows = [];
+        foreach ($bookings as $booking) {
+            $rows[] = [
+                'id' => (int) $booking->id,
+                'code' => str_pad($booking->id, 6, '0', STR_PAD_LEFT),
+                'customer_name' => (string) ($booking->user->name ?? 'Không rõ'),
+                'customer_email' => (string) ($booking->user->email ?? ''),
+                'customer_phone' => (string) ($booking->user->phone ?? ''),
+                'adults' => (int) $booking->adults,
+                'children' => (int) $booking->children,
+                'infants' => (int) $booking->infants,
+                'total_amount' => (float) $booking->total_amount,
+                'status' => (string) $booking->status,
+                'booking_source' => (string) ($booking->booking_source ?? 'website'),
+                'created_at' => $booking->created_at ? $booking->created_at->format('d/m/Y') : '',
+                'profile_initial' => strtoupper(substr($booking->user->name ?? 'U', 0, 2)),
+                'url' => route('admin.bookings.show', $booking->id),
+            ];
+        }
+        
+        return response()->json([
+            'success' => true,
+            'data' => $rows,
+            'count' => count($rows)
+        ]);
     }
 
     /**

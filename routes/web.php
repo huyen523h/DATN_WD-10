@@ -578,6 +578,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/departures/{departure}/customers/import', [AdminController::class, 'importDepartureCustomers'])->name('departures.customers.import');
 
     //  Group management & helper APIs (đặt TRƯỚC route /bookings/{booking} để tránh bị nuốt bởi {booking})
+    Route::get('/bookings/by-departure/{departureId}', [AdminController::class, 'getBookingsByDeparture'])->name('bookings.by-departure');
     Route::post('/bookings/confirm-group', [AdminController::class, 'confirmGroup'])->name('bookings.confirm-group');
     Route::get('/bookings/available-guides', [AdminController::class, 'getAvailableGuides'])->name('bookings.available-guides');
     Route::get('/bookings/available-vehicles', [AdminController::class, 'getAvailableVehicles'])->name('bookings.available-vehicles');

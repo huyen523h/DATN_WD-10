@@ -27,12 +27,28 @@ class Booking extends Model
         'payment_method',
         'status',
         'source',
+        'booking_source', // Nguồn booking: website, zalo, facebook, phone
         'promotion_code',
         'note',
         'passenger_manifest_file',
         'expires_at',
         'cancel_reason',
         'receipt_image',
+    ];
+    
+    /**
+     * Booking source constants
+     */
+    const SOURCE_WEBSITE = 'website';
+    const SOURCE_ZALO = 'zalo';
+    const SOURCE_FACEBOOK = 'facebook';
+    const SOURCE_PHONE = 'phone';
+    
+    const BOOKING_SOURCES = [
+        self::SOURCE_WEBSITE => 'Website',
+        self::SOURCE_ZALO => 'Zalo',
+        self::SOURCE_FACEBOOK => 'Facebook',
+        self::SOURCE_PHONE => 'Điện thoại',
     ];
 
     protected $casts = [
