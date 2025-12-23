@@ -46,10 +46,24 @@
         </div>
     @endif
 
-    <!-- Stats Cards -->
+    <!-- Stats Cards - Thống kê theo nguồn booking -->
+    @php
+        // Tính toán thống kê theo nguồn (case-insensitive)
+        $totalBookings = $bookings->count();
+        $websiteBookings = $bookings->filter(function($b) {
+            return strtolower($b->booking_source ?? 'website') === 'website';
+        })->count();
+        $saleBookings = $bookings->filter(function($b) {
+            $source = strtolower($b->booking_source ?? '');
+            return in_array($source, ['zalo', 'facebook', 'phone']);
+        })->count();
+        // Doanh thu: không tính booking đã hủy, tính theo ngày khởi hành trong filter
+        $totalRevenue = $bookings->where('status', '!=', 'cancelled')->sum('total_amount');
+    @endphp
     <div class="row mb-4">
+        <!-- Tổng số booking -->
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card border-0 shadow-sm h-100 border-start border-primary border-4">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
                         <div class="flex-shrink-0">
@@ -58,59 +72,68 @@
                             </div>
                         </div>
                         <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Tổng đặt tour</h6>
-                            <h4 class="mb-0 fw-bold">{{ $bookings->count() }}</h4>
+                            <h6 class="text-muted mb-1">Tổng số booking</h6>
+                            <h4 class="mb-0 fw-bold text-primary">{{ $totalBookings }}</h4>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+        
+        <!-- Booking từ Website -->
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <div class="bg-warning bg-opacity-10 rounded-circle p-3">
-                                <i class="fas fa-clock text-warning fa-lg"></i>
-                            </div>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Chờ xác nhận</h6>
-                            <h4 class="mb-0 fw-bold">{{ $bookings->where('status', 'pending')->count() }}</h4>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <div class="bg-success bg-opacity-10 rounded-circle p-3">
-                                <i class="fas fa-check-circle text-success fa-lg"></i>
-                            </div>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Đã xác nhận</h6>
-                            <h4 class="mb-0 fw-bold">{{ $bookings->where('status', 'confirmed')->count() }}</h4>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card border-0 shadow-sm h-100 border-start border-info border-4">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
                         <div class="flex-shrink-0">
                             <div class="bg-info bg-opacity-10 rounded-circle p-3">
-                                <i class="fas fa-money-bill-wave text-info fa-lg"></i>
+                                <i class="fas fa-globe text-info fa-lg"></i>
                             </div>
                         </div>
                         <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Tổng doanh thu</h6>
-                            <h4 class="mb-0 fw-bold">{{ number_format($bookings->sum('total_amount'), 0, ',', '.') }}đ</h4>
+                            <h6 class="text-muted mb-1">Từ Website</h6>
+                            <h4 class="mb-0 fw-bold text-info">{{ $websiteBookings }}</h4>
+                            <small class="text-muted">{{ $totalBookings > 0 ? round($websiteBookings / $totalBookings * 100, 1) : 0 }}% tổng</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Booking từ Sale (Zalo + Facebook + Phone) -->
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100 border-start border-success border-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-success bg-opacity-10 rounded-circle p-3">
+                                <i class="fas fa-headset text-success fa-lg"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-1">Từ Sale</h6>
+                            <h4 class="mb-0 fw-bold text-success">{{ $saleBookings }}</h4>
+                            <small class="text-muted">Zalo, Facebook, ĐT</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Doanh thu (không tính cancelled) -->
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100 border-start border-warning border-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-warning bg-opacity-10 rounded-circle p-3">
+                                <i class="fas fa-money-bill-wave text-warning fa-lg"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-1">Doanh thu</h6>
+                            <h4 class="mb-0 fw-bold text-warning">{{ number_format($totalRevenue, 0, ',', '.') }}đ</h4>
+                            <small class="text-muted">Không tính đã hủy</small>
                         </div>
                     </div>
                 </div>
@@ -122,14 +145,32 @@
     <div class="row mb-4">
         <div class="col-12">
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white border-0 py-4">
-                    <h5 class="mb-0 fw-bold text-dark">
-                        <i class="fas fa-search text-primary me-2"></i>
-                        Tìm kiếm và lọc
-                    </h5>
+                <div class="card-header bg-white border-0 py-3">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <h5 class="mb-0 fw-bold text-dark">
+                            <i class="fas fa-search text-primary me-2"></i>
+                            Tìm kiếm và lọc
+                        </h5>
+                        <!-- Quick Filters -->
+                        <div class="d-flex gap-2 flex-wrap">
+                            <a href="{{ route('admin.bookings', ['group_status' => 'pending']) }}" 
+                               class="btn btn-sm {{ request('group_status') == 'pending' ? 'btn-secondary' : 'btn-outline-secondary' }}">
+                                <i class="fas fa-hourglass-half me-1"></i> Chưa chốt
+                            </a>
+                            <a href="{{ route('admin.bookings', ['cutoff_status' => 'near']) }}" 
+                               class="btn btn-sm {{ request('cutoff_status') == 'near' ? 'btn-warning' : 'btn-outline-warning' }}">
+                                <i class="fas fa-clock me-1"></i> Sắp cutoff
+                            </a>
+                            <a href="{{ route('admin.bookings', ['cutoff_status' => 'passed']) }}" 
+                               class="btn btn-sm {{ request('cutoff_status') == 'passed' ? 'btn-danger' : 'btn-outline-danger' }}">
+                                <i class="fas fa-exclamation-circle me-1"></i> Quá cutoff
+                            </a>
+                        </div>
+                    </div>
                 </div>
                 <div class="card-body">
                     <form method="GET" action="{{ route('admin.bookings') }}" class="row g-3">
+                        <!-- Row 1: Search, Status, Booking Source -->
                         <div class="col-md-3">
                             <label for="search" class="form-label fw-semibold">Tìm kiếm</label>
                             <div class="input-group">
@@ -141,30 +182,65 @@
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <label for="status" class="form-label fw-semibold">Trạng thái</label>
+                            <label for="status" class="form-label fw-semibold">Trạng thái booking</label>
                             <select class="form-select" id="status" name="status">
                                 <option value="">Tất cả trạng thái</option>
-                                <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Chờ xác nhận
-                                </option>
-                                <option value="confirmed" {{ request('status') == 'confirmed' ? 'selected' : '' }}>Đã xác
-                                    nhận</option>
-
-                                <option value="paid" {{ request('status') == 'paid' ? 'selected' : '' }}>Đã thanh toán
-                                </option>
-                                <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Đã hủy
-                                </option>
+                                <option value="hold" {{ request('status') == 'hold' ? 'selected' : '' }}>Giữ chỗ (HOLD)</option>
+                                <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Chờ xác nhận (PENDING)</option>
+                                <option value="confirmed" {{ request('status') == 'confirmed' ? 'selected' : '' }}>Đã xác nhận (CONFIRMED)</option>
+                                <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Đã hủy (CANCELLED)</option>
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <label for="date_from" class="form-label fw-semibold">Từ ngày</label>
+                            <label for="booking_source" class="form-label fw-semibold">Nguồn booking</label>
+                            <select class="form-select" id="booking_source" name="booking_source">
+                                <option value="">Tất cả nguồn</option>
+                                <option value="website" {{ request('booking_source') == 'website' ? 'selected' : '' }}>🌐 Website</option>
+                                <option value="zalo" {{ request('booking_source') == 'zalo' ? 'selected' : '' }}>💬 Zalo</option>
+                                <option value="facebook" {{ request('booking_source') == 'facebook' ? 'selected' : '' }}>📘 Facebook</option>
+                                <option value="phone" {{ request('booking_source') == 'phone' ? 'selected' : '' }}>📞 Điện thoại</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="sale_staff" class="form-label fw-semibold">Sale phụ trách</label>
+                            <select class="form-select" id="sale_staff" name="sale_staff">
+                                <option value="">Tất cả Sale</option>
+                                @php
+                                    $saleStaffs = \App\Models\User::whereHas('roles', function($q) {
+                                        $q->whereIn('name', ['admin', 'staff', 'sale']);
+                                    })->orderBy('name')->get();
+                                @endphp
+                                @foreach($saleStaffs as $staff)
+                                    <option value="{{ $staff->id }}" {{ request('sale_staff') == $staff->id ? 'selected' : '' }}>
+                                        {{ $staff->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        
+                        <!-- Row 2: Date filters -->
+                        <div class="col-md-3">
+                            <label for="departure_from" class="form-label fw-semibold">Ngày khởi hành từ</label>
+                            <input type="date" class="form-control" id="departure_from" name="departure_from"
+                                value="{{ request('departure_from') }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="departure_to" class="form-label fw-semibold">Ngày khởi hành đến</label>
+                            <input type="date" class="form-control" id="departure_to" name="departure_to"
+                                value="{{ request('departure_to') }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="date_from" class="form-label fw-semibold">Ngày đặt từ</label>
                             <input type="date" class="form-control" id="date_from" name="date_from"
                                 value="{{ request('date_from') }}">
                         </div>
                         <div class="col-md-3">
-                            <label for="date_to" class="form-label fw-semibold">Đến ngày</label>
+                            <label for="date_to" class="form-label fw-semibold">Ngày đặt đến</label>
                             <input type="date" class="form-control" id="date_to" name="date_to"
                                 value="{{ request('date_to') }}">
                         </div>
+                        
+                        <!-- Action buttons -->
                         <div class="col-12">
                             <div class="d-flex gap-2">
                                 <button type="submit" class="btn btn-primary">
@@ -199,13 +275,43 @@
                     $isConfirmed = $group['group_confirmed'] ?? false;
                     $departureDate = $group['date'] ?? null;
                     $today = \Carbon\Carbon::today();
+                    $now = \Carbon\Carbon::now();
+                    
+                    // CUTOFF LOGIC: Mặc định cutoff trước 3 ngày trước ngày khởi hành
+                    $cutoffDays = $group['departure']->cutoff_days ?? 3;
+                    $cutoffDate = $departureDate ? $departureDate->copy()->subDays($cutoffDays) : null;
+                    $isBeforeCutoff = $cutoffDate ? $now->lt($cutoffDate) : true;
+                    $isAtCutoff = $cutoffDate ? $now->isSameDay($cutoffDate) : false;
+                    $isAfterCutoff = $cutoffDate ? $now->gt($cutoffDate) : false;
+                    $daysUntilCutoff = $cutoffDate ? $now->diffInDays($cutoffDate, false) : null;
+                    
+                    // Cutoff status
+                    if ($isAfterCutoff) {
+                        $cutoffStatus = 'passed';
+                        $cutoffBadge = 'bg-danger';
+                        $cutoffLabel = 'Quá cutoff';
+                    } elseif ($isAtCutoff) {
+                        $cutoffStatus = 'today';
+                        $cutoffBadge = 'bg-warning text-dark';
+                        $cutoffLabel = 'Cutoff hôm nay!';
+                    } elseif ($daysUntilCutoff !== null && $daysUntilCutoff <= 2) {
+                        $cutoffStatus = 'near';
+                        $cutoffBadge = 'bg-warning text-dark';
+                        $cutoffLabel = 'Còn ' . $daysUntilCutoff . ' ngày';
+                    } else {
+                        $cutoffStatus = 'ok';
+                        $cutoffBadge = 'bg-light text-muted';
+                        $cutoffLabel = $cutoffDate ? 'Cutoff: ' . $cutoffDate->format('d/m') : '';
+                    }
+                    
+                    // TRẠNG THÁI SẴN SÀNG VẬN HÀNH
+                    $hasGuide = !empty($group['guide']);
+                    $hasVehicle = !empty($group['vehicle_type']);
+                    $hasAllBookingsConfirmed = ($group['can_confirm_group'] ?? true);
+                    $isOperationReady = $hasGuide && $hasVehicle && $isConfirmed;
                     
                     // Logic trạng thái đoàn:
-                    // 1. Đã kết thúc: Ngày khởi hành + số ngày tour đã qua
-                    // 2. Đã khởi hành: Ngày khởi hành đã qua nhưng chưa kết thúc
-                    // 3. Đã chốt: Đã chốt đoàn nhưng chưa khởi hành
-                    // 4. Chưa chốt: Mặc định
-                    $tourDuration = $group['tour']->duration ?? 1; // Số ngày tour
+                    $tourDuration = $group['tour']->duration ?? 1;
                     $endDate = $departureDate ? $departureDate->copy()->addDays($tourDuration) : null;
                     
                     if ($endDate && $today->gt($endDate)) {
@@ -215,7 +321,7 @@
                         $badgeIcon = 'fa-flag-checkered';
                     } elseif ($departureDate && $today->gte($departureDate) && $endDate && $today->lte($endDate)) {
                         $groupStatus = 'departed';
-                        $badgeLabel = 'Đã khởi hành';
+                        $badgeLabel = 'Đang khởi hành';
                         $badgeClass = 'bg-primary';
                         $badgeIcon = 'fa-plane-departure';
                     } elseif ($isConfirmed) {
@@ -230,7 +336,7 @@
                         $badgeIcon = 'fa-hourglass-half';
                     }
                 @endphp
-                <div class="card border-0 shadow-sm mb-4 departure-card">
+                <div class="card border-0 shadow-sm mb-4 departure-card {{ $isAfterCutoff ? 'border-start border-danger border-4' : '' }}">
                     <!-- Group Header -->
                     <div class="card-header bg-primary text-white py-3">
                         <div class="d-flex flex-wrap justify-content-between align-items-center">
@@ -238,6 +344,24 @@
                                 <div class="d-flex align-items-center gap-2">
                                     <i class="fas fa-calendar-alt"></i>
                                     <span class="fw-bold">{{ $group['date'] ? $group['date']->format('d/m/Y') : 'Chưa có ngày' }}</span>
+                                    <!-- Cutoff Badge with Business Logic Tooltip -->
+                                    @if($cutoffDate)
+                                        @php
+                                            $cutoffTooltip = "Ngày cutoff: " . $cutoffDate->format('d/m/Y');
+                                            if ($isAfterCutoff) {
+                                                $cutoffTooltip = "⚠️ Đã quá hạn chốt khách!\n❌ Không thể nhận thêm booking\n❌ Không thể tăng số khách\n✅ Chỉ xem và ghi chú nội bộ";
+                                            } elseif ($daysUntilCutoff !== null && $daysUntilCutoff <= 2) {
+                                                $cutoffTooltip = "⏰ Còn {$daysUntilCutoff} ngày đến cutoff!\nSau cutoff sẽ không thể nhận booking mới";
+                                            }
+                                        @endphp
+                                        <span class="badge {{ $cutoffBadge }} ms-2" 
+                                              title="{{ $cutoffTooltip }}"
+                                              data-bs-toggle="tooltip"
+                                              data-bs-html="true"
+                                              style="cursor: help;">
+                                            <i class="fas {{ $isAfterCutoff ? 'fa-lock' : 'fa-stopwatch' }} me-1"></i>{{ $cutoffLabel }}
+                                        </span>
+                                    @endif
                                 </div>
                                 @if(!empty($group['tour']))
                                     <div class="mt-1">
@@ -256,12 +380,23 @@
                                     <span class="fw-bold">{{ $totalGuests }}</span>
                                 </div>
                                 <div class="text-white">
-                                    <small class="d-block text-white-50">Doanh thu (không hủy)</small>
+                                    <small class="d-block text-white-50">Doanh thu</small>
                                     <span class="fw-bold">{{ number_format($totalRevenue, 0, ',', '.') }}đ</span>
                                 </div>
+                                
+                                <!-- Trạng thái đoàn -->
                                 <span class="badge {{ $badgeClass }} rounded-pill px-3 py-2">
                                     <i class="fas {{ $badgeIcon }} me-1"></i>{{ $badgeLabel }}
                                 </span>
+                                
+                                <!-- Trạng thái sẵn sàng vận hành -->
+                                @if($groupStatus !== 'finished')
+                                    <span class="badge {{ $isOperationReady ? 'bg-success' : 'bg-warning text-dark' }} rounded-pill px-2 py-1"
+                                          title="{{ $isOperationReady ? 'Sẵn sàng vận hành' : 'Chưa đủ điều kiện: ' . (!$hasGuide ? 'Thiếu HDV. ' : '') . (!$hasVehicle ? 'Thiếu xe. ' : '') . (!$isConfirmed ? 'Chưa chốt đoàn.' : '') }}"
+                                          data-bs-toggle="tooltip">
+                                        <i class="fas {{ $isOperationReady ? 'fa-check-circle' : 'fa-exclamation-triangle' }}"></i>
+                                    </span>
+                                @endif
                                 
                                 <!-- Nút Xem booking -->
                                 <button class="btn btn-sm btn-light text-primary fw-semibold d-flex align-items-center gap-2"
@@ -326,7 +461,7 @@
                         </div>
                     </div>
 
-                    <!-- Group Summary - Chỉ hiển thị thông tin tổng hợp -->
+                    <!-- Group Summary - Thông tin tổng hợp + Actions theo cutoff -->
                     <div class="card-body bg-light py-3">
                         <div class="row align-items-center">
                             <!-- Thống kê khách -->
@@ -343,7 +478,7 @@
                                 <strong class="text-secondary">{{ $totalInfants }}</strong>
                             </div>
                             
-                            <!-- Thông tin điều hành đã gán + Nút chốt đoàn -->
+                            <!-- Thông tin điều hành + Actions theo cutoff -->
                             <div class="col-md-6">
                                 <div class="d-flex gap-2 flex-wrap align-items-center">
                                     <!-- Badges thông tin đã gán -->
@@ -352,8 +487,11 @@
                                             <i class="fas fa-user-tie me-1"></i>HDV: {{ $group['guide']->name }}
                                         </span>
                                     @else
-                                        <span class="badge bg-light text-muted border">
+                                        <span class="badge bg-light text-muted border {{ $isAfterCutoff ? 'border-danger' : '' }}">
                                             <i class="fas fa-user-tie me-1"></i>Chưa gán HDV
+                                            @if($isAfterCutoff)
+                                                <i class="fas fa-exclamation text-danger ms-1"></i>
+                                            @endif
                                         </span>
                                     @endif
                                     
@@ -367,24 +505,77 @@
                                             @endif
                                         </span>
                                     @else
-                                        <span class="badge bg-light text-muted border">
+                                        <span class="badge bg-light text-muted border {{ $isAfterCutoff ? 'border-danger' : '' }}">
                                             <i class="fas fa-bus me-1"></i>Chưa gán xe
+                                            @if($isAfterCutoff)
+                                                <i class="fas fa-exclamation text-danger ms-1"></i>
+                                            @endif
                                         </span>
                                     @endif
                                     
-                                    <!-- Nút Chốt đoàn -->
-                                    <button class="btn btn-sm {{ $isConfirmed ? 'btn-success' : 'btn-outline-success' }}"
-                                        @if(!($group['can_confirm_group'] ?? true) && !$isConfirmed) 
-                                            disabled 
-                                            title="Không thể chốt đoàn! Có {{ count($group['unconfirmed_bookings'] ?? []) }} booking chưa xác nhận và {{ count($group['unpaid_bookings'] ?? []) }} booking chưa thanh toán."
+                                    <!-- ACTIONS THEO CUTOFF -->
+                                    @if($groupStatus !== 'finished' && $groupStatus !== 'departed')
+                                        @if($isBeforeCutoff)
+                                            <!-- TRƯỚC CUTOFF: Các nút điều hành tạm -->
+                                            @if(!$isConfirmed)
+                                                <button class="btn btn-sm btn-outline-primary"
+                                                    onclick="openConfirmGroupModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}', {{ $totalGuests }})"
+                                                    @if(!($group['can_confirm_group'] ?? true)) 
+                                                        disabled 
+                                                        title="Chưa đủ điều kiện chốt đoàn"
+                                                    @endif>
+                                                    <i class="fas fa-clipboard-check me-1"></i> Cập nhật chốt đoàn
+                                                </button>
+                                            @else
+                                                <span class="badge bg-success px-3 py-2">
+                                                    <i class="fas fa-check-double me-1"></i>Đã chốt: {{ $group['confirmed_guests_count'] ?? $totalGuests }} khách
+                                                </span>
+                                            @endif
+                                        @elseif($isAtCutoff)
+                                            <!-- ĐẾN CUTOFF: Button CHỐT ĐOÀN nổi bật -->
+                                            @if(!$isConfirmed)
+                                                <button class="btn btn-sm btn-warning fw-bold animate-pulse"
+                                                    onclick="openConfirmGroupModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}', {{ $totalGuests }})"
+                                                    @if(!($group['can_confirm_group'] ?? true)) disabled @endif>
+                                                    <i class="fas fa-exclamation-triangle me-1"></i> CHỐT ĐOÀN NGAY!
+                                                </button>
+                                                <small class="text-warning d-block w-100 mt-1">
+                                                    <i class="fas fa-info-circle"></i> Sau khi chốt, booking sẽ bị khóa
+                                                </small>
+                                            @else
+                                                <span class="badge bg-success px-3 py-2">
+                                                    <i class="fas fa-check-double me-1"></i>Đã chốt: {{ $group['confirmed_guests_count'] ?? $totalGuests }} khách
+                                                </span>
+                                            @endif
+                                        @else
+                                            <!-- SAU CUTOFF: Disable editing, chỉ xem -->
+                                            @if($isConfirmed)
+                                                <span class="badge bg-success px-3 py-2">
+                                                    <i class="fas fa-lock me-1"></i>Đã chốt: {{ $group['confirmed_guests_count'] ?? $totalGuests }} khách
+                                                </span>
+                                            @else
+                                                <span class="badge bg-danger px-3 py-2" 
+                                                      title="Đã quá hạn cutoff, liên hệ Admin để override"
+                                                      data-bs-toggle="tooltip">
+                                                    <i class="fas fa-lock me-1"></i>Quá cutoff - Chưa chốt
+                                                </span>
+                                                @if(auth()->user()->hasRole('admin'))
+                                                    <button class="btn btn-sm btn-outline-danger"
+                                                        onclick="openConfirmGroupModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}', {{ $totalGuests }})">
+                                                        <i class="fas fa-unlock me-1"></i> Admin Override
+                                                    </button>
+                                                @endif
+                                            @endif
                                         @endif
-                                        onclick="openConfirmGroupModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}', {{ $isConfirmed ? ($group['confirmed_guests_count'] ?? $totalGuests) : $totalGuests }})">
-                                        <i class="fas {{ $isConfirmed ? 'fa-check-double' : 'fa-clipboard-check' }} me-1"></i> 
-                                        {{ $isConfirmed ? 'Đã chốt: ' . ($group['confirmed_guests_count'] ?? $totalGuests) . ' khách' : 'Chốt đoàn' }}
-                                    </button>
+                                    @else
+                                        <!-- ĐÃ KHỞI HÀNH HOẶC KẾT THÚC -->
+                                        <span class="badge bg-dark px-3 py-2">
+                                            <i class="fas fa-lock me-1"></i>{{ $isConfirmed ? 'Đã chốt' : 'Không chốt' }}: {{ $group['confirmed_guests_count'] ?? $totalGuests }} khách
+                                        </span>
+                                    @endif
                                 </div>
                                 
-                                @if(!($group['can_confirm_group'] ?? true) && !$isConfirmed)
+                                @if(!($group['can_confirm_group'] ?? true) && !$isConfirmed && $isBeforeCutoff)
                                     <small class="text-danger d-block mt-2">
                                         <i class="fas fa-exclamation-triangle"></i> 
                                         Chưa thể chốt: {{ count($group['unconfirmed_bookings'] ?? []) }} booking chưa xác nhận, {{ count($group['unpaid_bookings'] ?? []) }} booking chưa thanh toán
@@ -420,6 +611,25 @@
 
 @section('styles')
     <style>
+        /* Animate pulse for cutoff warning */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .animate-pulse {
+            animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        /* Card border for after cutoff */
+        .departure-card.border-start {
+            border-left-width: 4px !important;
+        }
+        
+        /* Badge styling improvements */
+        .badge {
+            font-weight: 500;
+        }
+        
         /* Fix lỗi lệch cột trong bảng - tham khảo từ quản lý khởi hành */
         .table {
             table-layout: fixed;
@@ -651,7 +861,7 @@
         const bookingsCache = {};
         
         // URL base cho API (dùng prefix thay vì route với placeholder)
-        const BOOKINGS_API_BASE = '/admin/bookings/by-departure/';
+        const BOOKINGS_API_BASE = '{{ url('admin/bookings/by-departure') }}/';
 
         document.addEventListener('DOMContentLoaded', function() {
 
@@ -682,34 +892,96 @@
              * - paid: Đã thanh toán
              * - cancelled: Đã hủy
              */
+            /**
+             * TRẠNG THÁI BOOKING: HOLD | PENDING | CONFIRMED | CANCELLED
+             */
             function buildStatusBadge(status) {
                 const map = {
-                    pending: { class: 'bg-warning text-dark', icon: 'fa-clock', label: 'Chờ xác nhận' },
-                    confirmed: { class: 'bg-info', icon: 'fa-check-circle', label: 'Đã xác nhận' },
-                    paid: { class: 'bg-success', icon: 'fa-money-bill-wave', label: 'Đã thanh toán' },
-                    cancelled: { class: 'bg-danger', icon: 'fa-times-circle', label: 'Đã hủy' },
+                    hold: { class: 'bg-secondary', icon: 'fa-pause-circle', label: 'HOLD' },
+                    pending: { class: 'bg-warning text-dark', icon: 'fa-clock', label: 'PENDING' },
+                    confirmed: { class: 'bg-success', icon: 'fa-check-circle', label: 'CONFIRMED' },
+                    paid: { class: 'bg-info', icon: 'fa-money-bill-wave', label: 'PAID' },
+                    cancelled: { class: 'bg-danger', icon: 'fa-times-circle', label: 'CANCELLED' },
                 };
-                return map[status] || { class: 'bg-secondary', icon: 'fa-question-circle', label: 'Khác' };
+                return map[status] || { class: 'bg-secondary', icon: 'fa-question-circle', label: status?.toUpperCase() || 'UNKNOWN' };
             }
 
             /**
-             * NGUỒN BOOKING
-             * - website: Website
-             * - zalo: Zalo
-             * - facebook: Facebook
-             * - phone: Điện thoại
+             * NGUỒN BOOKING: Website, Zalo Sale, Facebook, Phone
              */
             function buildSourceBadge(source) {
+                const s = (source || 'website').toLowerCase();
                 const map = {
-                    website: { class: 'bg-primary', icon: 'fa-globe', label: 'Website' },
-                    zalo: { class: 'bg-info', icon: 'fa-comment-dots', label: 'Zalo' },
-                    facebook: { class: 'bg-primary', icon: 'fa-facebook', label: 'Facebook' },
-                    phone: { class: 'bg-success', icon: 'fa-phone', label: 'Điện thoại' },
+                    website: { class: 'bg-primary', icon: 'fa-globe', label: '🌐 Website' },
+                    zalo: { class: 'bg-info', icon: 'fa-comment-dots', label: '💬 Zalo Sale' },
+                    facebook: { class: 'bg-primary', icon: 'fa-facebook', label: '📘 Facebook' },
+                    phone: { class: 'bg-success', icon: 'fa-phone', label: '📞 Điện thoại' },
                 };
-                return map[source] || { class: 'bg-secondary', icon: 'fa-question', label: source || 'Khác' };
+                return map[s] || { class: 'bg-secondary', icon: 'fa-question', label: source || 'Khác' };
+            }
+            
+            /**
+             * Build action buttons based on booking status and cutoff
+             */
+            function buildActionButtons(booking, metadata = {}) {
+                let actions = '';
+                const status = (booking.status || '').toLowerCase();
+                const isAfterCutoff = metadata.isAfterCutoff || false;
+                const tourStatus = metadata.tourStatus || 'open';
+                const departureStatus = metadata.departureStatus || 'open';
+                
+                // Xác định quyền theo trạng thái tour
+                const isCompleted = tourStatus === 'completed' || departureStatus === 'completed';
+                const isRunning = tourStatus === 'running' || departureStatus === 'running';
+                const isConfirmed = tourStatus === 'confirmed' || departureStatus === 'confirmed';
+                
+                // Nút Xem chi tiết luôn có
+                actions += `<a href="${booking.url}" class="btn btn-sm btn-outline-primary" title="Xem chi tiết">
+                    <i class="fas fa-eye"></i>
+                </a>`;
+                
+                if (isCompleted) {
+                    // ĐÃ KẾT THÚC: Chỉ xem, đối soát
+                    actions += `<span class="ms-1 text-muted" title="Tour đã kết thúc - chỉ xem và đối soát" data-bs-toggle="tooltip">
+                        <i class="fas fa-flag-checkered"></i>
+                    </span>`;
+                } else if (isRunning) {
+                    // ĐANG CHẠY: Không cho hủy
+                    actions += `<span class="ms-1 text-info" title="Tour đang diễn ra - không thể hủy" data-bs-toggle="tooltip">
+                        <i class="fas fa-plane-departure"></i>
+                    </span>`;
+                } else if (isAfterCutoff || isConfirmed) {
+                    // SAU CUTOFF hoặc ĐÃ CHỐT: Chỉ xem, không cho sửa
+                    const tooltip = isConfirmed ? 'Đoàn đã chốt - không thể chỉnh sửa' : 'Đã quá cutoff - không thể chỉnh sửa';
+                    actions += `<span class="ms-1 text-muted" title="${tooltip}" data-bs-toggle="tooltip">
+                        <i class="fas fa-lock"></i>
+                    </span>`;
+                } else {
+                    // TRƯỚC CUTOFF: Các action theo status
+                    if (status === 'hold') {
+                        // HOLD: Xác nhận hoặc Huỷ giữ chỗ
+                        actions += `<button class="btn btn-sm btn-outline-success ms-1" onclick="confirmBooking(${booking.id})" title="Xác nhận booking">
+                            <i class="fas fa-check"></i>
+                        </button>`;
+                        actions += `<button class="btn btn-sm btn-outline-danger ms-1" onclick="cancelHoldBooking(${booking.id})" title="Huỷ giữ chỗ">
+                            <i class="fas fa-times"></i>
+                        </button>`;
+                    } else if (status === 'confirmed' || status === 'paid') {
+                        // CONFIRMED: In danh sách khách
+                        actions += `<button class="btn btn-sm btn-outline-secondary ms-1" onclick="printGuestList(${booking.id})" title="In danh sách khách">
+                            <i class="fas fa-print"></i>
+                        </button>`;
+                    }
+                }
+                
+                return actions;
             }
 
-            function renderBookingTable(panel, bookings = []) {
+            function renderBookingTable(panel, bookings = [], metadata = {}) {
+                const isAfterCutoff = metadata.isAfterCutoff || false;
+                const tourStatus = metadata.tourStatus || 'open';
+                const departureStatus = metadata.departureStatus || 'open';
+                const capacityWarning = metadata.capacityWarning || false;
                 const placeholder = panel.querySelector('.booking-placeholder');
                 const wrapper = panel.querySelector('.booking-table-wrapper');
 
@@ -729,9 +1001,11 @@
                     const sourceMeta = buildSourceBadge(booking.booking_source);
                     const totalGuests = (booking.adults || 0) + (booking.children || 0) + (booking.infants || 0);
                     const guestTooltip = `Người lớn: ${booking.adults || 0}, Trẻ em: ${booking.children || 0}, Em bé: ${booking.infants || 0}`;
+                    const actionButtons = buildActionButtons(booking, metadata);
+                    const saleStaff = booking.sale_staff_name || '-';
                     
                     return `
-                        <tr>
+                        <tr class="${booking.status === 'cancelled' ? 'table-secondary text-muted' : ''}">
                             <td class="px-3">
                                 <div class="d-flex align-items-center">
                                     <div class="avatar-circle me-2" style="width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background-color: #6f42c1; color: white; font-weight: bold; font-size: 12px;">
@@ -739,8 +1013,8 @@
                                     </div>
                                     <div>
                                         <div class="fw-semibold">${escapeHtml(booking.customer_name)}</div>
-                                        <small class="text-muted">${escapeHtml(booking.customer_email)}</small>
-                                        <div><small class="text-primary">#${escapeHtml(booking.code)}</small></div>
+                                        <small class="text-muted">${escapeHtml(booking.customer_email || booking.customer_phone || '')}</small>
+                                        <div><small class="text-primary fw-bold">#${escapeHtml(booking.code)}</small></div>
                                     </div>
                                 </div>
                             </td>
@@ -759,18 +1033,21 @@
                             </td>
                             <td class="px-3 text-center">
                                 <span class="badge ${sourceMeta.class}" style="font-size: 11px;">
-                                    <i class="fas ${sourceMeta.icon} me-1"></i>${sourceMeta.label}
+                                    ${sourceMeta.label}
                                 </span>
                             </td>
                             <td class="px-3 text-center">
-                                <span class="badge ${statusMeta.class}">
+                                <small class="text-muted">${escapeHtml(saleStaff)}</small>
+                            </td>
+                            <td class="px-3 text-center">
+                                <span class="badge ${statusMeta.class} px-2 py-1">
                                     <i class="fas ${statusMeta.icon} me-1"></i>${statusMeta.label}
                                 </span>
                             </td>
                             <td class="px-3 text-center">
-                                <a href="${booking.url}" class="btn btn-sm btn-outline-primary" title="Xem chi tiết booking">
-                                    <i class="fas fa-eye"></i>
-                                </a>
+                                <div class="btn-group btn-group-sm">
+                                    ${actionButtons}
+                                </div>
                             </td>
                         </tr>
                     `;
@@ -783,11 +1060,12 @@
                             <thead class="table-light">
                                 <tr>
                                     <th class="border-0 py-3 px-3" style="min-width: 200px;">KHÁCH HÀNG</th>
-                                    <th class="border-0 py-3 px-3 text-center" style="width: 100px;">SỐ KHÁCH</th>
-                                    <th class="border-0 py-3 px-3 text-end" style="width: 140px;">TỔNG TIỀN</th>
-                                    <th class="border-0 py-3 px-3 text-center" style="width: 110px;">NGUỒN</th>
-                                    <th class="border-0 py-3 px-3 text-center" style="width: 130px;">TRẠNG THÁI</th>
-                                    <th class="border-0 py-3 px-3 text-center" style="width: 80px;">THAO TÁC</th>
+                                    <th class="border-0 py-3 px-3 text-center" style="width: 90px;">SỐ KHÁCH</th>
+                                    <th class="border-0 py-3 px-3 text-end" style="width: 130px;">TỔNG TIỀN</th>
+                                    <th class="border-0 py-3 px-3 text-center" style="width: 100px;">NGUỒN</th>
+                                    <th class="border-0 py-3 px-3 text-center" style="width: 100px;">SALE</th>
+                                    <th class="border-0 py-3 px-3 text-center" style="width: 110px;">TRẠNG THÁI</th>
+                                    <th class="border-0 py-3 px-3 text-center" style="width: 120px;">THAO TÁC</th>
                                 </tr>
                             </thead>
                             <tbody>${rows}</tbody>
@@ -828,14 +1106,24 @@
                     console.log('[AJAX] Response:', result);
                     
                     if (result.success && result.data) {
-                        // Cache the result
-                        bookingsCache[departureId] = result.data;
-                        return result.data;
+                        // Cache the result with all metadata
+                        bookingsCache[departureId] = {
+                            bookings: result.data,
+                            isAfterCutoff: result.is_after_cutoff || false,
+                            cutoffDate: result.cutoff_date,
+                            daysUntilCutoff: result.days_until_cutoff,
+                            departureStatus: result.departure_status || 'open',
+                            tourStatus: result.tour_status || 'open',
+                            totalGuests: result.total_guests || 0,
+                            vehicleCapacity: result.vehicle_capacity,
+                            capacityWarning: result.capacity_warning || false
+                        };
+                        return bookingsCache[departureId];
                     }
-                    return [];
+                    return { bookings: [], isAfterCutoff: false, departureStatus: 'open', tourStatus: 'open' };
                 } catch (error) {
                     console.error('[AJAX] Error fetching bookings:', error);
-                    return [];
+                    return { bookings: [], isAfterCutoff: false, departureStatus: 'open', tourStatus: 'open' };
                 }
             }
 
@@ -850,8 +1138,8 @@
                     placeholder.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Đang tải danh sách booking...';
                 }
                 
-                const bookings = await fetchBookingsByDeparture(departureId);
-                renderBookingTable(panel, bookings);
+                const result = await fetchBookingsByDeparture(departureId);
+                renderBookingTable(panel, result.bookings, result);
                 panel.dataset.loaded = 'true';
             }
 
@@ -878,10 +1166,10 @@
                         }
 
                         // Fetch via AJAX
-                        const bookings = await fetchBookingsByDeparture(departureId);
-                        console.log('[Xem booking] Loaded bookings', { departureId, count: bookings.length });
+                        const result = await fetchBookingsByDeparture(departureId);
+                        console.log('[Xem booking] Loaded bookings', { departureId, count: result.bookings?.length });
 
-                        renderBookingTable(panel, bookings);
+                        renderBookingTable(panel, result.bookings, result);
                         panel.dataset.loaded = 'true';
                     });
                 });
@@ -1634,5 +1922,78 @@
                 this.remove();
             });
         }
+        
+        // ==========================================
+        // BOOKING ACTIONS (từ table booking)
+        // ==========================================
+        
+        /**
+         * Xác nhận booking (chuyển từ HOLD sang PENDING hoặc CONFIRMED)
+         */
+        async function confirmBooking(bookingId) {
+            if (!confirm('Bạn có chắc muốn xác nhận booking này?')) return;
+            
+            try {
+                const response = await fetch(`{{ url('admin/bookings') }}/${bookingId}/confirm`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    showAlert('success', data.message || 'Đã xác nhận booking thành công!');
+                    // Clear cache and reload
+                    Object.keys(bookingsCache).forEach(key => delete bookingsCache[key]);
+                    location.reload();
+                } else {
+                    showAlert('danger', data.message || 'Có lỗi xảy ra khi xác nhận booking');
+                }
+            } catch (error) {
+                console.error('Error confirming booking:', error);
+                showAlert('danger', 'Lỗi: ' + error.message);
+            }
+        }
+        
+        /**
+         * Huỷ giữ chỗ (booking HOLD)
+         */
+        async function cancelHoldBooking(bookingId) {
+            if (!confirm('Bạn có chắc muốn huỷ giữ chỗ này? Booking sẽ chuyển sang trạng thái CANCELLED.')) return;
+            
+            try {
+                const response = await fetch(`{{ url('admin/bookings') }}/${bookingId}/cancel`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    showAlert('success', data.message || 'Đã huỷ giữ chỗ thành công!');
+                    // Clear cache and reload
+                    Object.keys(bookingsCache).forEach(key => delete bookingsCache[key]);
+                    location.reload();
+                } else {
+                    showAlert('danger', data.message || 'Có lỗi xảy ra khi huỷ giữ chỗ');
+                }
+            } catch (error) {
+                console.error('Error cancelling hold:', error);
+                showAlert('danger', 'Lỗi: ' + error.message);
+            }
+        }
+        
+        /**
+         * In danh sách khách của booking
+         */
+        function printGuestList(bookingId) {
+            window.open(`{{ url('admin/bookings') }}/${bookingId}/print-guests`, '_blank');
+        }
     </script>
 @endsection
+
+

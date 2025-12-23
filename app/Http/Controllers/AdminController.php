@@ -1057,36 +1057,141 @@ class AdminController extends Controller
      */
     public function getBookingsByDeparture($departureId)
     {
-        $bookings = Booking::with(['user', 'tour'])
-            ->where('departure_id', $departureId)
-            ->orderBy('created_at', 'desc')
-            ->get();
-        
-        $rows = [];
-        foreach ($bookings as $booking) {
-            $rows[] = [
-                'id' => (int) $booking->id,
-                'code' => str_pad($booking->id, 6, '0', STR_PAD_LEFT),
-                'customer_name' => (string) ($booking->user->name ?? 'Không rõ'),
-                'customer_email' => (string) ($booking->user->email ?? ''),
-                'customer_phone' => (string) ($booking->user->phone ?? ''),
-                'adults' => (int) $booking->adults,
-                'children' => (int) $booking->children,
-                'infants' => (int) $booking->infants,
-                'total_amount' => (float) $booking->total_amount,
-                'status' => (string) $booking->status,
-                'booking_source' => (string) ($booking->booking_source ?? 'website'),
-                'created_at' => $booking->created_at ? $booking->created_at->format('d/m/Y') : '',
-                'profile_initial' => strtoupper(substr($booking->user->name ?? 'U', 0, 2)),
-                'url' => route('admin.bookings.show', $booking->id),
-            ];
+        try {
+            $bookings = Booking::with(['user', 'tour', 'departure'])
+                ->where('departure_id', $departureId)
+                ->orderBy('created_at', 'desc')
+                ->get();
+            
+            // Tính cutoff status và thông tin departure
+            $departure = TourDeparture::with(['guide', 'vehicle'])->find($departureId);
+            $isAfterCutoff = false;
+            $cutoffDate = null;
+            $cutoffDays = 3;
+            $daysUntilCutoff = null;
+            $departureStatus = 'open'; // Mở bán
+            $tourStatus = 'open'; // Trạng thái tour
+            $vehicleCapacity = null;
+            $totalGuests = 0;
+            $capacityWarning = false;
+            
+            if ($departure && $departure->departure_date) {
+                $cutoffDays = $departure->cutoff_days ?? 3;
+                $cutoffDate = $departure->departure_date->copy()->subDays($cutoffDays);
+                $isAfterCutoff = now()->gt($cutoffDate);
+                $daysUntilCutoff = now()->diffInDays($cutoffDate, false);
+                
+                // Xác định trạng thái đoàn/departure
+                $departureDate = $departure->departure_date;
+                $tourDuration = $departure->tour->duration ?? 1;
+                $endDate = $departureDate->copy()->addDays($tourDuration);
+                
+                if (now()->gt($endDate)) {
+                    $departureStatus = 'completed'; // Đã kết thúc
+                    $tourStatus = 'completed';
+                } elseif (now()->gte($departureDate) && now()->lte($endDate)) {
+                    $departureStatus = 'running'; // Đang chạy
+                    $tourStatus = 'running';
+                } elseif ($departure->group_confirmed) {
+                    $departureStatus = 'confirmed'; // Đã chốt khách
+                    $tourStatus = 'confirmed';
+                } else {
+                    $departureStatus = 'open'; // Mở bán
+                    $tourStatus = 'open';
+                }
+                
+                // Tính tổng số khách và kiểm tra sức chứa xe
+                $totalGuests = $departure->bookings()
+                    ->whereNotIn('status', ['cancelled', 'expired'])
+                    ->sum(\DB::raw('adults + children'));
+                    
+                if ($departure->vehicle) {
+                    $vehicleCapacity = $departure->vehicle->capacity ?? $departure->vehicle->seats ?? 0;
+                    $capacityWarning = $vehicleCapacity > 0 && $totalGuests > $vehicleCapacity;
+                }
+            }
+            
+            $rows = [];
+            foreach ($bookings as $booking) {
+                // Lấy sale staff name nếu có
+                $saleStaffName = '';
+                if ($booking->sale_staff_id) {
+                    $saleStaff = User::find($booking->sale_staff_id);
+                    $saleStaffName = $saleStaff ? $saleStaff->name : '';
+                }
+                
+                // Helper function to clean and ensure valid UTF-8 strings
+                $cleanUtf8 = function($str) {
+                    if ($str === null || $str === '') return '';
+                    $str = (string) $str;
+                    // Try multiple encodings to find valid UTF-8
+                    if (!mb_check_encoding($str, 'UTF-8')) {
+                        // Try common encodings
+                        $encodings = ['Windows-1252', 'ISO-8859-1', 'ASCII'];
+                        foreach ($encodings as $encoding) {
+                            $converted = @mb_convert_encoding($str, 'UTF-8', $encoding);
+                            if ($converted !== false && mb_check_encoding($converted, 'UTF-8')) {
+                                $str = $converted;
+                                break;
+                            }
+                        }
+                    }
+                    // Remove any remaining invalid UTF-8 sequences
+                    $str = @iconv('UTF-8', 'UTF-8//IGNORE', $str);
+                    // Remove control characters except newlines and tabs
+                    return preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $str ?: '');
+                };
+                
+                $customerName = $cleanUtf8($booking->user->name ?? 'Khong ro');
+                $customerEmail = $cleanUtf8($booking->user->email ?? '');
+                $customerPhone = $cleanUtf8($booking->user->phone ?? '');
+                
+                // Get profile initial safely (first 2 characters)
+                $profileInitial = mb_strtoupper(mb_substr($customerName, 0, 2, 'UTF-8'), 'UTF-8');
+                if (empty($profileInitial)) $profileInitial = 'UK';
+                
+                $rows[] = [
+                    'id' => (int) $booking->id,
+                    'code' => str_pad($booking->id, 6, '0', STR_PAD_LEFT),
+                    'customer_name' => $customerName,
+                    'customer_email' => $customerEmail,
+                    'customer_phone' => $customerPhone,
+                    'adults' => (int) ($booking->adults ?? 0),
+                    'children' => (int) ($booking->children ?? 0),
+                    'infants' => (int) ($booking->infants ?? 0),
+                    'total_amount' => (float) ($booking->total_amount ?? 0),
+                    'status' => $cleanUtf8($booking->status ?? 'pending'),
+                    'booking_source' => $cleanUtf8($booking->booking_source ?? 'website'),
+                    'sale_staff_id' => $booking->sale_staff_id,
+                    'sale_staff_name' => $cleanUtf8($saleStaffName),
+                    'created_at' => $booking->created_at ? $booking->created_at->format('d/m/Y') : '',
+                    'profile_initial' => $profileInitial,
+                    'url' => route('admin.bookings.show', $booking->id),
+                ];
+            }
+            
+            return response()->json([
+                'success' => true,
+                'data' => $rows,
+                'count' => count($rows),
+                'is_after_cutoff' => $isAfterCutoff,
+                'cutoff_date' => $cutoffDate ? $cutoffDate->format('d/m/Y') : null,
+                'days_until_cutoff' => $daysUntilCutoff,
+                'departure_status' => $departureStatus,
+                'tour_status' => $tourStatus,
+                'total_guests' => $totalGuests,
+                'vehicle_capacity' => $vehicleCapacity,
+                'capacity_warning' => $capacityWarning,
+            ], 200, [], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching bookings by departure: ' . $e->getMessage() . ' - ' . $e->getTraceAsString());
+            return response()->json([
+                'success' => false,
+                'message' => 'Loi khi tai danh sach booking',
+                'data' => [],
+                'count' => 0
+            ], 500);
         }
-        
-        return response()->json([
-            'success' => true,
-            'data' => $rows,
-            'count' => count($rows)
-        ]);
     }
 
     /**

@@ -28,6 +28,7 @@ class Booking extends Model
         'status',
         'source',
         'booking_source', // Nguồn booking: website, zalo, facebook, phone
+        'sale_staff_id', // Sale phụ trách booking
         'promotion_code',
         'note',
         'passenger_manifest_file',
@@ -96,6 +97,14 @@ class Booking extends Model
     public function staff(): BelongsTo
     {
         return $this->belongsTo(User::class, 'staff_id');
+    }
+    
+    /**
+     * Get the sale staff member assigned to this booking.
+     */
+    public function saleStaff(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'sale_staff_id');
     }
 
     /**
