@@ -124,7 +124,7 @@
 
     <!-- Charts Row -->
     <div class="row g-4 mb-4">
-        <div class="col-xl-8">
+        <div class="col-xl-6 col-lg-7">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-white border-0 pb-0">
                     <div class="d-flex justify-content-between align-items-center">
@@ -134,7 +134,7 @@
                         </h5>
                         <div class="dropdown">
                             <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                2024
+                                {{ now()->year }}
                             </button>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="#">2024</a></li>
@@ -143,13 +143,15 @@
                         </div>
                     </div>
                 </div>
-                <div class="card-body">
-                    <canvas id="revenueChart" height="300"></canvas>
+                <div class="card-body" style="min-height: 260px;">
+                    <div style="height:220px">
+                        <canvas id="revenueChart" style="height:220px; width:100%;"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-xl-4">
+        <div class="col-xl-6 col-lg-5">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-white border-0 pb-0">
                     <h5 class="card-title mb-0">
@@ -157,8 +159,10 @@
                         Tour phổ biến
                     </h5>
                 </div>
-                <div class="card-body">
-                    <canvas id="popularToursChart" height="300"></canvas>
+                <div class="card-body" style="min-height: 260px;">
+                    <div style="height:220px">
+                        <canvas id="popularToursChart" style="height:220px; width:100%;"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -256,10 +260,52 @@
 </div>
 
 <!-- Scripts -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+// Load Chart.js with multiple fallbacks (jsDelivr -> unpkg -> cdnjs)
+function loadChartJs(callback) {
+    if (window.Chart) {
+        callback();
+        return;
+    }
+
+    const sources = [
+        'https://cdn.jsdelivr.net/npm/chart.js',
+        'https://unpkg.com/chart.js@4.4.1/dist/chart.umd.min.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js'
+    ];
+
+    function tryLoad(index) {
+        if (window.Chart) {
+            callback();
+            return;
+        }
+        if (index >= sources.length) {
+            console.error('Không thể tải Chart.js từ các CDN');
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = sources[index];
+        script.onload = function() {
+            if (window.Chart) {
+                callback();
+            } else {
+                tryLoad(index + 1);
+            }
+        };
+        script.onerror = function() {
+            tryLoad(index + 1);
+        };
+        document.head.appendChild(script);
+    }
+
+    tryLoad(0);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
-    initializeCharts();
+    loadChartJs(function() {
+        if (typeof Chart === 'undefined') return;
+        initializeCharts();
+    });
     loadDashboardData();
     
     // Auto refresh every 5 minutes
@@ -274,7 +320,7 @@ function initializeCharts() {
         data: {
             labels: ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'],
             datasets: [{
-                label: 'Doanh thu (triệu VNĐ)',
+                label: 'Doanh thu (triệu VNĐ) {{ now()->year }}',
                 data: [120, 150, 180, 220, 280, 320, 350, 380, 420, 450, 480, 520],
                 borderColor: '#6366F1',
                 backgroundColor: 'rgba(99, 102, 241, 0.1)',
@@ -285,6 +331,7 @@ function initializeCharts() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            layout: { padding: { left: 0, right: 0, top: 0, bottom: 0 } },
             plugins: {
                 legend: {
                     display: false
@@ -338,22 +385,32 @@ function initializeCharts() {
 async function loadDashboardData() {
     try {
         // Load recent departures
-        const departuresResponse = await fetch('/api/dashboard/recent-departures');
-        const departuresData = await departuresResponse.json();
-        
-        if (departuresData.success) {
-            renderRecentDepartures(departuresData.data);
+        let departuresData = { success: false, data: [] };
+        try {
+            const departuresResponse = await fetch('/api/dashboard/recent-departures');
+            if (departuresResponse.ok) {
+                departuresData = await departuresResponse.json();
+            }
+        } catch (e) {
+            console.warn('Fetch departures failed', e);
         }
+        renderRecentDepartures(departuresData.success ? departuresData.data : []);
 
         // Load notifications
-        const notificationsResponse = await fetch('/api/tour-schedules/notifications/recent');
-        const notificationsData = await notificationsResponse.json();
-        
-        if (notificationsData.success) {
-            renderNotifications(notificationsData.data);
+        let notificationsData = { success: false, data: [] };
+        try {
+            const notificationsResponse = await fetch('/api/tour-schedules/notifications/recent');
+            if (notificationsResponse.ok) {
+                notificationsData = await notificationsResponse.json();
+            }
+        } catch (e) {
+            console.warn('Fetch notifications failed', e);
         }
+        renderNotifications(notificationsData.success ? notificationsData.data : []);
     } catch (error) {
         console.error('Error loading dashboard data:', error);
+        renderRecentDepartures([]);
+        renderNotifications([]);
     }
 }
 

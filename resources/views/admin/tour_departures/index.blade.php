@@ -309,7 +309,7 @@
                                 <th class="border-0 py-3 px-3">ID</th>
                                 <th class="border-0 py-3 px-3">NGÀY KHỞI HÀNH</th>
                                 <th class="border-0 py-3 px-3">TRẠNG THÁI</th>
-                                <th class="border-0 py-3 px-3">GHẾ TRỐNG/TỔNG</th>
+                                <th class="border-0 py-3 px-3">SỐ KHÁCH / GHẾ</th>
                                 <th class="border-0 py-3 px-3">GIÁ NGƯỜI LỚN</th>
                                 <th class="border-0 py-3 px-3">NGÀY TẠO</th>
                                 <th class="border-0 py-3 px-3 text-end">THAO TÁC</th>
@@ -325,32 +325,43 @@
                                     $isLocked = $departure->tour_status === 'locked' || $departure->status === 'sold_out';
                                     $isFinished = $departure->status === 'finished' || $departure->tour_status === 'completed';
                                     
+                                    // Tính số khách đã đặt (người lớn + trẻ em, loại trừ cancelled/expired)
+                                    $bookedGuests = \App\Models\Booking::where('departure_id', $departure->id)
+                                        ->whereNotIn('status', ['cancelled', 'expired'])
+                                        ->sum(\Illuminate\Support\Facades\DB::raw('adults + children'));
+
                                     $seatsPercentage = $departure->seats_total > 0 
-                                        ? ($departure->seats_available / $departure->seats_total) * 100 
+                                        ? ($bookedGuests / $departure->seats_total) * 100 
                                         : 0;
                                     $seatsClass = $seatsPercentage > 50 ? 'seats-available' : ($seatsPercentage > 20 ? 'seats-low' : 'seats-full');
                                     
                                     // Xác định trạng thái theo quy tắc mới
-                                    $departureStatus = 'available'; // Mặc định
-                                    $statusBadge = 'bg-success';
-                                    $statusText = 'Đang bán';
-                                    $statusIcon = 'fa-shopping-cart';
-                                    
-                                    if ($isFinished) {
-                                        $departureStatus = 'finished';
+                                    // Trạng thái hiển thị dựa trên accessor status
+                                    $status = $departure->status;
+                                    $statusBadge = 'bg-secondary';
+                                    $statusText = 'Không xác định';
+                                    $statusIcon = 'fa-question-circle';
+
+                                    if ($status === 'cancelled') {
+                                        $statusBadge = 'bg-danger';
+                                        $statusText = 'Đã hủy';
+                                        $statusIcon = 'fa-times-circle';
+                                    } elseif ($status === 'finished') {
                                         $statusBadge = 'bg-secondary';
                                         $statusText = 'Đã kết thúc';
                                         $statusIcon = 'fa-archive';
-                                    } elseif ($isLocked) {
-                                        $departureStatus = 'locked';
+                                    } elseif ($status === 'sold_out') {
                                         $statusBadge = 'bg-warning text-dark';
-                                        $statusText = 'Đã chốt';
-                                        $statusIcon = 'fa-lock';
-                                    } elseif ($daysUntilDeparture >= 0 && $daysUntilDeparture <= 7) {
-                                        $departureStatus = 'upcoming';
+                                        $statusText = 'Đã đủ khách';
+                                        $statusIcon = 'fa-users';
+                                    } elseif ($status === 'upcoming') {
                                         $statusBadge = 'bg-info';
                                         $statusText = 'Sắp khởi hành';
                                         $statusIcon = 'fa-clock';
+                                    } elseif ($status === 'available') {
+                                        $statusBadge = 'bg-success';
+                                        $statusText = 'Đang mở bán';
+                                        $statusIcon = 'fa-shopping-cart';
                                     }
                                 @endphp
                                 <tr onclick="window.location='{{ route('admin.departures.show', $departure->id) }}'" style="cursor: pointer;">
@@ -378,7 +389,7 @@
                                     <td class="px-3">
                                         <div class="seats-cell {{ $seatsClass }}">
                                             <div>
-                                                <strong class="fs-6">{{ $departure->seats_available }}</strong>
+                                                <strong class="fs-6">{{ $bookedGuests }}</strong>
                                                 <span class="text-muted">/{{ $departure->seats_total }}</span>
                                             </div>
                                             <div class="progress mt-1" style="height: 5px;">

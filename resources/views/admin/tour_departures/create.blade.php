@@ -65,18 +65,6 @@
                 <label class="form-label">Tổng chỗ</label>
                 <input type="number" name="seats_total" class="form-control" value="{{ old('seats_total') }}" min="1" required>
             </div>
-            <div class="col-md-4">
-                <label class="form-label">Còn lại</label>
-                <input type="number" name="seats_available" class="form-control" value="{{ old('seats_available') }}" min="0" required>
-            </div>
-            <div class="col-md-4">
-                <label class="form-label">Trạng thái</label>
-                <select name="status" class="form-select" required>
-                    <option value="available">Còn chỗ</option>
-                    <option value="contact">Liên hệ</option>
-                    <option value="sold_out">Hết chỗ</option>
-                </select>
-            </div>
         </div>
 
         <div class="row mb-3">

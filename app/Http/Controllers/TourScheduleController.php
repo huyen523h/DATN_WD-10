@@ -5,11 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\Tour;
 use App\Models\TourSchedule;
 use App\Models\TourDeparture;
+use App\Models\Vehicle;
 use App\Models\User;
 use App\Http\Resources\TourScheduleResource;
 use App\Http\Resources\TourDepartureDetailResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class TourScheduleController extends Controller
 {
@@ -61,31 +64,52 @@ class TourScheduleController extends Controller
                 ->select('id', 'name', 'email', 'phone')
                 ->get();
 
-            // Nếu có ngày cụ thể, thêm thông tin về xung đột lịch trình
+            // Nếu có ngày cụ thể, thêm kiểm tra xung đột đa ngày (theo số ngày tour)
             if ($request->has('date') && $request->date) {
                 $excludeDepartureId = $request->get('exclude_departure_id');
+                $currentTour = null;
+                $currentDuration = 3;
+
+                if ($request->has('tour_id') && $request->tour_id) {
+                    $currentTour = Tour::find($request->tour_id);
+                    $currentDuration = $this->getTourDurationDays($currentTour);
+                }
+
+                $startDate = Carbon::parse($request->date)->startOfDay();
+                $endDate = (clone $startDate)->addDays($currentDuration);
                 
-                $guides->each(function($guide) use ($request, $excludeDepartureId) {
-                    $conflictsQuery = TourDeparture::where('departure_date', $request->date)
-                        ->where(function($query) use ($guide) {
+                $guides->each(function($guide) use ($excludeDepartureId, $startDate, $endDate) {
+                    $conflictsQuery = TourDeparture::where(function($query) use ($guide) {
                             $query->where('guide_id', $guide->id)
                                   ->orWhere('backup_guide_id', $guide->id);
-                        });
+                        })
+                        ->when($excludeDepartureId, function($q) use ($excludeDepartureId) {
+                            $q->where('id', '!=', $excludeDepartureId);
+                        })
+                        ->with('tour')
+                        ->get();
                     
-                    if ($excludeDepartureId) {
-                        $conflictsQuery->where('id', '!=', $excludeDepartureId);
+                    $conflicts = [];
+                    foreach ($conflictsQuery as $departure) {
+                        $depStart = $departure->departure_date instanceof Carbon
+                            ? $departure->departure_date->copy()->startOfDay()
+                            : Carbon::parse($departure->departure_date)->startOfDay();
+                        $depDuration = $this->getTourDurationDays($departure->tour ?? null);
+                        $depEnd = (clone $depStart)->addDays($depDuration);
+
+                        if ($startDate <= $depEnd && $endDate >= $depStart) {
+                            $conflicts[] = [
+                                'departure_id' => $departure->id,
+                                'tour_title' => $departure->tour->title ?? 'N/A',
+                                'role' => $departure->guide_id == $guide->id ? 'Chính' : 'Dự phòng',
+                                'from' => $depStart->format('d/m/Y'),
+                                'to' => $depEnd->format('d/m/Y'),
+                            ];
+                        }
                     }
                     
-                    $conflicts = $conflictsQuery->with('tour')->get();
-                    
-                    $guide->is_available = $conflicts->isEmpty();
-                    $guide->conflicts = $conflicts->map(function($departure) use ($guide) {
-                        return [
-                            'departure_id' => $departure->id,
-                            'tour_title' => $departure->tour->title ?? 'N/A',
-                            'role' => $departure->guide_id == $guide->id ? 'Chính' : 'Dự phòng'
-                        ];
-                    })->toArray();
+                    $guide->is_available = empty($conflicts);
+                    $guide->conflicts = $conflicts;
                 });
             } else {
                 // Nếu không có ngày, tất cả HDV đều available
@@ -113,7 +137,7 @@ class TourScheduleController extends Controller
                 'count' => $guidesArray->count()
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error in getAvailableGuides: ' . $e->getMessage(), [
+            Log::error('Error in getAvailableGuides: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
             ]);
             
@@ -158,6 +182,7 @@ class TourScheduleController extends Controller
                 'departure_instructions' => 'nullable|string',
                 'guide_id' => 'nullable|exists:users,id',
                 'backup_guide_id' => 'nullable|exists:users,id',
+                'vehicle_id' => 'nullable|exists:vehicles,id',
                 'emergency_contact' => 'nullable|string|max:255',
                 'emergency_phone' => 'nullable|string|max:20',
                 'preparation_status' => 'nullable|in:pending,ready,confirmed,cancelled,draft',
@@ -165,14 +190,18 @@ class TourScheduleController extends Controller
                 'special_notes' => 'nullable|string'
             ]);
 
-            $departure = TourDeparture::findOrFail($id);
+            $departure = TourDeparture::with('tour')->findOrFail($id);
+            $tour = $departure->tour ?? Tour::find($departure->tour_id);
+            $startDate = Carbon::parse($request->departure_date ?: $departure->departure_date)->startOfDay();
+            $durationDays = $this->getTourDurationDays($tour);
+            $endDate = (clone $startDate)->addDays($durationDays);
             
             // CRITICAL: Validate guide assignments first
             if ($request->has('guide_id') && $request->has('backup_guide_id') && 
                 $request->guide_id && $request->backup_guide_id && 
                 $request->guide_id == $request->backup_guide_id) {
                 
-                \Log::warning("Attempted to assign same guide for both roles", [
+                Log::warning("Attempted to assign same guide for both roles", [
                     'departure_id' => $id,
                     'guide_id' => $request->guide_id,
                     'backup_guide_id' => $request->backup_guide_id
@@ -205,77 +234,79 @@ class TourScheduleController extends Controller
                 ], 422);
             }
 
-            // Check for guide conflicts on the same date
-            $checkDate = $request->departure_date ?: $departure->departure_date;
-            
-            \Log::info("Checking guide conflicts for departure {$id} on date {$checkDate}", [
-                'guide_id' => $request->guide_id,
-                'backup_guide_id' => $request->backup_guide_id
-            ]);
-            
-            if ($request->guide_id) {
-                $conflictingDeparture = TourDeparture::where('departure_date', $checkDate)
-                    ->where('id', '!=', $id)
-                    ->where(function($query) use ($request) {
-                        $query->where('guide_id', $request->guide_id)
-                              ->orWhere('backup_guide_id', $request->guide_id);
+            // Check guide conflicts on overlapping date ranges (multi-day)
+            $checkGuideConflict = function ($guideId, $label) use ($id, $startDate, $endDate) {
+                if (!$guideId) {
+                    return null;
+                }
+
+                $conflicts = TourDeparture::where('id', '!=', $id)
+                    ->where(function ($q) use ($guideId) {
+                        $q->where('guide_id', $guideId)
+                          ->orWhere('backup_guide_id', $guideId);
                     })
                     ->with('tour')
-                    ->first();
-                
-                \Log::info("Main guide conflict check", [
-                    'guide_id' => $request->guide_id,
-                    'conflicting_departure' => $conflictingDeparture ? $conflictingDeparture->id : null
-                ]);
-                
-                if ($conflictingDeparture) {
-                    $guideName = \App\Models\User::find($request->guide_id)->name ?? 'HDV';
-                    $tourTitle = $conflictingDeparture->tour->title ?? 'N/A';
-                    
-                    \Log::warning("Guide conflict detected", [
-                        'guide_id' => $request->guide_id,
-                        'guide_name' => $guideName,
-                        'conflicting_departure_id' => $conflictingDeparture->id,
-                        'tour_title' => $tourTitle
-                    ]);
-                    
-                    return response()->json([
-                        'success' => false,
-                        'message' => "HDV {$guideName} đã được gán cho tour khác vào ngày {$checkDate} (Tour: {$tourTitle})"
-                    ], 422);
+                    ->get();
+
+                foreach ($conflicts as $conflict) {
+                    $confStart = $conflict->departure_date instanceof Carbon
+                        ? $conflict->departure_date->copy()->startOfDay()
+                        : Carbon::parse($conflict->departure_date)->startOfDay();
+                    $confDuration = $this->getTourDurationDays($conflict->tour ?? null);
+                    $confEnd = (clone $confStart)->addDays($confDuration);
+
+                    if ($startDate <= $confEnd && $endDate >= $confStart) {
+                        $guideName = \App\Models\User::find($guideId)->name ?? 'HDV';
+                        $tourTitle = $conflict->tour->title ?? 'tour khác';
+                        return [
+                            'success' => false,
+                            'message' => "{$label} {$guideName} bận từ " . $confStart->format('d/m/Y')
+                                . " đến " . $confEnd->format('d/m/Y') . " (Tour: {$tourTitle})"
+                        ];
+                    }
+                }
+
+                return null;
+            };
+
+            if ($request->guide_id) {
+                $conflict = $checkGuideConflict($request->guide_id, 'HDV chính');
+                if ($conflict) {
+                    return response()->json($conflict, 422);
                 }
             }
-            
+
             if ($request->backup_guide_id) {
-                $conflictingDeparture = TourDeparture::where('departure_date', $checkDate)
-                    ->where('id', '!=', $id)
-                    ->where(function($query) use ($request) {
-                        $query->where('guide_id', $request->backup_guide_id)
-                              ->orWhere('backup_guide_id', $request->backup_guide_id);
-                    })
+                $conflict = $checkGuideConflict($request->backup_guide_id, 'HDV dự phòng');
+                if ($conflict) {
+                    return response()->json($conflict, 422);
+                }
+            }
+
+            // Check vehicle conflicts on overlapping date ranges (multi-day)
+            if ($request->vehicle_id) {
+                $vehicleConflicts = TourDeparture::where('id', '!=', $id)
+                    ->where('vehicle_id', $request->vehicle_id)
                     ->with('tour')
-                    ->first();
-                
-                \Log::info("Backup guide conflict check", [
-                    'backup_guide_id' => $request->backup_guide_id,
-                    'conflicting_departure' => $conflictingDeparture ? $conflictingDeparture->id : null
-                ]);
-                
-                if ($conflictingDeparture) {
-                    $guideName = \App\Models\User::find($request->backup_guide_id)->name ?? 'HDV';
-                    $tourTitle = $conflictingDeparture->tour->title ?? 'N/A';
-                    
-                    \Log::warning("Backup guide conflict detected", [
-                        'backup_guide_id' => $request->backup_guide_id,
-                        'guide_name' => $guideName,
-                        'conflicting_departure_id' => $conflictingDeparture->id,
-                        'tour_title' => $tourTitle
-                    ]);
-                    
-                    return response()->json([
-                        'success' => false,
-                        'message' => "HDV {$guideName} đã được gán cho tour khác vào ngày {$checkDate} (Tour: {$tourTitle})"
-                    ], 422);
+                    ->get();
+
+                foreach ($vehicleConflicts as $conflict) {
+                    $confStart = $conflict->departure_date instanceof Carbon
+                        ? $conflict->departure_date->copy()->startOfDay()
+                        : Carbon::parse($conflict->departure_date)->startOfDay();
+                    $confDuration = $this->getTourDurationDays($conflict->tour ?? null);
+                    $confEnd = (clone $confStart)->addDays($confDuration);
+
+                    if ($startDate <= $confEnd && $endDate >= $confStart) {
+                        $vehicle = Vehicle::find($request->vehicle_id);
+                        $plate = $vehicle->license_plate ?? 'Xe';
+                        $tourTitle = $conflict->tour->title ?? 'tour khác';
+                        return response()->json([
+                            'success' => false,
+                            'message' => "{$plate} bận từ " . $confStart->format('d/m/Y')
+                                . " đến " . $confEnd->format('d/m/Y') . " (Tour: {$tourTitle})"
+                        ], 422);
+                    }
                 }
             }
 
@@ -310,13 +341,14 @@ class TourScheduleController extends Controller
                 'price' => 'nullable|numeric|min:0',
                 'guide_id' => 'nullable|exists:users,id',
                 'backup_guide_id' => 'nullable|exists:users,id',
+                'vehicle_id' => 'nullable|exists:vehicles,id',
                 'special_notes' => 'nullable|string',
                 'preparation_status' => 'nullable|in:pending,ready,confirmed,cancelled,draft'
             ]);
 
             // CRITICAL: Validate guide assignments first
             if ($request->guide_id && $request->backup_guide_id && $request->guide_id == $request->backup_guide_id) {
-                \Log::warning("Attempted to create departure with same guide for both roles", [
+                Log::warning("Attempted to create departure with same guide for both roles", [
                     'tour_id' => $request->tour_id,
                     'guide_id' => $request->guide_id,
                     'backup_guide_id' => $request->backup_guide_id
@@ -328,42 +360,79 @@ class TourScheduleController extends Controller
                 ], 422);
             }
 
-            // Check for guide conflicts on the same date
-            if ($request->guide_id) {
-                $conflictingDeparture = TourDeparture::where('departure_date', $request->departure_date)
-                    ->where(function($query) use ($request) {
-                        $query->where('guide_id', $request->guide_id)
-                              ->orWhere('backup_guide_id', $request->guide_id);
+            // Check conflicts (multi-day) for guide/backup/vehicle when creating
+            $tour = Tour::find($request->tour_id);
+            $startDate = Carbon::parse($request->departure_date)->startOfDay();
+            $durationDays = $this->getTourDurationDays($tour);
+            $endDate = (clone $startDate)->addDays($durationDays);
+
+            $checkGuideConflict = function ($guideId, $label) use ($startDate, $endDate) {
+                if (!$guideId) {
+                    return null;
+                }
+                $conflicts = TourDeparture::where(function ($q) use ($guideId) {
+                        $q->where('guide_id', $guideId)
+                          ->orWhere('backup_guide_id', $guideId);
                     })
                     ->with('tour')
-                    ->first();
-                
-                if ($conflictingDeparture) {
-                    $guideName = \App\Models\User::find($request->guide_id)->name ?? 'HDV';
-                    $tourTitle = $conflictingDeparture->tour->title ?? 'N/A';
-                    return response()->json([
-                        'success' => false,
-                        'message' => "HDV {$guideName} đã được gán cho tour khác vào ngày {$request->departure_date} (Tour: {$tourTitle})"
-                    ], 422);
+                    ->get();
+
+                foreach ($conflicts as $conflict) {
+                    $confStart = $conflict->departure_date instanceof Carbon
+                        ? $conflict->departure_date->copy()->startOfDay()
+                        : Carbon::parse($conflict->departure_date)->startOfDay();
+                    $confDuration = $this->getTourDurationDays($conflict->tour ?? null);
+                    $confEnd = (clone $confStart)->addDays($confDuration);
+
+                    if ($startDate <= $confEnd && $endDate >= $confStart) {
+                        $guideName = \App\Models\User::find($guideId)->name ?? 'HDV';
+                        $tourTitle = $conflict->tour->title ?? 'tour khác';
+                        return [
+                            'success' => false,
+                            'message' => "{$label} {$guideName} bận từ " . $confStart->format('d/m/Y')
+                                . " đến " . $confEnd->format('d/m/Y') . " (Tour: {$tourTitle})"
+                        ];
+                    }
+                }
+                return null;
+            };
+
+            if ($request->guide_id) {
+                $conflict = $checkGuideConflict($request->guide_id, 'HDV chính');
+                if ($conflict) {
+                    return response()->json($conflict, 422);
                 }
             }
-            
+
             if ($request->backup_guide_id) {
-                $conflictingDeparture = TourDeparture::where('departure_date', $request->departure_date)
-                    ->where(function($query) use ($request) {
-                        $query->where('guide_id', $request->backup_guide_id)
-                              ->orWhere('backup_guide_id', $request->backup_guide_id);
-                    })
+                $conflict = $checkGuideConflict($request->backup_guide_id, 'HDV dự phòng');
+                if ($conflict) {
+                    return response()->json($conflict, 422);
+                }
+            }
+
+            if ($request->vehicle_id) {
+                $vehicleConflicts = TourDeparture::where('vehicle_id', $request->vehicle_id)
                     ->with('tour')
-                    ->first();
-                
-                if ($conflictingDeparture) {
-                    $guideName = \App\Models\User::find($request->backup_guide_id)->name ?? 'HDV';
-                    $tourTitle = $conflictingDeparture->tour->title ?? 'N/A';
-                    return response()->json([
-                        'success' => false,
-                        'message' => "HDV {$guideName} đã được gán cho tour khác vào ngày {$request->departure_date} (Tour: {$tourTitle})"
-                    ], 422);
+                    ->get();
+
+                foreach ($vehicleConflicts as $conflict) {
+                    $confStart = $conflict->departure_date instanceof Carbon
+                        ? $conflict->departure_date->copy()->startOfDay()
+                        : Carbon::parse($conflict->departure_date)->startOfDay();
+                    $confDuration = $this->getTourDurationDays($conflict->tour ?? null);
+                    $confEnd = (clone $confStart)->addDays($confDuration);
+
+                    if ($startDate <= $confEnd && $endDate >= $confStart) {
+                        $vehicle = Vehicle::find($request->vehicle_id);
+                        $plate = $vehicle->license_plate ?? 'Xe';
+                        $tourTitle = $conflict->tour->title ?? 'tour khác';
+                        return response()->json([
+                            'success' => false,
+                            'message' => "{$plate} bận từ " . $confStart->format('d/m/Y')
+                                . " đến " . $confEnd->format('d/m/Y') . " (Tour: {$tourTitle})"
+                        ], 422);
+                    }
                 }
             }
 
@@ -440,33 +509,8 @@ class TourScheduleController extends Controller
     public function getRecentNotifications(): JsonResponse
     {
         try {
-            // Giả lập dữ liệu thông báo (có thể thay bằng model Notification thực tế)
-            $notifications = [
-                [
-                    'id' => 1,
-                    'title' => 'Cập nhật thành công',
-                    'message' => 'Đã cập nhật thông tin khởi hành ID: 42',
-                    'type' => 'success',
-                    'created_at' => now()->subMinutes(5)->toISOString(),
-                    'read_at' => null
-                ],
-                [
-                    'id' => 2,
-                    'title' => 'Phân công HDV',
-                    'message' => 'Đã gán HDV Nguyễn Văn Hùng cho tour Sapa',
-                    'type' => 'guide',
-                    'created_at' => now()->subMinutes(15)->toISOString(),
-                    'read_at' => null
-                ],
-                [
-                    'id' => 3,
-                    'title' => 'Cảnh báo',
-                    'message' => 'HDV chính chưa được gán cho chuyến đi ngày mai',
-                    'type' => 'warning',
-                    'created_at' => now()->subHours(1)->toISOString(),
-                    'read_at' => now()->subMinutes(30)->toISOString()
-                ]
-            ];
+            // TODO: Thay bằng dữ liệu thật từ bảng notifications. Hiện trả về rỗng để tránh dữ liệu mock.
+            $notifications = [];
 
             return response()->json([
                 'success' => true,
@@ -476,6 +520,42 @@ class TourScheduleController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Không thể tải thông báo: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Lấy 5 lịch khởi hành gần đây cho dashboard
+     */
+    public function getRecentDepartures(): JsonResponse
+    {
+        try {
+            $departures = TourDeparture::with(['tour', 'guide', 'backupGuide'])
+                ->orderByDesc('departure_date')
+                ->orderByDesc('id')
+                ->limit(5)
+                ->get()
+                ->map(function ($d) {
+                    return [
+                        'id' => $d->id,
+                        'tour_title' => $d->tour->title ?? 'N/A',
+                        'tour_code' => $d->tour->code ?? null,
+                        'departure_date' => optional($d->departure_date)->format('Y-m-d'),
+                        'departure_time' => $d->departure_time,
+                        'guide_name' => $d->guide->name ?? null,
+                        'backup_guide_name' => $d->backupGuide->name ?? null,
+                        'preparation_status' => $d->preparation_status ?? $d->status ?? 'pending',
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'data' => $departures
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không thể lấy lịch khởi hành gần đây: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -738,5 +818,27 @@ class TourScheduleController extends Controller
                 'message' => 'Không thể xóa lịch trình: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Tính số ngày tour: ưu tiên duration_days, sau đó max day_number (template), mặc định 3
+     */
+    protected function getTourDurationDays(?Tour $tour): int
+    {
+        if (!$tour) {
+            return 3;
+        }
+
+        if (!empty($tour->duration_days)) {
+            return (int) $tour->duration_days;
+        }
+
+        $maxDay = TourSchedule::where(function ($q) use ($tour) {
+                $q->whereNull('tour_id')->orWhere('tour_id', $tour->id);
+            })
+            ->whereNull('departure_id')
+            ->max('day_number');
+
+        return $maxDay ? (int) $maxDay : 3;
     }
 }
