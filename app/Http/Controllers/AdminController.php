@@ -1208,12 +1208,24 @@ class AdminController extends Controller
             return [
                 'id' => $tour->id,
                 'departures' => $tour->departures->map(function ($d) {
+                    // Tính cutoff
+                    $cutoffDate = null;
+                    $isAfterCutoff = false;
+                    if ($d->departure_date) {
+                        $cutoffDays = $d->cutoff_days ?? 3;
+                        $cutoffDate = $d->departure_date->copy()->subDays($cutoffDays);
+                        $isAfterCutoff = now()->gt($cutoffDate);
+                    }
+                    
                     return [
                         'id' => $d->id,
                         'date' => $d->departure_date ? $d->departure_date->format('d/m/Y') : null,
                         'seats_available' => $d->seats_available,
                         'seats_total' => $d->seats_total,
                         'status' => $d->status,
+                        'group_confirmed' => (bool) $d->group_confirmed,
+                        'is_after_cutoff' => $isAfterCutoff,
+                        'cutoff_date' => $cutoffDate ? $cutoffDate->format('d/m/Y') : null,
                     ];
                 })->values()->toArray(),
             ];
@@ -1259,6 +1271,35 @@ class AdminController extends Controller
         // Kiểm tra ngày khởi hành còn hiệu lực
         if ($departure->departure_date && $departure->departure_date->isPast()) {
             return back()->withInput()->withErrors(['departure_id' => 'Lịch khởi hành đã qua, vui lòng chọn lịch khác.']);
+        }
+
+        // KIỂM TRA TOUR ĐÃ CHỐT - KHÔNG CHO THÊM BOOKING MỚI
+        if ($departure->group_confirmed) {
+            return back()->withInput()->withErrors([
+                'departure_id' => 'Tour đã được chốt đoàn. Không thể thêm booking mới. Vui lòng liên hệ Admin để override nếu cần thiết.'
+            ]);
+        }
+
+        // KIỂM TRA CUTOFF - SAU CUTOFF KHÔNG CHO THÊM BOOKING (trừ admin override)
+        if ($departure->departure_date) {
+            $cutoffDays = $departure->cutoff_days ?? 3;
+            $cutoffDate = $departure->departure_date->copy()->subDays($cutoffDays);
+            if (now()->gt($cutoffDate)) {
+                // Chỉ admin mới có thể override
+                if (!auth()->user()->hasRole('admin')) {
+                    return back()->withInput()->withErrors([
+                        'departure_id' => 'Tour đã quá cutoff (' . $cutoffDate->format('d/m/Y') . '). Không thể thêm booking mới. Vui lòng liên hệ Admin.'
+                    ]);
+                }
+                // Admin override - ghi log
+                \Log::warning(sprintf(
+                    '[ADMIN OVERRIDE] User %s (ID: %d) đã thêm booking sau cutoff. Departure ID: %d, Cutoff: %s',
+                    auth()->user()->name,
+                    auth()->user()->id,
+                    $departure->id,
+                    $cutoffDate->format('d/m/Y H:i')
+                ));
+            }
         }
 
         // Check chỗ trống (em bé không trừ chỗ)
