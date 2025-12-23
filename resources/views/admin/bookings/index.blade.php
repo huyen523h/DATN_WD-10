@@ -565,9 +565,20 @@
 
 @section('scripts')
     @parent
+    <script id="departure-bookings-data" type="application/json">@json($departureBookingPayload ?? [])</script>
     <script>
-        // Payload dữ liệu booking theo đoàn (được stringify để tránh lỗi khi có ký tự đặc biệt)
-        const departureBookings = JSON.parse(@json(json_encode($departureBookingPayload ?? [])));
+        // Payload dữ liệu booking theo đoàn - parse từ JSON script tag
+        let departureBookings = {};
+        try {
+            const jsonScript = document.getElementById('departure-bookings-data');
+            if (jsonScript && jsonScript.textContent.trim()) {
+                departureBookings = JSON.parse(jsonScript.textContent);
+            }
+        } catch (e) {
+            console.error('[Init] Error parsing departureBookings:', e);
+        }
+        console.log('[Init] departureBookings:', departureBookings);
+        console.log('[Init] departureBookings keys:', Object.keys(departureBookings || {}));
 
         document.addEventListener('DOMContentLoaded', function() {
 
@@ -704,16 +715,19 @@
             }
 
             function setupLazyBookingTables() {
+                // Debug: log available keys khi page load
+                console.log('[Xem booking] Available departure keys:', Object.keys(departureBookings || {}));
+                
                 const toggleButtons = document.querySelectorAll('[data-toggle-bookings]');
                 toggleButtons.forEach(btn => {
                     btn.addEventListener('click', function () {
                         const targetId = this.dataset.target;
-                        const departureId = this.dataset.departureId;
+                        const departureId = String(this.dataset.departureId); // Ensure string
                         const panel = document.getElementById(targetId) || this.closest('.departure-card')?.querySelector(`#${targetId}`);
                         console.log('[Xem booking] Click', { departureId, targetId, hasPanel: !!panel });
                         if (!panel) return;
 
-                        // Luôn lấy dữ liệu từ departureBookings theo departureId
+                        // Lấy dữ liệu từ departureBookings theo departureId (string key)
                         const bookings = departureBookings?.[departureId] || [];
                         console.log('[Xem booking] Load bookings', { departureId, count: bookings.length });
 

@@ -907,15 +907,14 @@ class AdminController extends Controller
             $tour = $firstBooking->tour ?? null;
             $tourId = $tour ? $tour->id : null;
             
-            // Lấy departure của tour này và cùng ngày khởi hành (đảm bảo đúng tour)
-            $departure = null;
-            if ($tourId && $datePart !== 'no-date') {
+            // Lấy departure - ưu tiên từ booking để đảm bảo chính xác
+            $departure = $firstBooking->departure ?? null;
+            
+            // Nếu booking không có departure, thử tìm theo tour_id và ngày
+            if (!$departure && $tourId && $datePart !== 'no-date') {
                 $departure = TourDeparture::where('tour_id', $tourId)
                     ->whereDate('departure_date', $datePart)
                     ->first();
-            } else {
-                // Fallback: lấy từ booking nếu không tìm thấy
-                $departure = $firstBooking->departure ?? null;
             }
             
             // Kiểm tra xem có thể chốt đoàn không (tất cả bookings phải đã xác nhận và thanh toán)
@@ -972,11 +971,14 @@ class AdminController extends Controller
                 $groupStatus = 'finished';
             }
 
+            // Lấy departure_id trực tiếp từ booking (đáng tin cậy hơn)
+            $bookingDepartureId = $firstBooking->departure_id ?? $departure?->id;
+            
             return [
                 'date' => $datePart === 'no-date' ? null : \Carbon\Carbon::parse($datePart),
                 'tour' => $tour,
                 'tour_id' => $tour ? $tour->id : null,
-                'departure_id' => $departure?->id,
+                'departure_id' => $bookingDepartureId,
                 'bookings' => $sortedBookings,
                 'total_guests' => $totalGuests,
                 'total_adults' => $sortedBookings->sum('adults'),
@@ -1016,39 +1018,34 @@ class AdminController extends Controller
             $tour = Tour::find($request->tour_id);
         }
 
-        // Build payload cho frontend: chỉ group theo departure_id đang hiển thị, không lọc thêm
-        $visibleDepartureIds = $groupedBookings
-            ->pluck('departure_id')
-            ->filter()
-            ->map(fn ($id) => (int) $id)
-            ->unique()
-            ->values();
-
-        $departureBookingPayload = Booking::with(['user', 'tour'])
-            ->whereIn('departure_id', $visibleDepartureIds)
-            ->get()
-            ->groupBy('departure_id')
-            ->mapWithKeys(function ($bookings, $departureId) {
-                $rows = $bookings->map(function ($booking) {
-                    return [
-                        'id' => $booking->id,
-                        'code' => str_pad($booking->id, 6, '0', STR_PAD_LEFT),
-                        'customer_name' => $booking->user->name,
-                        'customer_email' => $booking->user->email,
-                        'tour_title' => $booking->tour->title,
-                        'adults' => $booking->adults,
-                        'children' => $booking->children,
-                        'infants' => $booking->infants,
-                        'total_amount' => $booking->total_amount,
-                        'status' => $booking->status,
-                        'created_at' => optional($booking->created_at)->format('d/m/Y'),
-                        'profile_initial' => strtoupper(substr($booking->user->name ?? '', 0, 2)),
-                        'url' => route('admin.bookings.show', $booking->id),
-                    ];
-                })->values();
-
-                return [(int) $departureId => $rows];
-            });
+        // Build payload cho frontend: dùng trực tiếp bookings từ groupedBookings
+        $departureBookingPayload = [];
+        foreach ($groupedBookings as $group) {
+            $departureId = $group['departure_id'] ?? null;
+            if (!$departureId) continue;
+            
+            $groupBookings = $group['bookings'] ?? collect();
+            $rows = $groupBookings->map(function ($booking) {
+                return [
+                    'id' => $booking->id,
+                    'code' => str_pad($booking->id, 6, '0', STR_PAD_LEFT),
+                    'customer_name' => $booking->user->name ?? 'Không rõ',
+                    'customer_email' => $booking->user->email ?? '',
+                    'tour_title' => $booking->tour->title ?? 'Không rõ tour',
+                    'adults' => $booking->adults,
+                    'children' => $booking->children,
+                    'infants' => $booking->infants,
+                    'total_amount' => $booking->total_amount,
+                    'status' => $booking->status,
+                    'created_at' => optional($booking->created_at)->format('d/m/Y'),
+                    'profile_initial' => strtoupper(substr($booking->user->name ?? 'U', 0, 2)),
+                    'url' => route('admin.bookings.show', $booking->id),
+                ];
+            })->values()->toArray();
+            
+            // Dùng string key để đảm bảo JSON encode giữ đúng key
+            $departureBookingPayload[(string) $departureId] = $rows;
+        }
 
         return view('admin.bookings.index', compact(
             'groupedBookings',
