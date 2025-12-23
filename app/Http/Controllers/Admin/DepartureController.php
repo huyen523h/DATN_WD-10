@@ -13,12 +13,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class DepartureController extends Controller
 {
 
     // Hiển thị danh sách khởi hành
-    public function index()
+    public function index(Request $request)
     {
         //Cập nhập trạng thái tour đã kt khi ngày khởi hành<hiệntaij
         $today = Carbon::today();
@@ -26,26 +27,73 @@ class DepartureController extends Controller
             ->where('status', '!=', 'finished')
             ->update(['status' => 'finished']);
 
-        $departures = TourDeparture::with('tour')
-            ->orderByDesc('id')
-            ->paginate(10);
+        $query = TourDeparture::with(['tour', 'guide', 'backupGuide', 'vehicle']);
+        
+        // Lọc theo tour_id nếu có
+        if ($request->has('tour_id') && $request->tour_id) {
+            $query->where('tour_id', $request->tour_id);
+        }
+        
+        $departures = $query->orderByDesc('id')->paginate(10);
 
-        return view('admin.tour_departures.index', compact('departures'));
+        // Lấy tour nếu có tour_id để hiển thị context
+        $tour = null;
+        if ($request->has('tour_id') && $request->tour_id) {
+            $tour = Tour::find($request->tour_id);
+        }
+
+        // Tính toán stats
+        $totalDepartures = $departures->total();
+        $availableDepartures = $query->clone()->where('status', 'available')->count();
+        $soldOutDepartures = $query->clone()->where('status', 'sold_out')->count();
+        $finishedDepartures = $query->clone()->where('status', 'finished')->count();
+        $totalSeats = $query->clone()->sum('seats_total');
+        $availableSeats = $query->clone()->sum('seats_available');
+        $bookedSeats = $totalSeats - $availableSeats;
+
+        return view('admin.tour_departures.index', compact('departures', 'tour', 'totalDepartures', 'availableDepartures', 'soldOutDepartures', 'finishedDepartures', 'totalSeats', 'availableSeats', 'bookedSeats'));
     }
 
     // Hiển thị form thêm mới
-    public function create()
+    public function create(Request $request)
     {
         $tours = Tour::all();
-        return view('admin.tour_departures.create', compact('tours'));
+        
+        // Lấy tour nếu có tour_id để hiển thị context
+        $tour = null;
+        if ($request->has('tour_id') && $request->tour_id) {
+            $tour = Tour::find($request->tour_id);
+        }
+        
+        return view('admin.tour_departures.create', compact('tours', 'tour'));
     }
     // Hiển thi chi tiết
     public function show($id)
     {
-        $departure = TourDeparture::with(['tour', 'guide', 'backupGuide', 'vehicle'])->findOrFail($id);
+        $departure = TourDeparture::with(['tour.schedules' => function($query) use ($id) {
+            $query->where(function($q) use ($id) {
+                $q->whereNull('departure_id')
+                  ->orWhere('departure_id', $id);
+            })->with('guide')->orderBy('day_number');
+        }, 'guide', 'backupGuide', 'vehicle'])->findOrFail($id);
+        
+        // Đồng bộ lại số chỗ trống dựa trên bookings thực tế
+        // Chỉ tính người lớn + trẻ em, loại trừ booking đã hủy/expired
+        $bookedSeats = Booking::where('departure_id', $departure->id)
+            ->whereNotIn('status', ['cancelled', 'expired'])
+            ->sum(DB::raw('adults + children'));
+
+        $calculatedAvailable = max($departure->seats_total - $bookedSeats, 0);
+
+        if ($departure->seats_available !== $calculatedAvailable) {
+            $departure->seats_available = $calculatedAvailable;
+            $departure->save();
+        }
         
         // Lấy danh sách guides và vehicles để hiển thị trong form
-        $guides = User::where('role', 'guide')
+        $guides = User::whereHas('roles', function($q) {
+                $q->where('name', 'guide');
+            })
             ->orWhereHas('roles', function($q) {
                 $q->where('name', 'guide');
             })
@@ -70,9 +118,10 @@ class DepartureController extends Controller
             'infant_price' => 'nullable|numeric|min:0',
         ]);
 
-        TourDeparture::create($request->all());
+        $departure = TourDeparture::create($request->all());
 
-        return redirect()->route('admin.departures.index')
+        // Redirect về tour manage hub
+        return redirect()->route('admin.tours.manage', $request->tour_id)
             ->with('success', 'Thêm khởi hành thành công!');
     }
     public function edit($id)
@@ -155,7 +204,9 @@ class DepartureController extends Controller
                 $notificationService->notifyTourScheduleChanged($booking, $oldDateFormatted, $newDateFormatted);
             }
         }
-        return redirect()->route('admin.departures.index')
+        
+        // Redirect về tour manage hub
+        return redirect()->route('admin.tours.manage', $departure->tour_id)
             ->with('success', 'Cập nhật khởi hành thành công!');
     }
 
@@ -183,9 +234,11 @@ class DepartureController extends Controller
                 ->with('warning', 'Ngày này có khách đang chờ thanh toán — vui lòng huỷ hoặc chuyển lịch trước khi xoá.');
         }
 
+        $tourId = $departure->tour_id;
         $departure->delete();
 
-        return redirect()->route('admin.departures.index')
+        // Redirect về tour manage hub
+        return redirect()->route('admin.tours.manage', $tourId)
             ->with('success', 'Xoá lịch khởi hành thành công!');
     }
 

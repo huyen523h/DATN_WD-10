@@ -9,6 +9,59 @@
         <a href="{{ route('bookings.index') }}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left"></i> Quay lại</a>
     </div>
 
+    {{-- Hiển thị thông báo success/error --}}
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert" id="upload-success-alert" style="border-left: 4px solid #28a745;">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-check-circle fa-2x me-3"></i>
+                <div class="flex-grow-1">
+                    <h5 class="alert-heading mb-1">Thành công!</h5>
+                    <p class="mb-0">{{ session('success') }}</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+        <script>
+            // Tự động scroll đến thông báo và highlight
+            document.addEventListener('DOMContentLoaded', function() {
+                const alert = document.getElementById('upload-success-alert');
+                if (alert) {
+                    alert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    alert.style.animation = 'pulse 2s ease-in-out';
+                }
+            });
+        </script>
+        <style>
+            @keyframes pulse {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.02); }
+            }
+            @keyframes slideIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(-10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+        </style>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert" style="border-left: 4px solid #dc3545;">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-exclamation-circle fa-2x me-3"></i>
+                <div class="flex-grow-1">
+                    <h5 class="alert-heading mb-1">Lỗi!</h5>
+                    <p class="mb-0">{{ session('error') }}</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+    @endif
+
     {{-- HIỂN THỊ THÔNG BÁO HỦY TOUR (Dành cho khách hàng) --}}
 @if($booking->status === 'cancelled')
     <div class="alert alert-danger border-danger shadow-sm mb-4">
@@ -256,23 +309,101 @@
         {{-- LOGIC CHẶT CHẼ: Phải thanh toán xong mới được nộp danh sách --}}
         @if($booking->status === 'paid' || $booking->status === 'completed')
             
-            <form action="{{ route('bookings.upload-manifest', $booking->id) }}" method="POST" enctype="multipart/form-data">
+            {{-- Nút tải file mẫu --}}
+            <div class="mb-3 p-3 bg-light rounded border">
+                <label class="form-label fw-bold mb-2 d-block">
+                    <i class="fas fa-file-download text-success"></i> Tải file mẫu danh sách đoàn
+                </label>
+                <a href="{{ route('bookings.download-manifest-template') }}" 
+                   class="btn btn-success btn-sm" target="_blank">
+                    <i class="fas fa-download"></i> Tải file mẫu danh sách đoàn
+                </a>
+                <small class="text-muted d-block mt-2">
+                    <i class="fas fa-info-circle"></i> File CSV - Mở bằng Excel hoặc Google Sheets để điền thông tin
+                </small>
+            </div>
+            
+            <hr class="my-3">
+            
+            {{-- Hiển thị file đã upload --}}
+            @if($booking->passenger_manifest_file)
+                <div class="alert alert-success mb-3 p-3 shadow-sm" id="file-uploaded-info" style="border-left: 4px solid #28a745; animation: slideIn 0.5s ease;">
+                    <div class="d-flex align-items-start">
+                        <i class="fas fa-check-circle fa-2x me-3 text-success"></i>
+                        <div class="flex-grow-1">
+                            <h6 class="alert-heading mb-2 fw-bold">
+                                <i class="fas fa-file-check me-2"></i>Đã upload file thành công!
+                            </h6>
+                            <p class="mb-2 small">File danh sách đoàn đã được tải lên hệ thống. Bạn có thể xem hoặc tải về file đã upload.</p>
+                            <div class="d-flex gap-2 mb-2">
+                                <a href="{{ Storage::url($booking->passenger_manifest_file) }}" target="_blank" class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-download me-1"></i> Xem/Tải về file
+                                </a>
+                            </div>
+                            <small class="d-block text-muted">
+                                <i class="fas fa-clock me-1"></i> Upload lúc: {{ \Carbon\Carbon::parse($booking->updated_at)->format('d/m/Y H:i') }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                <hr class="my-3">
+                <div class="alert alert-info small mb-2">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Bạn có thể upload file mới để thay thế file hiện tại.
+                </div>
+            @else
+                <div class="alert alert-info mb-2 p-2">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <span class="small">Sau khi điền thông tin vào file mẫu, vui lòng upload file đã điền lên hệ thống.</span>
+                </div>
+            @endif
+            
+            {{-- Form upload file đã điền --}}
+            <form action="{{ route('bookings.upload-manifest', $booking->id) }}" method="POST" enctype="multipart/form-data" id="upload-manifest-form">
                 @csrf
                 <div class="mb-2">
-                    @if($booking->passenger_manifest_file)
-                        <a href="{{ Storage::url($booking->passenger_manifest_file) }}" target="_blank" class="d-block mb-2 fw-bold text-success text-decoration-none">
-                            <i class="fas fa-file-check me-1"></i> Đã gửi danh sách (Tải về)
-                        </a>
-                    @else
-                        <div class="text-muted small mb-2">Vui lòng tải lên danh sách thành viên để làm thủ tục bảo hiểm.</div>
-                    @endif
-                    
-                    <input type="file" name="manifest_file" class="form-control form-control-sm" required>
+                    <label class="form-label fw-bold small mb-2 d-block">
+                        <i class="fas fa-upload text-primary"></i> {{ $booking->passenger_manifest_file ? 'Upload file mới (thay thế)' : 'Upload file đã điền thông tin' }}
+                    </label>
+                    <input type="file" name="manifest_file" class="form-control form-control-sm" accept=".csv,.xls,.xlsx" {{ !$booking->passenger_manifest_file ? 'required' : '' }} id="manifest-file-input">
+                    <small class="text-muted d-block mt-1">
+                        <i class="fas fa-info-circle"></i> Chấp nhận file: CSV, XLS, XLSX (tối đa 5MB)
+                    </small>
                 </div>
-                <button class="btn btn-primary btn-sm w-100">
-                    <i class="fas fa-cloud-upload-alt me-1"></i> Cập nhật danh sách
+                <button type="submit" class="btn btn-primary btn-sm w-100" id="upload-manifest-btn">
+                    <i class="fas fa-cloud-upload-alt me-1"></i> {{ $booking->passenger_manifest_file ? 'Cập nhật file mới' : 'Cập nhật danh sách' }}
                 </button>
             </form>
+            
+            <script>
+                // Xử lý sau khi upload thành công
+                document.addEventListener('DOMContentLoaded', function() {
+                    const form = document.getElementById('upload-manifest-form');
+                    const uploadBtn = document.getElementById('upload-manifest-btn');
+                    
+                    if (form) {
+                        form.addEventListener('submit', function(e) {
+                            // Hiển thị loading state
+                            if (uploadBtn) {
+                                uploadBtn.disabled = true;
+                                uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Đang upload...';
+                            }
+                            
+                            // Form sẽ submit bình thường, sau khi upload thành công sẽ reload và hiển thị thông báo
+                        });
+                    }
+                    
+                    // Nếu có thông báo success, scroll đến đó
+                    @if(session('success'))
+                        const successAlert = document.getElementById('upload-success-alert');
+                        if (successAlert) {
+                            setTimeout(() => {
+                                successAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }, 100);
+                        }
+                    @endif
+                });
+            </script>
 
         @elseif($booking->status === 'cancelled')
             <div class="text-center text-muted py-2 small">

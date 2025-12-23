@@ -7,6 +7,24 @@
     <title>Quản lý Lịch trình Tour - Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .rotate-180 {
+            transform: rotate(180deg);
+        }
+        .transition-transform {
+            transition: transform 0.3s ease;
+        }
+        [id^="schedule-content-"] {
+            transition: all 0.3s ease;
+        }
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            border-radius: 0.375rem;
+        }
+    </style>
 </head>
 <body class="bg-gray-100">
     <!-- Admin Header -->
@@ -14,8 +32,8 @@
         <div class="container mx-auto px-4 py-4">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-4">
-                    <a href="/admin" class="text-blue-600 hover:text-blue-800">
-                        <i class="fas fa-arrow-left mr-2"></i>Quay lại Dashboard
+                    <a href="{{ isset($tour) ? route('admin.tours.manage', $tour->id) : route('admin.tours.index') }}" class="text-blue-600 hover:text-blue-800">
+                        <i class="fas fa-arrow-left mr-2"></i>{{ isset($tour) ? 'Quay lại Quản lý Tour' : 'Quản lý Tour' }}
                     </a>
                     <h1 class="text-xl font-semibold text-gray-800">Quản lý Lịch trình Tour</h1>
                 </div>
@@ -33,50 +51,74 @@
     </header>
 
     <div class="container mx-auto px-4 py-8">
-        <!-- Tour Selection -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 class="text-xl font-semibold text-gray-800 mb-4">
-                <i class="fas fa-search mr-2 text-blue-600"></i>
-                Chọn Tour để quản lý
-            </h2>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <!-- Breadcrumb -->
+        @if(isset($tour))
+        <nav class="mb-4">
+            <ol class="flex items-center space-x-2 text-sm text-gray-600">
+                <li><a href="{{ route('admin.dashboard') }}" class="hover:text-blue-600">Dashboard</a></li>
+                <li><i class="fas fa-chevron-right text-xs"></i></li>
+                <li><a href="{{ route('admin.tours.index') }}" class="hover:text-blue-600">Quản lý Tour</a></li>
+                <li><i class="fas fa-chevron-right text-xs"></i></li>
+                <li><a href="{{ route('admin.tours.manage', $tour->id) }}" class="hover:text-blue-600">{{ $tour->title }}</a></li>
+                <li><i class="fas fa-chevron-right text-xs"></i></li>
+                <li class="text-gray-800 font-medium">Lịch trình</li>
+            </ol>
+        </nav>
+        @endif
+
+        @php
+            $fixedDepartureId = request('departure_id') ?? ($tour->departures->first()->id ?? null);
+        @endphp
+
+        <!-- Tour Context Info -->
+        @if(isset($tour))
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6 border-l-4 border-blue-500">
+            <div class="flex justify-between items-start">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Tour ID</label>
-                    <input 
-                        type="number" 
-                        id="tour-id-input" 
-                        value="14" 
-                        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Nhập ID tour"
-                    >
+                    <h2 class="text-xl font-semibold text-gray-800 mb-2">
+                        <i class="fas fa-map-marked-alt text-blue-600 mr-2"></i>{{ $tour->title }}
+                    </h2>
+                    <div class="flex items-center space-x-4 text-sm text-gray-600">
+                        <span><i class="fas fa-hashtag mr-1"></i>ID: {{ $tour->id }}</span>
+                        @if($tour->duration_days)
+                            <span><i class="fas fa-calendar-alt mr-1"></i>{{ $tour->duration_days }} ngày {{ $tour->duration_nights ? $tour->duration_nights . ' đêm' : '' }}</span>
+                        @endif
+                        @if($tour->status)
+                            <span><i class="fas fa-info-circle mr-1"></i>Trạng thái: {{ $tour->status }}</span>
+                        @endif
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Departure ID (tùy chọn)</label>
-                    <input 
-                        type="number" 
-                        id="departure-id-input" 
-                        value="42" 
-                        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Nhập ID departure"
-                    >
-                </div>
-                <div class="flex items-end">
-                    <button 
-                        onclick="loadTourData()" 
-                        class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-                    >
-                        <i class="fas fa-search mr-2"></i>Tải dữ liệu
-                    </button>
-                </div>
-                <div class="flex items-end">
-                    <button 
-                        onclick="showAllDepartures()" 
-                        class="w-full bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 transition-colors"
-                    >
-                        <i class="fas fa-list mr-2"></i>Tất cả departures
-                    </button>
-                </div>
+                <a href="{{ route('admin.tours.manage', $tour->id) }}" class="text-blue-600 hover:text-blue-800 text-sm">
+                    <i class="fas fa-arrow-left mr-1"></i>Quay lại Hub
+                </a>
             </div>
+        </div>
+        @endif
+
+        <!-- Context cố định theo lịch khởi hành (ẩn chọn tour/departure) -->
+        <div class="bg-blue-50 border-l-4 border-blue-500 rounded-lg p-4 mb-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800">
+                        <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                        Lịch trình cho lịch khởi hành #{{ $fixedDepartureId ?? '...' }}
+                    </h3>
+                    <p class="text-sm text-gray-600 mt-1">
+                        Lịch khởi hành là context cố định. Truy cập màn này từ Hub hoặc từ màn chi tiết departure.
+                    </p>
+                </div>
+                @if($fixedDepartureId)
+                <a href="{{ route('admin.departures.show', $fixedDepartureId) }}" 
+                   class="text-blue-600 hover:text-blue-800 text-sm">
+                    <i class="fas fa-arrow-left mr-1"></i>Quay lại chi tiết departure
+                </a>
+                @endif
+            </div>
+            @if(!$fixedDepartureId)
+            <div class="mt-3 text-sm text-red-600">
+                <i class="fas fa-exclamation-triangle"></i> Chưa xác định departure. Vui lòng mở từ Hub hoặc màn chi tiết departure để chọn đúng lịch khởi hành.
+            </div>
+            @endif
         </div>
 
         <!-- Management Tabs -->
@@ -96,20 +138,6 @@
                         class="py-4 px-1 border-b-2 font-medium text-sm tab-button border-transparent text-gray-500 hover:text-gray-700"
                     >
                         <i class="fas fa-calendar-alt mr-2"></i>Lịch trình
-                    </button>
-                    <button 
-                        onclick="switchTab('departures')" 
-                        id="tab-departures"
-                        class="py-4 px-1 border-b-2 font-medium text-sm tab-button border-transparent text-gray-500 hover:text-gray-700"
-                    >
-                        <i class="fas fa-plane-departure mr-2"></i>Khởi hành
-                    </button>
-                    <button 
-                        onclick="switchTab('guides')" 
-                        id="tab-guides"
-                        class="py-4 px-1 border-b-2 font-medium text-sm tab-button border-transparent text-gray-500 hover:text-gray-700"
-                    >
-                        <i class="fas fa-users mr-2"></i>Hướng dẫn viên
                     </button>
                 </nav>
             </div>
@@ -196,51 +224,6 @@
                     </div>
                 </div>
 
-                <!-- Departures Tab -->
-                <div id="content-departures" class="tab-content hidden">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-lg font-semibold text-gray-800">Quản lý thông tin khởi hành</h3>
-                        <div class="flex space-x-2">
-                            <button 
-                                onclick="openCreateDepartureModal()" 
-                                class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors"
-                            >
-                                <i class="fas fa-plus mr-2"></i>Thêm departure
-                            </button>
-                            <button 
-                                onclick="refreshDepartures()" 
-                                class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-                            >
-                                <i class="fas fa-sync mr-2"></i>Làm mới
-                            </button>
-                        </div>
-                    </div>
-                    <div id="departures-content">
-                        <div class="text-center py-8">
-                            <i class="fas fa-plane-departure text-3xl text-gray-400 mb-4"></i>
-                            <p class="text-gray-600">Tải dữ liệu tour để quản lý thông tin khởi hành</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Guides Tab -->
-                <div id="content-guides" class="tab-content hidden">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-lg font-semibold text-gray-800">Quản lý hướng dẫn viên</h3>
-                        <button 
-                            onclick="loadAllGuides()" 
-                            class="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors"
-                        >
-                            <i class="fas fa-users mr-2"></i>Tải danh sách HDV
-                        </button>
-                    </div>
-                    <div id="guides-content">
-                        <div class="text-center py-8">
-                            <i class="fas fa-users text-3xl text-gray-400 mb-4"></i>
-                            <p class="text-gray-600">Click "Tải danh sách HDV" để xem tất cả hướng dẫn viên</p>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -378,9 +361,73 @@
     </div>
 
     <script>
-        let currentTourId = null;
+        let currentTourId = @json(isset($tour) ? $tour->id : null);
         let currentDepartureId = null;
         let tourData = null;
+        let isLoadingData = false; // Flag to prevent multiple simultaneous loads
+        let hasLoadedInitialData = false; // Flag to track if initial data has been loaded
+
+        // Load departures when tour changes
+        async function onTourChange() {
+            const tourSelect = document.getElementById('tour-select');
+            const departureSelect = document.getElementById('departure-select');
+            
+            if (!tourSelect || !departureSelect) {
+                console.warn('Tour select or departure select not found');
+                return Promise.resolve();
+            }
+            
+            const tourId = tourSelect.value || currentTourId;
+            
+            if (!tourId) {
+                departureSelect.innerHTML = '<option value="">-- Tất cả departures (Template) --</option>';
+                return Promise.resolve();
+            }
+            
+            try {
+                console.log('Loading departures for tour:', tourId);
+                const response = await fetch(`/api/tours/${tourId}/departures`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Departures loaded:', data);
+                
+                if (data.success) {
+                    departureSelect.innerHTML = '<option value="">-- Tất cả departures (Template) --</option>';
+                    if (data.data && Array.isArray(data.data)) {
+                        data.data.forEach(dep => {
+                            const option = document.createElement('option');
+                            option.value = dep.id;
+                            const date = new Date(dep.departure_date);
+                            option.textContent = `${date.toLocaleDateString('vi-VN')} (${dep.seats_available}/${dep.seats_total} chỗ)`;
+                            departureSelect.appendChild(option);
+                        });
+                    }
+                }
+                return Promise.resolve();
+            } catch (error) {
+                console.error('Error loading departures:', error);
+                return Promise.reject(error);
+            }
+        }
+
+        function onDepartureChange() {
+            const departureSelect = document.getElementById('departure-select');
+            const departureId = departureSelect ? departureSelect.value : null;
+            
+            // Only reload if departure actually changed and we have a tour
+            if (departureId && currentTourId && departureId !== currentDepartureId) {
+                currentDepartureId = departureId;
+                loadTourData();
+            } else if (!departureId && currentDepartureId) {
+                // If cleared departure, reload template
+                currentDepartureId = null;
+                loadTourData();
+            }
+        }
 
         // Tab management
         function switchTab(tabName) {
@@ -403,8 +450,8 @@
             activeTab.classList.remove('border-transparent', 'text-gray-500');
             activeTab.classList.add('border-blue-500', 'text-blue-600');
             
-            // Auto-refresh data when switching to certain tabs
-            if (currentTourId && (tabName === 'departures' || tabName === 'schedules')) {
+            // Auto-refresh data when switching to certain tabs (but not on initial load)
+            if (currentTourId && hasLoadedInitialData && tabName === 'schedules') {
                 setTimeout(() => {
                     syncAllData();
                 }, 100);
@@ -413,41 +460,76 @@
 
         // Load tour data
         async function loadTourData() {
-            const tourId = document.getElementById('tour-id-input').value;
-            const departureId = document.getElementById('departure-id-input').value;
-            
-            if (!tourId) {
-                alert('Vui lòng nhập Tour ID');
+            // Prevent multiple simultaneous loads
+            if (isLoadingData) {
+                console.log('Already loading data, skipping...');
                 return;
             }
-
-            currentTourId = tourId;
-            currentDepartureId = departureId || null;
-
+            
+            isLoadingData = true;
+            
             try {
+                const tourSelect = document.getElementById('tour-select');
+                const departureSelect = document.getElementById('departure-select');
+                
+                // Use currentTourId if select doesn't have value
+                let tourId = tourSelect ? tourSelect.value : null;
+                if (!tourId && currentTourId) {
+                    tourId = currentTourId;
+                }
+                
+                const departureId = departureSelect ? departureSelect.value : null;
+                
+                if (!tourId) {
+                    console.warn('No tour ID available');
+                    return;
+                }
+
+                // Only redirect if tour actually changed (not on initial load)
+                const tourIdChanged = tourId !== currentTourId && currentTourId !== null && hasLoadedInitialData;
+                
+                if (tourIdChanged) {
+                    const url = `/admin/tours/${tourId}/schedule-management${departureId ? '?departure_id=' + departureId : ''}`;
+                    window.location.href = url;
+                    return;
+                }
+
+                currentTourId = tourId;
+                currentDepartureId = departureId || null;
+
+                console.log('Loading tour data for tour:', tourId, 'departure:', departureId);
+                
                 // Load tour schedule
                 const url = `/api/tours/${tourId}/schedules${departureId ? '?departure_id=' + departureId : ''}`;
                 const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const data = await response.json();
+                console.log('Tour data loaded:', data);
 
                 if (data.success) {
                     tourData = data.data;
                     updateOverview(data.data);
                     updateSchedulesTab(data.data.schedules, data.data.departure);
-                    updateDeparturesTab(data.data.departure);
-                    
-                    // Load guides count
-                    loadGuidesCount();
                     
                     // If no departure found but departure_id was provided, suggest available departures
                     if (!data.data.departure && departureId) {
                         loadAvailableDepartures(tourId);
                     }
+                    
+                    hasLoadedInitialData = true;
                 } else {
-                    alert('Không thể tải dữ liệu tour: ' + data.message);
+                    console.error('API returned error:', data.message);
+                    alert('Không thể tải dữ liệu tour: ' + (data.message || 'Lỗi không xác định'));
                 }
             } catch (error) {
+                console.error('Error loading tour data:', error);
                 alert('Lỗi kết nối: ' + error.message);
+            } finally {
+                isLoadingData = false;
             }
         }
 
@@ -535,13 +617,28 @@
                     <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
                         <div class="flex items-center space-x-2">
                             <i class="fas fa-calendar-alt text-gray-600"></i>
-                            <span class="text-gray-700 font-medium">Hiển thị lịch trình gốc (template) - không phụ thuộc vào departure cụ thể</span>
+                            <span class="text-gray-700 font-medium">
+                                <strong>Đang chỉnh Template gốc</strong> - Lịch trình này sẽ áp dụng cho tất cả departures
+                            </span>
                         </div>
                     </div>
                 `;
             }
             
-            schedules.forEach(schedule => {
+            if (showActualDates && departure) {
+                html += `
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                        <div class="flex items-center space-x-2">
+                            <i class="fas fa-info-circle text-blue-600"></i>
+                            <span class="text-blue-800 font-medium">
+                                <strong>Theo khởi hành cụ thể</strong> - Lịch trình cho departure #${departure.id} (${departureDate.toLocaleDateString('vi-VN')})
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            schedules.forEach((schedule, index) => {
                 let dateDisplay = `Ngày ${schedule.day_number}`;
                 let actualDateStr = '';
                 
@@ -553,31 +650,142 @@
                     dateDisplay = `${actualDateStr} (${dayOfWeek})`;
                 }
 
+                const hasDepartureId = schedule.departure_id && departure && schedule.departure_id == departure.id;
+                const startTime = schedule.start_time ? (schedule.start_time.includes(':') ? schedule.start_time : new Date('1970-01-01T' + schedule.start_time).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'})) : '';
+                const guideName = schedule.guide ? schedule.guide.name : '';
+                const guidePhone = schedule.guide && schedule.guide.phone ? schedule.guide.phone : '';
+
                 html += `
-                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                        <div class="flex justify-between items-start mb-3">
-                            <div>
-                                <h4 class="font-semibold text-gray-800">
-                                    ${showActualDates ? 
-                                        `${dateDisplay}: ${schedule.title}` : 
-                                        `Ngày ${schedule.day_number}: ${schedule.title}`
-                                    }
-                                </h4>
-                                ${!showActualDates ? `<p class="text-xs text-gray-500">Template ngày ${schedule.day_number} - sẽ áp dụng cho tất cả departures</p>` : ''}
-                                <p class="text-sm text-gray-600">${schedule.location || 'Chưa có địa điểm'}</p>
+                    <div class="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
+                        <!-- Accordion Header -->
+                        <button 
+                            onclick="toggleScheduleAccordion(${schedule.id})"
+                            class="w-full flex justify-between items-center p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
+                            id="schedule-header-${schedule.id}"
+                        >
+                            <div class="flex items-center space-x-3">
+                                <span class="badge bg-blue-600 text-white px-3 py-1 rounded-md font-semibold">
+                                    ${showActualDates ? dateDisplay : `Ngày ${schedule.day_number}`}
+                                </span>
+                                <h4 class="font-semibold text-gray-800">${schedule.title}</h4>
+                                ${hasDepartureId ? `<span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Áp dụng cho lịch khởi hành #${departure.id}</span>` : ''}
                             </div>
-                            <div class="flex space-x-2">
-                                <button onclick="editSchedule(${schedule.id})" class="text-blue-600 hover:text-blue-800 p-1" title="Chỉnh sửa lịch trình">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button onclick="deleteSchedule(${schedule.id})" class="text-red-600 hover:text-red-800 p-1" title="Xóa lịch trình">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                            <div class="flex items-center space-x-2">
+                                ${!showActualDates ? `<span class="text-xs text-gray-500">Template - áp dụng cho tất cả departures</span>` : ''}
+                                <i class="fas fa-chevron-down transition-transform" id="schedule-icon-${schedule.id}"></i>
                             </div>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
-                            ${schedule.activities ? `<div><strong>Hoạt động:</strong> ${schedule.activities}</div>` : ''}
-                            ${schedule.meals ? `<div><strong>Bữa ăn:</strong> ${schedule.meals}</div>` : ''}
+                        </button>
+
+                        <!-- Accordion Content -->
+                        <div class="hidden p-4 bg-white" id="schedule-content-${schedule.id}">
+                            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                <!-- Thông tin chính -->
+                                <div class="lg:col-span-2 space-y-4">
+                                    <div class="bg-gray-50 rounded-lg p-4">
+                                        <h5 class="font-semibold text-gray-700 mb-3 flex items-center">
+                                            <i class="fas fa-info-circle text-blue-600 mr-2"></i> Thông tin ngày
+                                        </h5>
+                                        
+                                        <div class="space-y-3">
+                                            <div>
+                                                <label class="text-xs font-semibold text-gray-500 uppercase">Mô tả ngày</label>
+                                                <p class="text-gray-800 mt-1">${schedule.description || '<span class="text-gray-400">Chưa có mô tả</span>'}</p>
+                                            </div>
+                                            
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label class="text-xs font-semibold text-gray-500 uppercase">Địa điểm</label>
+                                                    <p class="text-gray-800 mt-1 flex items-center">
+                                                        <i class="fas fa-map-marker-alt text-red-500 mr-2"></i>
+                                                        ${schedule.location || '<span class="text-gray-400">Chưa có địa điểm</span>'}
+                                                    </p>
+                                                </div>
+                                                
+                                                <div>
+                                                    <label class="text-xs font-semibold text-gray-500 uppercase">Giờ khởi hành</label>
+                                                    <p class="text-gray-800 mt-1 flex items-center">
+                                                        <i class="fas fa-clock text-blue-500 mr-2"></i>
+                                                        ${startTime || '<span class="text-gray-400">Chưa cập nhật</span>'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            
+                                            <div>
+                                                <label class="text-xs font-semibold text-gray-500 uppercase">Hướng dẫn viên phụ trách</label>
+                                                <p class="text-gray-800 mt-1 flex items-center">
+                                                    <i class="fas fa-user-tie text-green-500 mr-2"></i>
+                                                    ${guideName ? `<strong>${guideName}</strong>${guidePhone ? ` <span class="text-gray-500 ml-2">(${guidePhone})</span>` : ''}` : '<span class="text-gray-400">Chưa gán</span>'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Form chỉnh sửa (nếu có departure_id) -->
+                                <div class="lg:col-span-1">
+                                    ${hasDepartureId ? `
+                                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                            <h5 class="font-semibold text-blue-800 mb-3 flex items-center">
+                                                <i class="fas fa-edit mr-2"></i> Chỉnh sửa nhanh
+                                            </h5>
+                                            <p class="text-xs text-blue-700 mb-3">
+                                                <i class="fas fa-info-circle"></i> Áp dụng cho lịch khởi hành #${departure.id}
+                                            </p>
+                                            
+                                            <form onsubmit="updateScheduleQuickEdit(event, ${schedule.id}, ${departure.id})" class="space-y-3">
+                                                <div>
+                                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Giờ khởi hành</label>
+                                                    <input 
+                                                        type="time" 
+                                                        name="start_time" 
+                                                        value="${startTime}"
+                                                        class="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    >
+                                                </div>
+                                                
+                                                <div>
+                                                    <label class="block text-xs font-semibold text-gray-700 mb-1">HDV phụ trách</label>
+                                                    <select 
+                                                        name="guide_id" 
+                                                        class="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        id="guide-select-${schedule.id}"
+                                                    >
+                                                        <option value="">-- Chọn HDV --</option>
+                                                    </select>
+                                                </div>
+                                                
+                                                <button 
+                                                    type="submit" 
+                                                    class="w-full bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700 transition-colors"
+                                                >
+                                                    <i class="fas fa-save mr-1"></i> Lưu thay đổi
+                                                </button>
+                                            </form>
+                                        </div>
+                                    ` : `
+                                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                                            <p class="text-xs text-gray-500 text-center">
+                                                Chọn Departure ID để chỉnh sửa Giờ khởi hành và HDV phụ trách
+                                            </p>
+                                        </div>
+                                    `}
+                                    
+                                    <div class="mt-3 flex space-x-2">
+                                        <button 
+                                            onclick="editSchedule(${schedule.id})" 
+                                            class="flex-1 bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700 transition-colors"
+                                        >
+                                            <i class="fas fa-edit mr-1"></i> Chỉnh sửa đầy đủ
+                                        </button>
+                                        <button 
+                                            onclick="deleteSchedule(${schedule.id})" 
+                                            class="bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700 transition-colors"
+                                        >
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -591,106 +799,99 @@
             renderSchedules();
         }
 
-        // Update departures tab
-        function updateDeparturesTab(departure) {
-            const content = document.getElementById('departures-content');
+        // Toggle accordion cho schedule
+        function toggleScheduleAccordion(scheduleId) {
+            const content = document.getElementById(`schedule-content-${scheduleId}`);
+            const icon = document.getElementById(`schedule-icon-${scheduleId}`);
             
-            if (!departure) {
-                const departureId = document.getElementById('departure-id-input').value;
-                const tourId = document.getElementById('tour-id-input').value;
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                icon.classList.add('rotate-180');
                 
-                content.innerHTML = `
-                    <div class="text-center py-8">
-                        <i class="fas fa-plane-departure text-3xl text-gray-400 mb-4"></i>
-                        <p class="text-gray-600">
-                            ${departureId ? 
-                                `Không tìm thấy departure ID ${departureId} cho tour ${tourId}` : 
-                                'Chưa nhập Departure ID'
-                            }
-                        </p>
-                        ${departureId ? `
-                            <div class="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-left max-w-md mx-auto">
-                                <h5 class="font-medium text-yellow-800 mb-2">Gợi ý:</h5>
-                                <ul class="text-sm text-yellow-700 space-y-1">
-                                    <li>• Kiểm tra lại Departure ID có đúng không</li>
-                                    <li>• Departure ID phải thuộc về Tour ID này</li>
-                                    <li>• Hoặc để trống để xem tất cả lịch trình</li>
-                                </ul>
-                            </div>
-                        ` : ''}
-                    </div>
-                `;
-                return;
+                // Load guides vào dropdown nếu chưa có
+                const guideSelect = document.getElementById(`guide-select-${scheduleId}`);
+                if (guideSelect && guideSelect.options.length <= 1) {
+                    loadGuidesForSchedule(scheduleId);
+                }
+            } else {
+                content.classList.add('hidden');
+                icon.classList.remove('rotate-180');
             }
-
-            content.innerHTML = `
-                <div class="bg-white border border-gray-200 rounded-lg p-6">
-                    <div class="flex justify-between items-start mb-4">
-                        <h4 class="text-lg font-semibold text-gray-800">Thông tin khởi hành</h4>
-                        <div class="flex space-x-2">
-                            <button onclick="editDeparture(${departure.id})" class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors">
-                                <i class="fas fa-edit mr-1"></i>Chỉnh sửa
-                            </button>
-                            <button onclick="viewDepartureDetails(${departure.id})" class="bg-gray-600 text-white px-3 py-1 rounded text-sm hover:bg-gray-700 transition-colors">
-                                <i class="fas fa-eye mr-1"></i>Chi tiết
-                            </button>
-                        </div>
-                    </div>
-                    
-
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-3">
-                            <div>
-                                <label class="text-sm font-medium text-gray-700">Ngày khởi hành</label>
-                                <p class="text-gray-900">${new Date(departure.departure_date).toLocaleDateString('vi-VN')}</p>
-                            </div>
-                            <div>
-                                <label class="text-sm font-medium text-gray-700">Giờ khởi hành</label>
-                                <p class="text-gray-900">${departure.departure_time || 'Chưa xác định'}</p>
-                            </div>
-                            <div>
-                                <label class="text-sm font-medium text-gray-700">Địa điểm</label>
-                                <p class="text-gray-900">${departure.departure_location || 'Chưa xác định'}</p>
-                            </div>
-                        </div>
-                        
-                        <div class="space-y-3">
-                            <div>
-                                <label class="text-sm font-medium text-gray-700">HDV chính</label>
-                                <p class="text-gray-900">${departure.guide ? departure.guide.name : 'Chưa gán'}</p>
-                            </div>
-                            <div>
-                                <label class="text-sm font-medium text-gray-700">HDV dự phòng</label>
-                                <p class="text-gray-900">${departure.backup_guide ? departure.backup_guide.name : 'Chưa gán'}</p>
-                            </div>
-                            <div>
-                                <label class="text-sm font-medium text-gray-700">Trạng thái</label>
-                                <p class="text-gray-900">
-                                    <span class="inline-block px-2 py-1 rounded text-xs font-medium ${getStatusClass(departure.preparation_status)}">
-                                        ${getStatusText(departure.preparation_status)}
-                                    </span>
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
         }
 
-        // Load guides count
-        async function loadGuidesCount() {
+        // Load guides vào dropdown cho schedule
+        async function loadGuidesForSchedule(scheduleId) {
             try {
                 const response = await fetch('/api/guides/available');
                 const data = await response.json();
                 
                 if (data.success) {
-                    document.getElementById('total-guides').textContent = data.data.length;
+                    const guideSelect = document.getElementById(`guide-select-${scheduleId}`);
+                    if (guideSelect) {
+                        // Giữ option đầu tiên
+                        const firstOption = guideSelect.options[0];
+                        guideSelect.innerHTML = '';
+                        guideSelect.appendChild(firstOption);
+                        
+                        // Thêm các guides
+                        data.data.forEach(guide => {
+                            const option = document.createElement('option');
+                            option.value = guide.id;
+                            option.textContent = `${guide.name}${guide.phone ? ' - ' + guide.phone : ''}`;
+                            guideSelect.appendChild(option);
+                        });
+                        
+                        // Set giá trị hiện tại nếu có
+                        const currentSchedule = window.currentSchedules?.find(s => s.id == scheduleId);
+                        if (currentSchedule && currentSchedule.guide_id) {
+                            guideSelect.value = currentSchedule.guide_id;
+                        }
+                    }
                 }
             } catch (error) {
-                console.error('Error loading guides count:', error);
+                console.error('Error loading guides:', error);
             }
         }
+
+        // Cập nhật schedule nhanh (chỉ giờ khởi hành và HDV khi có departure_id)
+        async function updateScheduleQuickEdit(event, scheduleId, departureId) {
+            event.preventDefault();
+            
+            const form = event.target;
+            const formData = {
+                start_time: form.start_time.value,
+                guide_id: form.guide_id.value || null,
+                departure_id: departureId
+            };
+
+            try {
+                showNotification('Đang cập nhật...', 'info');
+                
+                const response = await fetch(`/api/schedule-update/${currentTourId}/${scheduleId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('Đã cập nhật thành công!', 'success');
+                    
+                    // Cập nhật lại dữ liệu
+                    syncAllData();
+                } else {
+                    showNotification(result.message || 'Có lỗi xảy ra', 'error');
+                }
+            } catch (error) {
+                console.error('Error updating schedule:', error);
+                showNotification('Không thể kết nối đến server', 'error');
+            }
+        }
+
 
         // Load all guides
         async function loadAllGuides() {
@@ -790,11 +991,24 @@
                 // Show modal
                 document.getElementById('departure-edit-modal').classList.remove('hidden');
                 
-                // Load departure data
-                loadDepartureData(departureId);
-                
-                // Load available guides
-                loadAvailableGuides();
+                // Wait a bit for modal to be fully rendered, then call modal functions
+                setTimeout(() => {
+                    // Call modal's openDepartureEditModal function if it exists
+                    if (typeof window.openDepartureEditModal === 'function') {
+                        window.openDepartureEditModal(departureId);
+                    } else if (typeof openDepartureEditModal === 'function') {
+                        openDepartureEditModal(departureId);
+                    } else {
+                        // Fallback: try to load directly
+                        console.warn('openDepartureEditModal not found, trying direct load');
+                        if (typeof loadAvailableGuides === 'function') {
+                            loadAvailableGuides();
+                        }
+                        if (typeof loadDepartureData === 'function') {
+                            loadDepartureData(departureId);
+                        }
+                    }
+                }, 100);
                 
                 showNotification('Đang mở modal chỉnh sửa...', 'info');
             } catch (error) {
@@ -884,7 +1098,13 @@
 
         // Schedule management functions
         function editSchedule(id) {
-            showNotification(`Chỉnh sửa lịch trình ID: ${id} - Tính năng đang phát triển`, 'info');
+            if (!currentTourId) {
+                showNotification('Không xác định được Tour. Vui lòng quay lại Hub và mở lại màn này.', 'warning');
+                return;
+            }
+            // Điều hướng sang màn chỉnh sửa lịch trình full form trong admin
+            const url = `/admin/tours/${currentTourId}/schedules/${id}/edit`;
+            window.location.href = url;
         }
 
         async function deleteSchedule(id) {
@@ -976,10 +1196,11 @@
 
         // Show all departures for current tour
         async function showAllDepartures() {
-            const tourId = document.getElementById('tour-id-input').value;
+            const tourSelect = document.getElementById('tour-select');
+            const tourId = tourSelect ? tourSelect.value : currentTourId;
             
             if (!tourId) {
-                showNotification('Vui lòng nhập Tour ID', 'warning');
+                showNotification('Vui lòng chọn Tour', 'warning');
                 return;
             }
 
@@ -1077,7 +1298,11 @@
         }
 
         function selectDeparture(departureId) {
-            document.getElementById('departure-id-input').value = departureId;
+            const departureSelect = document.getElementById('departure-select');
+            if (departureSelect) {
+                departureSelect.value = departureId;
+            }
+            currentDepartureId = departureId;
             closeAllDeparturesModal();
             loadTourData();
             showNotification(`Đã chọn departure #${departureId}`, 'success');
@@ -1371,8 +1596,20 @@
                     showNotification('Đã tạo departure mới thành công!', 'success');
                     closeCreateDepartureModal();
                     
-                    // Update departure ID input with new ID
-                    document.getElementById('departure-id-input').value = result.data.id;
+                    // Update departure select with new ID
+                    const departureSelect = document.getElementById('departure-select');
+                    if (departureSelect) {
+                        // Add option if not exists
+                        const optionExists = Array.from(departureSelect.options).some(opt => opt.value == result.data.id);
+                        if (!optionExists) {
+                            const option = document.createElement('option');
+                            option.value = result.data.id;
+                            const date = new Date(result.data.departure_date);
+                            option.textContent = `${date.toLocaleDateString('vi-VN')} (${result.data.seats_available}/${result.data.seats_total} chỗ)`;
+                            departureSelect.appendChild(option);
+                        }
+                        departureSelect.value = result.data.id;
+                    }
                     currentDepartureId = result.data.id;
                     
                     // Sync all data across tabs
@@ -1536,7 +1773,47 @@
 
         // Auto-load data on page load
         document.addEventListener('DOMContentLoaded', function() {
-            loadTourData();
+            // Only auto-load once
+            if (hasLoadedInitialData) {
+                console.log('Initial data already loaded, skipping...');
+                return;
+            }
+            
+            // Auto-load if tour is set
+            if (currentTourId) {
+                // Set tour select value
+                const tourSelect = document.getElementById('tour-select');
+                if (tourSelect) {
+                    tourSelect.value = currentTourId;
+                }
+                
+                // Get departure_id from URL if present
+                const urlParams = new URLSearchParams(window.location.search);
+                const departureIdFromUrl = urlParams.get('departure_id');
+                if (departureIdFromUrl) {
+                    const departureSelect = document.getElementById('departure-select');
+                    if (departureSelect) {
+                        departureSelect.value = departureIdFromUrl;
+                        currentDepartureId = departureIdFromUrl;
+                    }
+                }
+                
+                // Load departures for the tour first
+                onTourChange().then(() => {
+                    // Then load tour data after a short delay
+                    setTimeout(() => {
+                        if (!hasLoadedInitialData) {
+                            loadTourData();
+                        }
+                    }, 500);
+                }).catch(error => {
+                    console.error('Error loading departures:', error);
+                    // Still try to load tour data if not already loaded
+                    if (!hasLoadedInitialData) {
+                        loadTourData();
+                    }
+                });
+            }
             setupDepartureEditForm();
             
             // Add event listener for departure date change in create modal

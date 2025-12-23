@@ -915,20 +915,11 @@
                 <div class="nav-section-title">Quản lý Tours</div>
                 <div class="nav-item">
                     <a href="{{ route('admin.tours.index') }}"
-                        class="nav-link {{ request()->routeIs('admin.tours*') ? 'active' : '' }}">
+                        class="nav-link {{ request()->routeIs('admin.tours.index') || request()->routeIs('admin.tours.manage') ? 'active' : '' }}">
                         <div class="nav-icon">
                             <i class="fas fa-map-marked-alt"></i>
                         </div>
                         <span class="nav-text">Danh sách Tours</span>
-                    </a>
-                </div>
-                <div class="nav-item">
-                    <a href="{{ route('admin.tour-schedule-management') }}"
-                        class="nav-link {{ request()->routeIs('admin.tour-schedule-management*') ? 'active' : '' }}">
-                        <div class="nav-icon">
-                            <i class="fas fa-calendar-alt"></i>
-                        </div>
-                        <span class="nav-text">Quản lý Lịch trình</span>
                     </a>
                 </div>
                 <div class="nav-item">

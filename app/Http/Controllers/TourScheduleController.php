@@ -20,7 +20,7 @@ class TourScheduleController extends Controller
     {
         try {
             $tour = Tour::with(['schedules' => function($query) {
-                $query->orderBy('day_number');
+                $query->with(['departure', 'guide'])->orderBy('day_number');
             }])->findOrFail($tourId);
 
             // Lấy thông tin departure nếu có departure_id
@@ -54,7 +54,10 @@ class TourScheduleController extends Controller
     public function getAvailableGuides(Request $request): JsonResponse
     {
         try {
-            $guides = User::where('role', 'guide')
+            // Use whereHas for roles relationship (many-to-many)
+            $guides = User::whereHas('roles', function($q) {
+                    $q->where('name', 'guide');
+                })
                 ->select('id', 'name', 'email', 'phone')
                 ->get();
 
@@ -92,11 +95,28 @@ class TourScheduleController extends Controller
                 });
             }
 
+            // Ensure data is properly formatted as array
+            $guidesArray = $guides->map(function($guide) {
+                return [
+                    'id' => $guide->id,
+                    'name' => $guide->name ?? 'N/A',
+                    'email' => $guide->email ?? 'N/A',
+                    'phone' => $guide->phone ?? 'N/A',
+                    'is_available' => $guide->is_available ?? true,
+                    'conflicts' => $guide->conflicts ?? []
+                ];
+            })->values();
+
             return response()->json([
                 'success' => true,
-                'data' => $guides
+                'data' => $guidesArray,
+                'count' => $guidesArray->count()
             ]);
         } catch (\Exception $e) {
+            \Log::error('Error in getAvailableGuides: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Không thể lấy danh sách hướng dẫn viên: ' . $e->getMessage()
@@ -641,10 +661,13 @@ class TourScheduleController extends Controller
     {
         try {
             $request->validate([
-                'day_number' => 'required|integer|min:1|max:30',
-                'title' => 'required|string|max:255',
+                'day_number' => 'sometimes|required|integer|min:1|max:30',
+                'title' => 'sometimes|required|string|max:255',
                 'description' => 'nullable|string',
                 'location' => 'nullable|string|max:500',
+                'start_time' => 'nullable|date_format:H:i',
+                'departure_id' => 'nullable|exists:tour_departures,id',
+                'guide_id' => 'nullable|exists:users,id',
                 'activities' => 'nullable|string',
                 'meals' => 'nullable|string'
             ]);
@@ -654,7 +677,7 @@ class TourScheduleController extends Controller
                 ->firstOrFail();
 
             // Kiểm tra day_number conflict (nếu thay đổi)
-            if ($schedule->day_number != $request->day_number) {
+            if ($request->has('day_number') && $schedule->day_number != $request->day_number) {
                 $existingSchedule = TourSchedule::where('tour_id', $tourId)
                     ->where('day_number', $request->day_number)
                     ->where('id', '!=', $scheduleId)
@@ -668,7 +691,17 @@ class TourScheduleController extends Controller
                 }
             }
 
-            $schedule->update($request->all());
+            // Chỉ cập nhật các trường được gửi lên
+            $updateData = $request->only([
+                'day_number', 'title', 'description', 'location', 
+                'start_time', 'departure_id', 'guide_id',
+                'activities', 'meals'
+            ]);
+            
+            $schedule->update($updateData);
+            
+            // Load lại với quan hệ
+            $schedule->load(['departure', 'guide']);
 
             return response()->json([
                 'success' => true,

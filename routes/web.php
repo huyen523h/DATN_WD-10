@@ -319,6 +319,10 @@ Route::middleware('auth')->group(function () {
     // Route upload danh sách đoàn 
     Route::post('/bookings/{booking}/upload-manifest', [BookingController::class, 'uploadManifest'])
         ->name('bookings.upload-manifest');
+    
+    // Route tải file mẫu danh sách đoàn (cho khách hàng)
+    Route::get('/bookings/download-manifest-template', [\App\Http\Controllers\AdminController::class, 'downloadManifestTemplate'])
+        ->name('bookings.download-manifest-template');
 
 
     // Lịch sử yêu cầu tour đoàn
@@ -515,6 +519,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/tours/{tour}/edit', [AdminController::class, 'editTour'])->name('tours.edit');
     Route::put('/tours/{tour}', [AdminController::class, 'updateTour'])->name('tours.update');
     Route::delete('/tours/{tour}', [AdminController::class, 'deleteTour'])->name('tours.destroy');
+    
+    // Tour Management Hub - Trang trung tâm quản lý tour
+    Route::get('/tours/{tour}/manage', [AdminController::class, 'tourManagementHub'])->name('tours.manage');
 
     // Tour Schedules management
     Route::get('/tours/{tour}/schedules', [\App\Http\Controllers\Admin\TourScheduleController::class, 'index'])->name('schedules.index');
@@ -523,6 +530,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/tours/{tour}/schedules/{schedule}/edit', [\App\Http\Controllers\Admin\TourScheduleController::class, 'edit'])->name('schedules.edit');
     Route::put('/tours/{tour}/schedules/{schedule}', [\App\Http\Controllers\Admin\TourScheduleController::class, 'update'])->name('schedules.update');
     Route::delete('/tours/{tour}/schedules/{schedule}', [\App\Http\Controllers\Admin\TourScheduleController::class, 'destroy'])->name('schedules.destroy');
+    
+    // Tour Schedule Management (với tour context)
+    Route::get('/tours/{tour}/schedule-management', [AdminController::class, 'tourScheduleManagement'])->name('tours.schedule-management');
 
     // Xóa ảnh của tour
     Route::delete('/tours/{tour}/images/{image}', [AdminController::class, 'deleteTourImage'])
@@ -537,7 +547,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         ->name('departures.update_management');
 
         // route mới 4/12/2025
-        Route::post('/bookings/{booking}/admin-upload-manifest', [AdminController::class, 'uploadManifest'])->name('bookings.upload-manifest');
+        Route::get('/bookings/download-manifest-template', [AdminController::class, 'downloadManifestTemplate'])->name('admin.bookings.download-manifest-template');
+        Route::post('/bookings/{booking}/admin-upload-manifest', [AdminController::class, 'uploadManifest'])->name('admin.bookings.upload-manifest');
 
     // Guides management
     Route::resource('guides', GuideWebController::class);
@@ -555,6 +566,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     // Bookings management
     Route::get('/bookings', [AdminController::class, 'bookings'])->name('bookings');
+    
+    // Departures management
+    Route::get('/departures/{departure}/customers', [AdminController::class, 'departureCustomers'])->name('departures.customers');
 
     //  Group management & helper APIs (đặt TRƯỚC route /bookings/{booking} để tránh bị nuốt bởi {booking})
     Route::post('/bookings/confirm-group', [AdminController::class, 'confirmGroup'])->name('bookings.confirm-group');
@@ -712,8 +726,13 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     // Tour Schedule Management Routes
 // Trang quản lý lịch trình cho admin
+// Redirect old route to new tour-based route
 Route::get('/admin/tour-schedule-management', function () {
-    return view('admin.tour-schedule-management');
+    $tourId = request('tour_id');
+    if ($tourId) {
+        return redirect()->route('admin.tours.schedule-management', $tourId);
+    }
+    return redirect()->route('admin.tours.index')->with('error', 'Vui lòng chọn tour từ danh sách');
 })->name('admin.tour-schedule-management')->middleware(['auth', 'admin']);
 
 

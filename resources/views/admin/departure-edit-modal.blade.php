@@ -126,21 +126,51 @@
 </div>
 
 <script>
+// Make functions globally accessible
+window.currentDepartureId = null;
 let currentDepartureId = null;
 
 // Open departure edit modal
 function openDepartureEditModal(departureId) {
+    console.log('=== openDepartureEditModal called with ID:', departureId, '===');
     currentDepartureId = departureId;
-    document.getElementById('departure-edit-modal').classList.remove('hidden');
-    loadDepartureData(departureId);
-    loadAvailableGuides();
+    window.currentDepartureId = departureId;
+    
+    // Show modal first
+    const modal = document.getElementById('departure-edit-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        console.log('Modal shown');
+    } else {
+        console.error('Modal element not found!');
+        return;
+    }
+    
+    // Wait a bit for modal to render, then load guides
+    setTimeout(() => {
+        console.log('Loading guides after modal render...');
+        loadAvailableGuides();
+    }, 150);
+    
+    // Then load departure data (which will set guide values)
+    setTimeout(() => {
+        console.log('Loading departure data...');
+        loadDepartureData(departureId);
+    }, 200);
 }
+
+// Make function globally accessible
+window.openDepartureEditModal = openDepartureEditModal;
 
 // Close departure edit modal
 function closeDepartureModal() {
     document.getElementById('departure-edit-modal').classList.add('hidden');
     currentDepartureId = null;
+    window.currentDepartureId = null;
 }
+
+// Make function globally accessible
+window.closeDepartureModal = closeDepartureModal;
 
 // Load departure data
 async function loadDepartureData(departureId) {
@@ -167,8 +197,50 @@ async function loadDepartureData(departureId) {
                 showNotification('⚠️ Dữ liệu không hợp lệ: Cùng HDV được gán cho cả 2 vai trò!', 'warning');
             }
             
-            document.getElementById('main-guide').value = departure.guide_id || '';
-            document.getElementById('backup-guide').value = departure.backup_guide_id || '';
+            // Don't load guides here - they should already be loaded by openDepartureEditModal
+            // Just set the values after a delay to ensure guides are loaded
+            setTimeout(() => {
+                const mainGuideSelect = document.getElementById('main-guide');
+                const backupGuideSelect = document.getElementById('backup-guide');
+                
+                if (mainGuideSelect && departure.guide_id) {
+                    // Check if option exists before setting value
+                    const mainOption = mainGuideSelect.querySelector(`option[value="${departure.guide_id}"]`);
+                    if (mainOption) {
+                        mainGuideSelect.value = departure.guide_id;
+                        console.log('Set main guide to:', departure.guide_id);
+                    } else {
+                        console.warn('Main guide option not found for ID:', departure.guide_id, '- Retrying...');
+                        // Retry after guides are loaded
+                        setTimeout(() => {
+                            const retryOption = mainGuideSelect.querySelector(`option[value="${departure.guide_id}"]`);
+                            if (retryOption) {
+                                mainGuideSelect.value = departure.guide_id;
+                                console.log('Set main guide to (retry):', departure.guide_id);
+                            }
+                        }, 1000);
+                    }
+                }
+                if (backupGuideSelect && departure.backup_guide_id) {
+                    // Check if option exists before setting value
+                    const backupOption = backupGuideSelect.querySelector(`option[value="${departure.backup_guide_id}"]`);
+                    if (backupOption) {
+                        backupGuideSelect.value = departure.backup_guide_id;
+                        console.log('Set backup guide to:', departure.backup_guide_id);
+                    } else {
+                        console.warn('Backup guide option not found for ID:', departure.backup_guide_id, '- Retrying...');
+                        // Retry after guides are loaded
+                        setTimeout(() => {
+                            const retryOption = backupGuideSelect.querySelector(`option[value="${departure.backup_guide_id}"]`);
+                            if (retryOption) {
+                                backupGuideSelect.value = departure.backup_guide_id;
+                                console.log('Set backup guide to (retry):', departure.backup_guide_id);
+                            }
+                        }, 1000);
+                    }
+                }
+            }, 800);
+            
             document.getElementById('emergency-contact').value = departure.emergency_contact || '';
             document.getElementById('emergency-phone').value = departure.emergency_phone || '';
             document.getElementById('preparation-status').value = departure.preparation_status || 'pending';
@@ -184,8 +256,24 @@ async function loadDepartureData(departureId) {
 // Load available guides
 async function loadAvailableGuides() {
     try {
+        // Wait a bit to ensure modal elements are rendered
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        const mainGuideSelect = document.getElementById('main-guide');
+        const backupGuideSelect = document.getElementById('backup-guide');
+        
+        if (!mainGuideSelect || !backupGuideSelect) {
+            console.error('Guide select elements not found. Retrying...');
+            // Retry after a bit more time
+            setTimeout(() => {
+                loadAvailableGuides();
+            }, 200);
+            return;
+        }
+        
         // Get departure date to check for conflicts
-        const departureDate = document.getElementById('departure-date').value;
+        const departureDateInput = document.getElementById('departure-date');
+        const departureDate = departureDateInput ? departureDateInput.value : null;
         let url = '/api/guides/available';
         
         if (departureDate && currentDepartureId) {
@@ -196,15 +284,30 @@ async function loadAvailableGuides() {
         
         console.log('Loading guides from:', url);
         
-        const response = await fetch(url);
-        const data = await response.json();
-        
-        console.log('Guides API response:', data);
-        
-        if (data.success) {
-            const mainGuideSelect = document.getElementById('main-guide');
-            const backupGuideSelect = document.getElementById('backup-guide');
+        let response;
+        try {
+            response = await fetch(url);
             
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+        } catch (error) {
+            console.error('Network error loading guides:', error);
+            showNotification('Lỗi kết nối khi tải danh sách HDV: ' + error.message, 'error');
+            return;
+        }
+        
+        let data;
+        try {
+            data = await response.json();
+            console.log('Guides API response:', data);
+        } catch (error) {
+            console.error('Error parsing JSON response:', error);
+            showNotification('Lỗi khi xử lý dữ liệu từ server', 'error');
+            return;
+        }
+        
+        if (data.success && data.data && Array.isArray(data.data)) {
             // Clear existing options (except first one)
             mainGuideSelect.innerHTML = '<option value="">Chọn hướng dẫn viên chính</option>';
             backupGuideSelect.innerHTML = '<option value="">Chọn hướng dẫn viên dự phòng</option>';
@@ -212,9 +315,19 @@ async function loadAvailableGuides() {
             // Add guide options
             console.log(`Adding ${data.data.length} guides to dropdowns`);
             
+            if (data.data.length === 0) {
+                const noGuideOption1 = new Option('Không có HDV nào', '');
+                const noGuideOption2 = new Option('Không có HDV nào', '');
+                noGuideOption1.disabled = true;
+                noGuideOption2.disabled = true;
+                mainGuideSelect.add(noGuideOption1);
+                backupGuideSelect.add(noGuideOption2);
+                showNotification('Không có HDV nào trong hệ thống', 'warning');
+                return;
+            }
+            
             data.data.forEach((guide, index) => {
-                let guideName = guide.name;
-                let guideInfo = `${guide.name} (${guide.email})`;
+                let guideInfo = `${guide.name} (${guide.email || 'N/A'})`;
                 
                 console.log(`Adding guide ${index + 1}:`, guide);
                 
@@ -222,7 +335,6 @@ async function loadAvailableGuides() {
                 if (guide.is_available === false && guide.conflicts && guide.conflicts.length > 0) {
                     const conflictInfo = guide.conflicts.map(c => `${c.tour_title} (${c.role})`).join(', ');
                     guideInfo += ` - ⚠️ Đã gán: ${conflictInfo}`;
-                    guideName += ' (Xung đột)';
                 }
                 
                 const option1 = new Option(guideInfo, guide.id);
@@ -240,13 +352,31 @@ async function loadAvailableGuides() {
                 backupGuideSelect.add(option2);
             });
             
-            console.log('Guides loaded successfully');
-            showNotification(`Đã tải ${data.data.length} HDV`, 'success');
+            console.log('Guides loaded successfully. Total:', data.data.length);
+            if (data.data.length > 0) {
+                showNotification(`Đã tải ${data.data.length} HDV`, 'success');
+            } else {
+                showNotification('Không có HDV nào trong hệ thống', 'warning');
+            }
+        } else {
+            console.error('Invalid API response:', data);
+            console.error('Response structure:', {
+                success: data.success,
+                hasData: !!data.data,
+                isArray: Array.isArray(data.data),
+                message: data.message
+            });
+            showNotification('Không thể tải danh sách HDV: ' + (data.message || 'Lỗi không xác định'), 'error');
         }
     } catch (error) {
         console.error('Error loading guides:', error);
+        console.error('Error stack:', error.stack);
+        showNotification('Lỗi khi tải danh sách HDV: ' + error.message, 'error');
     }
 }
+
+// Make function globally accessible
+window.loadAvailableGuides = loadAvailableGuides;
 
 // Save departure changes
 document.getElementById('departure-edit-form').addEventListener('submit', async function(e) {

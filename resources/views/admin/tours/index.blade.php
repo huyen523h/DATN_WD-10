@@ -8,35 +8,157 @@
 @endsection
 
 @section('content')
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2><i class="fas fa-map-marked-alt text-primary"></i> Quản lý Tours</h2>
-            <p class="text-muted mb-0">Quản lý tất cả các tour du lịch trong hệ thống</p>
-        </div>
-        @if (session('success'))
-            <div class="alert alert-success d-flex justify-content-between align-items-center">
-                <div>
-                    <i class="fas fa-check-circle"></i> {{ session('success') }}
-                    @if (session('tour_id'))
-                        - <a href="{{ route('admin.schedules.index', session('tour_id')) }}" class="fw-bold text-primary">
-                            Thêm lịch trình cho tour này
-                        </a>
-                    @endif
-
-                    @if (session('error'))
-                        <div class="alert alert-danger d-flex justify-content-between align-items-center">
-                            <div>
-                                <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
-                            </div>
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="card-body text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50 mb-1">Tổng Tours</h6>
+                            <h3 class="mb-0 fw-bold">{{ $stats['total_tours'] ?? 0 }}</h3>
                         </div>
-                    @endif
+                        <div class="bg-white bg-opacity-25 rounded-circle p-3">
+                            <i class="fas fa-map-marked-alt fa-2x"></i>
+                        </div>
+                    </div>
                 </div>
             </div>
-        @endif
-        <a href="{{ route('admin.tours.create') }}" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Thêm tour mới
-        </a>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <div class="card-body text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50 mb-1">Tours Hoạt động</h6>
+                            <h3 class="mb-0 fw-bold">{{ $stats['active_tours'] ?? 0 }}</h3>
+                        </div>
+                        <div class="bg-white bg-opacity-25 rounded-circle p-3">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                <div class="card-body text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50 mb-1">Tổng Đặt tour</h6>
+                            <h3 class="mb-0 fw-bold">{{ $stats['total_bookings'] ?? 0 }}</h3>
+                        </div>
+                        <div class="bg-white bg-opacity-25 rounded-circle p-3">
+                            <i class="fas fa-calendar-check fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                <div class="card-body text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50 mb-1">Lịch khởi hành</h6>
+                            <h3 class="mb-0 fw-bold">{{ $stats['total_departures'] ?? 0 }}</h3>
+                        </div>
+                        <div class="bg-white bg-opacity-25 rounded-circle p-3">
+                            <i class="fas fa-plane-departure fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                <div class="mb-2 mb-md-0">
+                    <h4 class="mb-1"><i class="fas fa-map-marked-alt text-primary"></i> Quản lý Tours</h4>
+                    <p class="text-muted mb-0 small">Quản lý tất cả các tour du lịch trong hệ thống</p>
+                </div>
+                <a href="{{ route('admin.tours.create') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Thêm tour mới
+                </a>
+            </div>
+        </div>
+    </div>
+
+    @if (session('success'))
+        <div class="alert alert-success alert-dismissible fade show d-flex align-items-center justify-content-between" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-check-circle me-2"></i>
+                <span>{{ session('success') }}</span>
+            </div>
+            @if (session('show_create_departure_cta') && session('tour_id'))
+                <a href="{{ route('admin.departures.create') }}?tour_id={{ session('tour_id') }}" class="btn btn-primary btn-sm ms-3">
+                    <i class="fas fa-plus"></i> Tạo lịch khởi hành
+                </a>
+            @endif
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if (session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    <!-- Search and Filter -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ route('admin.tours.index') }}" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold">Tìm kiếm</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light"><i class="fas fa-search"></i></span>
+                        <input type="text" name="search" class="form-control" placeholder="Tên tour, mô tả..." value="{{ request('search') }}">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold">Danh mục</label>
+                    <select name="category_id" class="form-select">
+                        <option value="">Tất cả</option>
+                        @foreach ($categories as $category)
+                            <option value="{{ $category->id }}" {{ request('category_id') == $category->id ? 'selected' : '' }}>
+                                {{ $category->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold">Trạng thái</label>
+                    <select name="status" class="form-select">
+                        <option value="">Tất cả</option>
+                        <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Hoạt động</option>
+                        <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Không hoạt động</option>
+                        <option value="draft" {{ request('status') == 'draft' ? 'selected' : '' }}>Bản nháp</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold">Thời gian</label>
+                    <select name="duration" class="form-select">
+                        <option value="">Tất cả</option>
+                        <option value="1-3" {{ request('duration') == '1-3' ? 'selected' : '' }}>1-3 ngày</option>
+                        <option value="4-7" {{ request('duration') == '4-7' ? 'selected' : '' }}>4-7 ngày</option>
+                        <option value="8+" {{ request('duration') == '8+' ? 'selected' : '' }}>8+ ngày</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100 me-2">
+                        <i class="fas fa-filter"></i> Lọc
+                    </button>
+                    <a href="{{ route('admin.tours.index') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-redo"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
     </div>
 
     {{-- <!-- Modern Table Component -->
@@ -188,13 +310,16 @@
 </div> --}}
 
 <!-- Tours Table -->
-<div class="card">
-    <div class="card-header">
-        <h5 class="mb-0"><i class="fas fa-list"></i> Danh sách Tours</h5>
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white border-bottom">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-list text-primary"></i> Danh sách Tours</h5>
+            <span class="badge bg-primary">{{ $tours->total() }} tours</span>
+        </div>
     </div>
-    <div class="card-body">
+    <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table">
+            <table class="table table-hover align-middle mb-0">
                 <thead>
                     <tr>
                         <th></th>
@@ -279,6 +404,10 @@
                                         class="btn btn-info btn-sm">
                                         <i class="fas fa-calendar-alt"></i> Xem lịch trình
                                     </a>
+                                    <a href="{{ route('admin.tours.manage', $tour) }}" class="btn btn-info btn-sm"
+                                        title="Quản lý Tour">
+                                        <i class="fas fa-cog"></i>
+                                    </a>
                                     <a href="{{ route('admin.tours.show', $tour) }}" class="btn btn-primary btn-sm"
                                         title="Xem chi tiết">
                                         <i class="fas fa-eye"></i>
@@ -299,40 +428,41 @@
                                 </div>
                             </td> --}}
                                 <td>
-                                    <div class="btn-group" role="group">
-                                        <a href="{{ route('admin.schedules.index', $tour->id) }}"
-                                            class="btn btn-info btn-sm">
-                                            <i class="fas fa-calendar-alt"></i> Xem lịch trình
+                                    <div class="d-flex flex-column gap-1">
+                                        <a href="{{ route('admin.tours.manage', $tour) }}" class="btn btn-info btn-sm"
+                                            title="Quản lý Tour">
+                                            <i class="fas fa-cog"></i> Quản lý
                                         </a>
-
-                                        <a href="{{ route('admin.tours.show', $tour) }}" class="btn btn-primary btn-sm"
-                                            title="Xem chi tiết">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-
-                                        <a href="{{ route('admin.tours.edit', $tour) }}" class="btn btn-warning btn-sm"
-                                            title="Chỉnh sửa">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-
-                                        @if (($tour->completed_bookings_count ?? 0) == 0)
-                                            {{-- CHƯA CÓ AI ĐẶT -> ĐƯỢC XÓA --}}
-                                            <form action="{{ route('admin.tours.destroy', $tour) }}" method="POST"
-                                                class="d-inline"
-                                                onsubmit="return confirm('Bạn có chắc chắn muốn xóa tour này?')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-danger btn-sm" title="Xóa">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{{ route('admin.schedules.index', $tour->id) }}"
+                                                class="btn btn-outline-info" title="Lịch trình">
+                                                <i class="fas fa-calendar-alt"></i>
+                                            </a>
+                                            <a href="{{ route('admin.tours.show', $tour) }}" class="btn btn-outline-primary"
+                                                title="Xem chi tiết">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{{ route('admin.tours.edit', $tour) }}" class="btn btn-outline-warning"
+                                                title="Chỉnh sửa">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            @if (($tour->completed_bookings_count ?? 0) == 0)
+                                                <form action="{{ route('admin.tours.destroy', $tour) }}" method="POST"
+                                                    class="d-inline"
+                                                    onsubmit="return confirm('Bạn có chắc chắn muốn xóa tour này?')">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-outline-danger" title="Xóa">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            @else
+                                                <button type="button" class="btn btn-outline-danger" title="Không thể xóa"
+                                                    onclick="alert('Tour này đã có người đặt, bạn không thể xóa tour');">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
-                                            </form>
-                                        @else
-                                            {{-- ĐÃ CÓ NGƯỜI ĐẶT -> CHỈ HIỆN ALERT, KHÔNG GỬI REQUEST XOÁ --}}
-                                            <button type="button" class="btn btn-danger btn-sm" title="Không thể xóa"
-                                                onclick="alert('Tour này đã có người đặt, bạn không thể xóa tour');">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        @endif
+                                            @endif
+                                        </div>
                                     </div>
                                 </td>
 
@@ -369,6 +499,49 @@
 
     @push('styles')
         <style>
+            /* Stats Cards Animation */
+            .card[style*="gradient"] {
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+            }
+            .card[style*="gradient"]:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
+            }
+
+            /* Table Improvements */
+            .table thead th {
+                background-color: #f8f9fa;
+                font-weight: 600;
+                text-transform: uppercase;
+                font-size: 0.75rem;
+                letter-spacing: 0.5px;
+                border-bottom: 2px solid #dee2e6;
+                padding: 1rem 0.75rem;
+            }
+
+            .table tbody tr {
+                transition: all 0.2s ease;
+            }
+
+            .table tbody tr:hover {
+                background-color: #f8f9fa;
+                transform: scale(1.01);
+                box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            }
+
+            .table td {
+                vertical-align: middle;
+                padding: 1rem 0.75rem;
+            }
+
+            /* Image in table */
+            .table img {
+                transition: transform 0.3s ease;
+            }
+            .table tr:hover img {
+                transform: scale(1.1);
+            }
+
             /* Custom filter styles */
             .filter-grid {
                 display: grid;

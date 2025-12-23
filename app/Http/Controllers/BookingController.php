@@ -217,25 +217,42 @@ class BookingController extends Controller
     {
         $booking = Booking::where('user_id', Auth::id())->findOrFail($id);
 
+        // Kiểm tra trạng thái booking
+        if (!in_array($booking->status, ['paid', 'completed'])) {
+            return back()->with('error', 'Chỉ có thể upload danh sách đoàn khi đơn hàng đã thanh toán.');
+        }
+
         $request->validate([
-            // Cho phép: Ảnh, PDF, Word, Excel
-            'manifest_file' => 'required|file|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx|max:5120', // Max 5MB
+            // Cho phép: CSV, Excel, PDF, Word
+            'manifest_file' => 'required|file|mimes:csv,xls,xlsx,pdf,doc,docx|max:5120', // Max 5MB
+        ], [
+            'manifest_file.required' => 'Vui lòng chọn file để upload.',
+            'manifest_file.mimes' => 'File phải có định dạng: CSV, XLS, XLSX, PDF, DOC, DOCX.',
+            'manifest_file.max' => 'File không được vượt quá 5MB.',
         ]);
 
         if ($request->hasFile('manifest_file')) {
-            // Xóa file cũ nếu có
-            if ($booking->passenger_manifest_file) {
-                Storage::disk('public')->delete($booking->passenger_manifest_file);
+            try {
+                // Xóa file cũ nếu có
+                if ($booking->passenger_manifest_file) {
+                    Storage::disk('public')->delete($booking->passenger_manifest_file);
+                }
+
+                // Lưu file mới
+                $path = $request->file('manifest_file')->store('manifests', 'public');
+                
+                $booking->update([
+                    'passenger_manifest_file' => $path
+                ]);
+                
+                // Refresh booking để đảm bảo dữ liệu mới nhất
+                $booking->refresh();
+
+                return redirect()->route('bookings.show', $booking->id)
+                    ->with('success', 'Đã tải lên danh sách đoàn thành công! Bạn có thể xem file đã upload ở phần "Danh sách đoàn".');
+            } catch (\Exception $e) {
+                return back()->with('error', 'Có lỗi xảy ra khi upload file: ' . $e->getMessage());
             }
-
-            // Lưu file mới
-            $path = $request->file('manifest_file')->store('manifests', 'public');
-            
-            $booking->update([
-                'passenger_manifest_file' => $path
-            ]);
-
-            return back()->with('success', 'Đã tải lên danh sách đoàn thành công!');
         }
 
         return back()->with('error', 'Vui lòng chọn file.');

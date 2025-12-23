@@ -405,6 +405,41 @@ class AdminController extends Controller
         return view('admin.tours.show', compact('tour'));
     }
 
+    /**
+     * Tour Management Hub - Trang trung tâm quản lý tour
+     */
+    public function tourManagementHub($tourId): View
+    {
+        $tour = Tour::with(['category', 'departures' => function($query) {
+            $query->orderBy('departure_date', 'desc');
+        }])->findOrFail($tourId);
+        
+        // Thống kê
+        $stats = [
+            'total_departures' => $tour->departures->count(),
+            'total_schedules' => $tour->schedules()->count(),
+            'total_bookings' => $tour->bookings()->count(),
+            'upcoming_departures' => $tour->departures()->where('departure_date', '>=', now())->count(),
+        ];
+        
+        return view('admin.tours.manage', compact('tour', 'stats'));
+    }
+
+    /**
+     * Tour Schedule Management - Quản lý lịch trình với tour context
+     */
+    public function tourScheduleManagement($tourId): View
+    {
+        $tour = Tour::with(['departures' => function($query) {
+            $query->orderBy('departure_date', 'desc');
+        }])->findOrFail($tourId);
+        
+        // Lấy danh sách tours để select (nếu cần chuyển tour)
+        $allTours = Tour::select('id', 'title')->orderBy('title')->get();
+        
+        return view('admin.tour-schedule-management', compact('tour', 'allTours'));
+    }
+
     public function deleteTour(Tour $tour): RedirectResponse
     {
         $completedStatuses = ['paid', 'completed', 'finished', 'confirmed'];
@@ -606,13 +641,32 @@ class AdminController extends Controller
             ->route('admin.tours.index')
             ->with('success', 'Tour đã được cập nhật thành công!');
     }
-    public function bookings()
+    public function departureCustomers($departureId)
     {
-        // Lấy tất cả bookings với relationships
-        $bookings = Booking::with(['tour', 'user', 'departure.vehicle', 'departure.guide'])
-            ->whereHas('departure') // Chỉ lấy bookings có departure
+        $departure = \App\Models\TourDeparture::with(['tour', 'guide', 'backupGuide', 'vehicle'])
+            ->findOrFail($departureId);
+        
+        // Lấy tất cả bookings của departure này
+        $bookings = \App\Models\Booking::where('departure_id', $departureId)
+            ->with(['user', 'tour', 'payment'])
             ->orderBy('created_at', 'desc')
             ->get();
+        
+        return view('admin.departures.customers', compact('departure', 'bookings'));
+    }
+
+    public function bookings(Request $request)
+    {
+        // Lấy tất cả bookings với relationships
+        $query = Booking::with(['tour', 'user', 'departure.vehicle', 'departure.guide'])
+            ->whereHas('departure'); // Chỉ lấy bookings có departure
+        
+        // Filter theo tour_id nếu có
+        if ($request->has('tour_id') && $request->tour_id) {
+            $query->where('tour_id', $request->tour_id);
+        }
+        
+        $bookings = $query->orderBy('created_at', 'desc')->get();
 
         // Gom booking theo NGÀY KHỞI HÀNH + TOUR
         // => Hai tour khác nhau nhưng cùng ngày sẽ được tách thành 2 nhóm riêng
@@ -678,6 +732,45 @@ class AdminController extends Controller
                 $departure = $firstBooking->departure ?? null;
             }
             
+            // Kiểm tra xem có thể chốt đoàn không (tất cả bookings phải đã xác nhận và thanh toán)
+            $canConfirmGroup = true;
+            $unconfirmedBookings = [];
+            $unpaidBookings = [];
+            
+            if ($departure && $sortedBookings->isNotEmpty()) {
+                foreach ($sortedBookings as $booking) {
+                    // Bỏ qua bookings đã hủy hoặc hết hạn
+                    if (in_array($booking->status, ['cancelled', 'expired'])) {
+                        continue;
+                    }
+                    
+                    // Kiểm tra status booking - phải là confirmed, paid, hoặc completed
+                    if (!in_array($booking->status, ['confirmed', 'paid', 'completed'])) {
+                        $canConfirmGroup = false;
+                        $unconfirmedBookings[] = $booking->id;
+                    }
+                    
+                    // Kiểm tra thanh toán:
+                    // - Nếu booking status = 'paid' hoặc 'completed' → coi là đã thanh toán
+                    // - Nếu không, kiểm tra payment record
+                    $isPaid = false;
+                    if (in_array($booking->status, ['paid', 'completed'])) {
+                        $isPaid = true;
+                    } else {
+                        // Kiểm tra payment record
+                        $hasPaidPayment = \App\Models\Payment::where('booking_id', $booking->id)
+                            ->where('status', 'paid')
+                            ->exists();
+                        $isPaid = $hasPaidPayment;
+                    }
+                    
+                    if (!$isPaid) {
+                        $canConfirmGroup = false;
+                        $unpaidBookings[] = $booking->id;
+                    }
+                }
+            }
+            
             return [
                 'date' => $datePart === 'no-date' ? null : \Carbon\Carbon::parse($datePart),
                 'tour' => $tour,
@@ -699,6 +792,9 @@ class AdminController extends Controller
                 'vehicle_type' => $departure ? $departure->vehicle_type : null,
                 'vehicle_details' => $departure ? $departure->vehicle_details : null,
                 'driver_contact' => $departure ? $departure->driver_contact : null,
+                'can_confirm_group' => $canConfirmGroup,
+                'unconfirmed_bookings' => $unconfirmedBookings,
+                'unpaid_bookings' => $unpaidBookings,
             ];
         });
 
@@ -712,7 +808,13 @@ class AdminController extends Controller
             ->orderBy('license_plate')
             ->get();
 
-        return view('admin.bookings.index', compact('groupedBookings', 'bookings', 'guides', 'vehicles'));
+        // Lấy tour nếu có tour_id để hiển thị context
+        $tour = null;
+        if ($request->has('tour_id') && $request->tour_id) {
+            $tour = Tour::find($request->tour_id);
+        }
+
+        return view('admin.bookings.index', compact('groupedBookings', 'bookings', 'guides', 'vehicles', 'tour'));
     }
 
     public function showBooking(Booking $booking): View
@@ -1420,10 +1522,61 @@ class AdminController extends Controller
     }
 
  // hàm upload file tour theo đoàn 4/12/2025
+    /**
+     * Tải file mẫu danh sách đoàn
+     */
+    public function downloadManifestTemplate()
+    {
+        // Tạo file CSV mẫu
+        $filename = 'danh_sach_doan_mau_' . date('Y-m-d') . '.csv';
+        
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        $callback = function() {
+            $file = fopen('php://output', 'w');
+            
+            // Thêm BOM UTF-8 để Excel hiển thị tiếng Việt đúng
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+            
+            // Header row
+            fputcsv($file, [
+                'STT',
+                'Họ và tên',
+                'Ngày sinh (dd/mm/yyyy)',
+                'Giới tính (Nam/Nữ)',
+                'Số CMND/CCCD/Passport',
+                'Số điện thoại',
+                'Email',
+                'Địa chỉ',
+                'Ghi chú'
+            ], ',');
+            
+            // Thêm 1 dòng mẫu
+            fputcsv($file, [
+                '1',
+                'Nguyễn Văn A',
+                '01/01/1990',
+                'Nam',
+                '001234567890',
+                '0901234567',
+                'nguyenvana@email.com',
+                '123 Đường ABC, Quận 1, TP.HCM',
+                ''
+            ], ',');
+            
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
     public function uploadManifest(Request $request, Booking $booking)
     {
         $request->validate([
-            'manifest_file' => 'required|file|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx|max:5120',
+            'manifest_file' => 'required|file|mimes:csv,xls,xlsx|max:5120',
         ]);
 
         if ($request->hasFile('manifest_file')) {
@@ -1432,13 +1585,14 @@ class AdminController extends Controller
             }
             $path = $request->file('manifest_file')->store('manifests', 'public');
             $booking->update(['passenger_manifest_file' => $path]);
-            return back()->with('success', 'Admin đã cập nhật danh sách đoàn thành công!');
+            return back()->with('success', 'Đã cập nhật danh sách đoàn thành công!');
         }
         return back()->with('error', 'Lỗi upload.');
     }
 
     /**
      * B2: Chốt đoàn (chốt số lượng khách)
+     * Chỉ cho phép chốt đoàn khi TẤT CẢ bookings đã được xác nhận và thanh toán
      */
     public function confirmGroup(Request $request)
     {
@@ -1457,7 +1611,50 @@ class AdminController extends Controller
             ], 404);
         }
 
-        // Cập nhật trạng thái chốt đoàn cho tất cả departures cùng ngày
+        // Kiểm tra tất cả bookings của tất cả departures trong ngày
+        foreach ($departures as $departure) {
+            $bookings = \App\Models\Booking::where('departure_id', $departure->id)
+                ->whereNotIn('status', ['cancelled', 'expired'])
+                ->get();
+            
+            if ($bookings->isEmpty()) {
+                continue; // Nếu không có booking nào, bỏ qua departure này
+            }
+            
+            // Kiểm tra từng booking: phải có status 'confirmed' hoặc 'paid' VÀ đã thanh toán
+            foreach ($bookings as $booking) {
+                // Kiểm tra status booking
+                if (!in_array($booking->status, ['confirmed', 'paid', 'completed'])) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Không thể chốt đoàn! Booking #{$booking->id} chưa được xác nhận (Trạng thái: {$booking->status}). Vui lòng xác nhận tất cả bookings trước khi chốt đoàn."
+                    ], 422);
+                }
+                
+                // Kiểm tra thanh toán:
+                // - Nếu booking status = 'paid' hoặc 'completed' → coi là đã thanh toán
+                // - Nếu không, kiểm tra payment record
+                $isPaid = false;
+                if (in_array($booking->status, ['paid', 'completed'])) {
+                    $isPaid = true;
+                } else {
+                    // Kiểm tra payment record
+                    $hasPaidPayment = \App\Models\Payment::where('booking_id', $booking->id)
+                        ->where('status', 'paid')
+                        ->exists();
+                    $isPaid = $hasPaidPayment;
+                }
+                
+                if (!$isPaid) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Không thể chốt đoàn! Booking #{$booking->id} chưa thanh toán. Vui lòng đảm bảo tất cả bookings đã thanh toán trước khi chốt đoàn."
+                    ], 422);
+                }
+            }
+        }
+
+        // Nếu tất cả bookings đã được xác nhận và thanh toán, cho phép chốt đoàn
         foreach ($departures as $departure) {
             $departure->update([
                 'group_confirmed' => true,
