@@ -100,8 +100,8 @@
                                                     class="btn btn-outline-primary btn-sm">
                                                     <i class="fas fa-eye"></i> Xem chi tiết
                                                 </a>
-                                                @if($booking->status !== 'cancelled' && $booking->status !== 'paid' && $booking->status !== 'completed')
-                                                    <!-- Terms checkbox for this booking -->
+                                               {{-- LOGIC MỚI: Chỉ hiện nút thanh toán khi trạng thái là CONFIRMED --}}
+                                                @if($booking->status === 'confirmed')
                                                     <div class="form-check d-inline-flex align-items-center ms-2">
                                                         <input class="form-check-input" type="checkbox" 
                                                                id="agreeTerms{{ $booking->id }}" 
@@ -117,16 +117,23 @@
                                                             </a>
                                                         </label>
                                                     </div>
+
                                                     <form action="{{ route('momo_payment', $booking->id) }}" 
                                                           method="POST" 
                                                           class="d-inline ms-1"
                                                           id="momoForm{{ $booking->id }}"
                                                           onsubmit="return validateTermsBeforePayment(event, {{ $booking->id }})">
                                                         @csrf
-                                                        <button type="submit" class="btn btn-danger btn-sm">
+                                                        <button type="submit" class="btn btn-danger btn-sm shadow-sm">
                                                             <i class="fas fa-wallet"></i> Thanh toán qua MOMO
                                                         </button>
                                                     </form>
+
+                                                {{-- Nếu đang PENDING (Chờ xác nhận) thì hiện thông báo --}}
+                                                @elseif($booking->status === 'pending')
+                                                    <span class="badge bg-light text-warning border border-warning ms-2 shadow-sm">
+                                                        <i class="fas fa-hourglass-half me-1"></i> Đang chờ Admin xác nhận
+                                                    </span>
                                                 @endif
                                             </div>
                                         </div>

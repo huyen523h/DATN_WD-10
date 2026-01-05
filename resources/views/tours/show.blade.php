@@ -240,7 +240,7 @@
 
                                 <hr class="my-4">
 
-                                <div>
+                                {{-- <div>
                                     <h4 class="mb-3">Viết đánh giá của bạn</h4>
                                     @auth
                                         <form id="reviewForm">
@@ -271,7 +271,7 @@
                                             đánh giá của bạn.
                                         </div>
                                     @endauth
-                                </div>
+                                </div> --}}
                             </div>
                         </div>
                     </div>

@@ -434,7 +434,7 @@
                                         </li>
                                         <li>
                                             <a class="dropdown-item" href="javascript:void(0)" 
-                                               onclick="openAssignVehicleModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}', {{ $group['tour_id'] ?? 'null' }}, {{ $group['departure_id'] ?? 'null' }})">
+                                               onclick="openAssignVehicleModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}', {{ $group['tour_id'] ?? 'null' }}, {{ $group['departure_id'] ?? ($group['departure']->id ?? 'null') }}, {{ $totalGuests }})">
                                                 <i class="fas fa-bus me-2 text-warning"></i> 
                                                 {{ $group['vehicle_type'] ? 'Đổi xe' : 'Gán xe' }}
                                                 @if($group['vehicle_type'])
@@ -1741,19 +1741,34 @@
         }
 
         // B4: Gán xe (từ dropdown Điều hành) - CẢI THIỆN VỚI THÔNG TIN CHI TIẾT VÀ CẢNH BÁO SỨC CHỨA
-        async function openAssignVehicleModal(departureDate, tourId, departureId = null) {
+        async function openAssignVehicleModal(departureDate, tourId, departureId = null, initialTotalGuests = 0) {
             // Lấy thông tin tổng số khách hiện tại
-            let totalGuests = 0;
-            if (departureId) {
+            // Ưu tiên dùng giá trị truyền vào, nếu không có thì fetch từ API
+            let totalGuests = parseInt(initialTotalGuests) || 0;
+            
+            // Nếu không có totalGuests ban đầu và có departureId, fetch từ API
+            if (totalGuests === 0 && departureId && departureId !== 'null') {
                 try {
                     const bookingsResult = await fetchBookingsByDeparture(departureId);
-                    if (bookingsResult && bookingsResult.bookings) {
-                        totalGuests = bookingsResult.total_guests || 0;
+                    console.log('[Gán xe] Bookings result:', bookingsResult);
+                    if (bookingsResult) {
+                        // Ưu tiên lấy từ metadata
+                        if (bookingsResult.total_guests !== undefined && bookingsResult.total_guests > 0) {
+                            totalGuests = parseInt(bookingsResult.total_guests) || 0;
+                        } else if (bookingsResult.bookings && Array.isArray(bookingsResult.bookings)) {
+                            // Tính lại từ danh sách booking nếu không có trong metadata
+                            totalGuests = bookingsResult.bookings.reduce((sum, booking) => {
+                                return sum + (parseInt(booking.adults) || 0) + (parseInt(booking.children) || 0);
+                            }, 0);
+                        }
                     }
+                    console.log('[Gán xe] Total guests from API:', totalGuests);
                 } catch (e) {
                     console.warn('Could not fetch total guests:', e);
                 }
             }
+            
+            console.log('[Gán xe] Final total guests:', totalGuests, 'Initial:', initialTotalGuests, 'DepartureId:', departureId);
             
             // Hiển thị modal với loading state
             const modalHtml = `
@@ -1852,19 +1867,44 @@
                     let optionsHtml = '<option value="">-- Chọn xe --</option>';
                     data.data.forEach(vehicle => {
                         const label = vehicle.label || `${vehicle.license_plate || 'N/A'} - ${vehicle.vehicle_type || 'N/A'} chỗ`;
+                        const capacity = parseInt(vehicle.capacity || vehicle.seats || 0);
                         optionsHtml += `<option value="${vehicle.id}" 
                             data-driver="${vehicle.driver_name || ''}" 
                             data-driver-phone="${vehicle.driver_phone || ''}" 
                             data-company="${vehicle.bus_company || vehicle.company || ''}" 
-                            data-capacity="${vehicle.capacity || vehicle.seats || 0}">${label}</option>`;
+                            data-capacity="${capacity}">${label}</option>`;
                         vehiclesData[vehicle.id] = {
                             driver: vehicle.driver_name || 'Chưa có',
                             driverPhone: vehicle.driver_phone || 'Chưa có',
                             company: vehicle.bus_company || vehicle.company || 'Chưa có',
-                            capacity: vehicle.capacity || vehicle.seats || 0
+                            capacity: capacity
                         };
                     });
                     selectElement.innerHTML = optionsHtml;
+                    
+                    // Cập nhật lại totalGuests nếu có departureId và chưa có giá trị (lấy từ cache hoặc tính lại)
+                    if (departureId && departureId !== 'null' && totalGuests === 0) {
+                        try {
+                            const bookingsResult = await fetchBookingsByDeparture(departureId);
+                            if (bookingsResult) {
+                                let updatedTotalGuests = 0;
+                                if (bookingsResult.total_guests !== undefined && bookingsResult.total_guests > 0) {
+                                    updatedTotalGuests = parseInt(bookingsResult.total_guests) || 0;
+                                } else if (bookingsResult.bookings && Array.isArray(bookingsResult.bookings)) {
+                                    updatedTotalGuests = bookingsResult.bookings.reduce((sum, booking) => {
+                                        return sum + (parseInt(booking.adults) || 0) + (parseInt(booking.children) || 0);
+                                    }, 0);
+                                }
+                                if (updatedTotalGuests > 0) {
+                                    document.getElementById('currentTotalGuests').textContent = updatedTotalGuests;
+                                    totalGuests = updatedTotalGuests;
+                                    console.log('[Gán xe] Updated total guests from API:', updatedTotalGuests);
+                                }
+                            }
+                        } catch (e) {
+                            console.warn('Could not update total guests:', e);
+                        }
+                    }
                     
                     // Event listener để hiển thị thông tin chi tiết và cảnh báo khi chọn xe
                     selectElement.addEventListener('change', function() {
@@ -1872,6 +1912,8 @@
                         const vehicleInfoCard = document.getElementById('vehicleInfoCard');
                         const capacityWarning = document.getElementById('capacityWarning');
                         const confirmBtn = document.getElementById('confirmVehicleBtn');
+                        
+                        console.log('[Gán xe] Vehicle selected:', selectedId, vehiclesData[selectedId]);
                         
                         if (selectedId && vehiclesData[selectedId]) {
                             const vehicle = vehiclesData[selectedId];
@@ -1881,25 +1923,38 @@
                             document.getElementById('vehicleCapacity').textContent = vehicle.capacity + ' chỗ';
                             vehicleInfoCard.classList.remove('d-none');
                             
-                            // Kiểm tra sức chứa
-                            const currentGuests = parseInt(document.getElementById('currentTotalGuests').textContent) || 0;
-                            if (vehicle.capacity > 0 && currentGuests > vehicle.capacity) {
-                                const excess = currentGuests - vehicle.capacity;
+                            // Kiểm tra sức chứa - ĐẢM BẢO SO SÁNH ĐÚNG KIỂU DỮ LIỆU
+                            const currentGuestsText = document.getElementById('currentTotalGuests').textContent.trim();
+                            const currentGuests = parseInt(currentGuestsText) || 0;
+                            const vehicleCapacity = parseInt(vehicle.capacity) || 0;
+                            
+                            console.log('[Gán xe] Capacity check:', {
+                                currentGuests,
+                                vehicleCapacity,
+                                currentGuestsText,
+                                vehicleCapacityRaw: vehicle.capacity
+                            });
+                            
+                            if (vehicleCapacity > 0 && currentGuests > vehicleCapacity) {
+                                const excess = currentGuests - vehicleCapacity;
                                 document.getElementById('capacityWarningText').innerHTML = 
-                                    `Số khách (${currentGuests}) vượt quá sức chứa xe (${vehicle.capacity} chỗ). Vượt <strong>${excess} khách</strong>. Vui lòng xác nhận lại!`;
+                                    `Số khách (<strong>${currentGuests}</strong>) vượt quá sức chứa xe (<strong>${vehicleCapacity} chỗ</strong>). Vượt <strong class="text-danger">${excess} khách</strong>. Vui lòng xác nhận lại!`;
                                 capacityWarning.classList.remove('d-none');
-                                confirmBtn.classList.add('btn-danger');
                                 confirmBtn.classList.remove('btn-warning');
+                                confirmBtn.classList.add('btn-danger');
+                                confirmBtn.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i> Xác nhận gán xe (Vượt sức chứa)';
                             } else {
                                 capacityWarning.classList.add('d-none');
                                 confirmBtn.classList.remove('btn-danger');
                                 confirmBtn.classList.add('btn-warning');
+                                confirmBtn.innerHTML = '<i class="fas fa-check me-1"></i> Xác nhận gán xe';
                             }
                         } else {
                             vehicleInfoCard.classList.add('d-none');
                             capacityWarning.classList.add('d-none');
                             confirmBtn.classList.remove('btn-danger');
                             confirmBtn.classList.add('btn-warning');
+                            confirmBtn.innerHTML = '<i class="fas fa-check me-1"></i> Xác nhận gán xe';
                         }
                     });
                 } else {

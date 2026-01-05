@@ -974,22 +974,22 @@
                     </a>
                 </div> --}}
 
-            <div class="nav-item">
+            {{-- <div class="nav-item">
                 <a href="#"
                     class="nav-link {{ request()->routeIs('admin.guides*') ? 'active' : '' }}">
                     <i class="fas fa-user-tie"></i>
                     <span class="nav-text">Quản lý HDV</span>
                 </a>
-            </div>
+            </div> --}}
 
             <!-- Bookings Management -->
-            <div class="nav-item">
+            {{-- <div class="nav-item">
                 <a href="{{ route('admin.bookings') }}"
                     class="nav-link {{ request()->routeIs('admin.bookings*') ? 'active' : '' }}">
                     <i class="fas fa-calendar-check"></i>
                     <span class="nav-text">Quản lý Đặt tour</span>
                 </a>
-            </div>
+            </div> --}}
 
             <!-- Users Management -->
             <div class="nav-section">

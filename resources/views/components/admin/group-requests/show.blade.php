@@ -148,7 +148,7 @@
     </div> </div> <div class="modal fade" id="createBookingModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form action="{{ route('admin.group-requests.convert', $request->id) }}" method="POST">
+            <form action="{{ route('admin.group-requests.convert', $request->id) }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-header bg-success text-white">
                     <h5 class="modal-title">Xác nhận tạo Booking</h5>
@@ -176,6 +176,20 @@
                         <input type="number" name="final_price" class="form-control form-control-lg border-success" required placeholder="VD: 50000000">
                         <div class="form-text">Nhập tổng số tiền khách phải trả (sau khi đã thương lượng).</div>
                     </div>
+
+                    {{-- Ghi chú dịch vụ --}}
+<div class="mb-3">
+    <label class="form-label fw-bold">Chi tiết dịch vụ cam kết <span class="text-danger">*</span></label>
+    <textarea name="service_details" class="form-control" rows="3" 
+              placeholder="VD: Xe Universe 45 chỗ, Ăn 200k/suất, KS Mường Thanh..." required></textarea>
+</div>
+
+{{-- Upload Hợp đồng --}}
+<div class="mb-3">
+    <label class="form-label fw-bold">File Hợp đồng / Báo giá (PDF/Ảnh) <span class="text-danger">*</span></label>
+    <input type="file" name="contract_file" class="form-control" accept=".pdf,.doc,.docx,.jpg,.png" required>
+</div>
+
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>

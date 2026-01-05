@@ -42,6 +42,9 @@
                             <option value="">-- Chọn lịch khởi hành --</option>
                         </select>
                         <small class="text-muted">Bắt buộc chọn lịch khởi hành vì booking gắn với 1 đợt đi cụ thể.</small>
+                        
+                        <!-- CẢNH BÁO KHI CHỌN DEPARTURE ĐÃ CHỐT HOẶC SAU CUTOFF -->
+                        <div id="departureWarning" class="alert d-none mt-2 mb-0"></div>
                     </div>
                 </div>
 
@@ -147,23 +150,83 @@
     function populateDepartures() {
         const tourId = document.getElementById('tour_id').value;
         const select = document.getElementById('departure_id');
+        const warningDiv = document.getElementById('departureWarning');
         select.innerHTML = '<option value=\"\">-- Chọn lịch khởi hành --</option>';
+        warningDiv.classList.add('d-none');
+        warningDiv.innerHTML = '';
+        
         if (!tourId) return;
         const tour = tours.find(t => String(t.id) === String(tourId));
         if (!tour) return;
+        
         tour.departures.forEach(d => {
             const opt = document.createElement('option');
+            let label = `${d.date || ''} (Còn ${d.seats_available}/${d.seats_total} chỗ)`;
+            
+            // Đánh dấu departure đã chốt hoặc sau cutoff
+            if (d.group_confirmed) {
+                label += ' [ĐÃ CHỐT]';
+                opt.disabled = true;
+                opt.style.color = '#999';
+            } else if (d.is_after_cutoff) {
+                label += ' [QUÁ CUTOFF]';
+            }
+            
             opt.value = d.id;
-            opt.textContent = `${d.date || ''} (Còn ${d.seats_available}/${d.seats_total} chỗ)`;
+            opt.textContent = label;
+            opt.dataset.groupConfirmed = d.group_confirmed ? '1' : '0';
+            opt.dataset.isAfterCutoff = d.is_after_cutoff ? '1' : '0';
+            opt.dataset.cutoffDate = d.cutoff_date || '';
             select.appendChild(opt);
         });
     }
+    
+    // Hiển thị cảnh báo khi chọn departure
+    document.getElementById('departure_id').addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const warningDiv = document.getElementById('departureWarning');
+        const submitBtn = document.querySelector('button[type="submit"]');
+        
+        if (!selectedOption || !selectedOption.value) {
+            warningDiv.classList.add('d-none');
+            warningDiv.innerHTML = '';
+            if (submitBtn) submitBtn.disabled = false;
+            return;
+        }
+        
+        const isConfirmed = selectedOption.dataset.groupConfirmed === '1';
+        const isAfterCutoff = selectedOption.dataset.isAfterCutoff === '1';
+        const cutoffDate = selectedOption.dataset.cutoffDate;
+        
+        if (isConfirmed) {
+            warningDiv.className = 'alert alert-danger mt-2 mb-0';
+            warningDiv.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i><strong>Tour đã được chốt đoàn!</strong> Không thể thêm booking mới. Vui lòng chọn lịch khởi hành khác hoặc liên hệ Admin để override.';
+            warningDiv.classList.remove('d-none');
+            if (submitBtn) submitBtn.disabled = true;
+        } else if (isAfterCutoff) {
+            const isAdmin = {{ auth()->user()->hasRole('admin') ? 'true' : 'false' }};
+            warningDiv.className = 'alert alert-warning mt-2 mb-0';
+            warningDiv.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i><strong>Cảnh báo:</strong> Tour đã quá cutoff (${cutoffDate || 'N/A'}). ${isAdmin ? 'Bạn có quyền Admin - có thể override, hành động sẽ được ghi log.' : 'Chỉ Admin mới có thể thêm booking sau cutoff.'}`;
+            warningDiv.classList.remove('d-none');
+            if (submitBtn && !isAdmin) {
+                submitBtn.disabled = true;
+            }
+        } else {
+            warningDiv.classList.add('d-none');
+            warningDiv.innerHTML = '';
+            if (submitBtn) submitBtn.disabled = false;
+        }
+    });
+    
     document.getElementById('tour_id').addEventListener('change', populateDepartures);
     // Preload if old value
     if (document.getElementById('tour_id').value) {
         populateDepartures();
         const oldDep = '{{ old('departure_id') }}';
-        if (oldDep) document.getElementById('departure_id').value = oldDep;
+        if (oldDep) {
+            document.getElementById('departure_id').value = oldDep;
+            document.getElementById('departure_id').dispatchEvent(new Event('change'));
+        }
     }
 </script>
 @endsection

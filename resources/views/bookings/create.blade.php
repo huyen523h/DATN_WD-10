@@ -318,6 +318,7 @@
                 const subtotal = adultTotal + childTotal + infantTotal + additionalTotal;
                 const discount = promotionInput.value ? subtotal * 0.1 : 0;
                 const total = subtotal - discount;
+                
 
                 //Render giao diện + cảnh báo nếu vi phạm quy tắc
                 let warnings = '';

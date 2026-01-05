@@ -35,6 +35,8 @@ class Booking extends Model
         'expires_at',
         'cancel_reason',
         'receipt_image',
+       'contract_file',      
+    'service_details',
     ];
     
     /**
@@ -115,6 +117,11 @@ class Booking extends Model
         return $this->hasMany(Payment::class, 'booking_id', 'id')->orderBy('id', 'desc');
     }
 
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(Payment::class, 'booking_id')->orderBy('id', 'desc');
+    }
+    
     /**
      * Get the invoice for the booking.
      */
@@ -188,13 +195,27 @@ class Booking extends Model
             ];
         }
 
-        // Booking phải ở trạng thái 'confirmed' hoặc 'pending' để có thể thanh toán
-        if (!in_array($this->status, ['confirmed', 'pending'])) {
+        // bổ xung thêm code mới khi chưa xác nhận đã hiện nút thanh toán 2/1/2026
+    if ($this->status !== 'confirmed') {
+            $msg = 'Đơn hàng chưa sẵn sàng thanh toán.';
+            
+            if ($this->status === 'pending') {
+                $msg = 'Đơn hàng đang chờ Admin xác nhận chỗ. Vui lòng quay lại sau.';
+            }
+
             return [
                 'can_pay' => false,
-                'message' => 'Đặt tour này không thể thanh toán. Trạng thái: ' . $this->status
+                'message' => $msg
             ];
         }
+
+        // Booking phải ở trạng thái 'confirmed' hoặc 'pending' để có thể thanh toán
+        // if (!in_array($this->status, ['confirmed', 'pending'])) {
+        //     return [
+        //         'can_pay' => false,
+        //         'message' => 'Đặt tour này không thể thanh toán. Trạng thái: ' . $this->status
+        //     ];
+        // }
 
         // Kiểm tra xem đã có payment completed chưa
         $hasCompletedPayment = $this->payment()
