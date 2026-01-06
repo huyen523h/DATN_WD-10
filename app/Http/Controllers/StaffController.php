@@ -19,13 +19,18 @@ class StaffController extends Controller
             'confirmed_bookings' => Booking::where('status', 'confirmed')->count(),
         ];
 
-        $recent_bookings = Booking::with(['tour', 'user'])
-            ->orderBy('created_at', 'desc')
+        $recent_bookings = Booking::with([
+            'tour',
+            'user',
+            'departure:id,seats_total,seats_available,seats_min'
+        ])
+            ->orderByDesc('created_at')
             ->limit(10)
             ->get();
 
         return view('staff.dashboard', compact('stats', 'recent_bookings'));
     }
+
 
     public function tours()
     {
@@ -39,7 +44,7 @@ class StaffController extends Controller
     public function showTour(Tour $tour)
     {
         $tour->load(['category', 'images', 'bookings.user']);
-        
+
         return view('staff.tours.show', compact('tour'));
     }
 
@@ -55,7 +60,7 @@ class StaffController extends Controller
     public function showBooking(Booking $booking)
     {
         $booking->load(['user', 'tour', 'tour.images']);
-        
+
         return view('staff.bookings.show', compact('booking'));
     }
 
@@ -79,8 +84,8 @@ class StaffController extends Controller
         })->with(['bookings' => function ($query) {
             $query->latest()->limit(3);
         }])
-        ->orderBy('created_at', 'desc')
-        ->paginate(15);
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
 
         return view('staff.customers.index', compact('customers'));
     }
@@ -88,7 +93,7 @@ class StaffController extends Controller
     public function showCustomer(User $user)
     {
         $user->load(['bookings.tour', 'reviews.tour']);
-        
+
         return view('staff.customers.show', compact('user'));
     }
 
@@ -101,7 +106,7 @@ class StaffController extends Controller
     public function updateProfile(Request $request)
     {
         $user = Auth::user();
-        
+
         $request->validate([
             'name' => 'required|string|max:100',
             'email' => 'required|email|unique:users,email,' . $user->id,
