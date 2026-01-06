@@ -1,0 +1,159 @@
+/* CSS siêu nhỏ gọn cho bảng HDV */
+
+.guides-compact-wrapper {
+    max-width: 900px;
+    margin: 0 auto;
+    overflow: hidden;
+}
+
+.guides-compact-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Header */
+.guides-compact-table thead th {
+    background: linear-gradient(135deg, #9f7aea 0%, #805ad5 100%);
+    color: white;
+    font-weight: 600;
+    padding: 8px 4px;
+    text-align: center;
+    font-size: 11px;
+    border: none;
+    white-space: nowrap;
+}
+
+/* Body */
+.guides-compact-table tbody td {
+    padding: 6px 4px;
+    border-bottom: 1px solid #e5e7eb;
+    vertical-align: middle;
+    font-size: 11px;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.guides-compact-table tbody tr:hover {
+    background-color: #faf5ff;
+}
+
+/* Column widths - Siêu nhỏ gọn */
+.guides-compact-table .col-id { width: 50px; }
+.guides-compact-table .col-name { width: 120px; }
+.guides-compact-table .col-phone { width: 90px; }
+.guides-compact-table .col-category { width: 80px; }
+.guides-compact-table .col-exp { width: 50px; }
+.guides-compact-table .col-rating { width: 60px; }
+.guides-compact-table .col-status { width: 70px; }
+.guides-compact-table .col-actions { width: 80px; }
+
+/* Content styling */
+.guide-id {
+    font-weight: 600;
+    color: #4f46e5;
+    font-size: 10px;
+}
+
+.guide-name-compact {
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.guide-phone-compact {
+    font-size: 10px;
+    color: #059669;
+}
+
+.guide-category-compact {
+    background: #f3f4f6;
+    color: #374151;
+    padding: 1px 3px;
+    border-radius: 2px;
+    font-size: 8px;
+    display: inline-block;
+}
+
+.guide-exp-compact {
+    font-weight: 600;
+    color: #059669;
+    font-size: 11px;
+}
+
+.guide-rating-compact {
+    font-size: 10px;
+    color: #fbbf24;
+}
+
+/* Status */
+.status-compact {
+    padding: 2px 4px;
+    border-radius: 8px;
+    font-size: 8px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-active { background: #d1fae5; color: #065f46; }
+.status-leave { background: #fef3c7; color: #92400e; }
+.status-inactive { background: #fee2e2; color: #991b1b; }
+
+/* Actions */
+.actions-compact {
+    display: flex;
+    gap: 1px;
+    justify-content: center;
+}
+
+.btn-compact {
+    width: 18px;
+    height: 18px;
+    border-radius: 2px;
+    border: none;
+    cursor: pointer;
+    font-size: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+
+.btn-view-compact { background: #10b981; color: white; }
+.btn-edit-compact { background: #3b82f6; color: white; }
+.btn-delete-compact { background: #ef4444; color: white; }
+
+.btn-compact:hover {
+    opacity: 0.8;
+    transform: scale(1.05);
+}
+
+/* Empty state */
+.empty-compact {
+    text-align: center;
+    padding: 30px;
+    color: #6b7280;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .guides-compact-table .col-category,
+    .guides-compact-table .col-exp {
+        display: none;
+    }
+    
+    .guides-compact-table .col-name { width: 140px; }
+    .guides-compact-table .col-phone { width: 100px; }
+    .guides-compact-table .col-rating { width: 70px; }
+    .guides-compact-table .col-status { width: 80px; }
+    .guides-compact-table .col-actions { width: 90px; }
+}

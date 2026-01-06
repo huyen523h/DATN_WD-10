@@ -2,6 +2,77 @@
 
 @section('title', 'Quản lý HDV')
 
+@push('styles')
+<link href="{{ asset('css/guides-compact.css') }}" rel="stylesheet">
+<style>
+/* CSS inline để đảm bảo hoạt động */
+.guides-compact-wrapper {
+    max-width: 900px !important;
+    margin: 0 auto !important;
+    overflow: hidden !important;
+}
+
+.guides-compact-table {
+    width: 100% !important;
+    table-layout: fixed !important;
+    border-collapse: collapse !important;
+    background: white !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+}
+
+.guides-compact-table thead th {
+    background: linear-gradient(135deg, #9f7aea 0%, #805ad5 100%) !important;
+    color: white !important;
+    font-weight: 600 !important;
+    padding: 8px 4px !important;
+    text-align: center !important;
+    font-size: 11px !important;
+    border: none !important;
+    white-space: nowrap !important;
+}
+
+.guides-compact-table tbody td {
+    padding: 6px 4px !important;
+    border-bottom: 1px solid #e5e7eb !important;
+    vertical-align: middle !important;
+    font-size: 11px !important;
+    text-align: center !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+.guides-compact-table .col-id { width: 50px !important; }
+.guides-compact-table .col-name { width: 120px !important; }
+.guides-compact-table .col-phone { width: 90px !important; }
+.guides-compact-table .col-category { width: 80px !important; }
+.guides-compact-table .col-exp { width: 50px !important; }
+.guides-compact-table .col-rating { width: 60px !important; }
+.guides-compact-table .col-status { width: 70px !important; }
+.guides-compact-table .col-actions { width: 80px !important; }
+
+.guide-id { font-weight: 600 !important; color: #4f46e5 !important; font-size: 10px !important; }
+.guide-name-compact { font-weight: 600 !important; color: #1f2937 !important; font-size: 11px !important; }
+.guide-phone-compact { font-size: 10px !important; color: #059669 !important; }
+.guide-category-compact { background: #f3f4f6 !important; color: #374151 !important; padding: 1px 3px !important; border-radius: 2px !important; font-size: 8px !important; }
+.guide-exp-compact { font-weight: 600 !important; color: #059669 !important; font-size: 11px !important; }
+.guide-rating-compact { font-size: 10px !important; color: #fbbf24 !important; }
+
+.status-compact { padding: 2px 4px !important; border-radius: 8px !important; font-size: 8px !important; font-weight: 600 !important; text-transform: uppercase !important; }
+.status-active { background: #d1fae5 !important; color: #065f46 !important; }
+.status-leave { background: #fef3c7 !important; color: #92400e !important; }
+.status-inactive { background: #fee2e2 !important; color: #991b1b !important; }
+
+.actions-compact { display: flex !important; gap: 1px !important; justify-content: center !important; }
+.btn-compact { width: 18px !important; height: 18px !important; border-radius: 2px !important; border: none !important; cursor: pointer !important; font-size: 8px !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; text-decoration: none !important; }
+.btn-view-compact { background: #10b981 !important; color: white !important; }
+.btn-edit-compact { background: #3b82f6 !important; color: white !important; }
+.btn-delete-compact { background: #ef4444 !important; color: white !important; }
+</style>
+@endpush
+
 @section('content')
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -64,88 +135,114 @@
     </div>
 
     <div class="card">
-        <div class="card-body table-responsive">
-            <table class="table align-middle">
-                <thead>
-                    <tr>
-                        <th>Mã</th>
-                        <th>Họ tên</th>
-                        <th>Liên hệ</th>
-                        <th>Nhóm</th>
-                        <th>Kinh nghiệm</th>
-                        <th>Đánh giá</th>
-                        <th>Trạng thái</th>
-                        <th class="text-end">Hành động</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($guides as $guide)
+        <div class="card-body p-0">
+            <div class="guides-compact-wrapper">
+                <table class="guides-compact-table">
+                    <thead>
                         <tr>
-                            <td>
-                                <span class="fw-semibold">{{ $guide->code }}</span>
-                                <div class="text-muted">#{{ $guide->id }}</div>
-                            </td>
-                            <td>
-                                <div class="fw-semibold">{{ $guide->full_name }}</div>
-                                <small class="text-muted">{{ $guide->primary_language }}</small>
-                            </td>
-                            <td>
-                                <div>{{ $guide->phone }}</div>
-                                <small class="text-muted">{{ $guide->email }}</small>
-                            </td>
-                            <td>
-                                @forelse ($guide->categories as $category)
-                                    <span class="badge bg-light text-dark me-1">{{ $category->name }}</span>
-                                @empty
-                                    <span class="text-muted">Chưa phân nhóm</span>
-                                @endforelse
-                            </td>
-                            <td>{{ $guide->experience_years ?? 0 }} năm</td>
-                            <td>
-                                <span class="badge bg-warning text-dark">
-                                    <i class="fas fa-star"></i> {{ number_format($guide->rating_average, 1) }}
-                                </span>
-                                <small class="text-muted d-block">{{ $guide->rating_count }} lượt</small>
-                            </td>
-                            <td>
-                                @php
-                                    $statusMap = [
-                                        'active' => ['label' => 'Đang hoạt động', 'class' => 'bg-success'],
-                                        'on_leave' => ['label' => 'Tạm nghỉ', 'class' => 'bg-warning text-dark'],
-                                        'inactive' => ['label' => 'Ngưng hoạt động', 'class' => 'bg-secondary'],
-                                        'available' => ['label' => 'Đang hoạt động', 'class' => 'bg-success'], // Alias for active
-                                    ];
-                                    $guideStatus = $guide->status ?? 'active';
-                                    $status = $statusMap[$guideStatus] ?? $statusMap['active'];
-                                @endphp
-                                <span class="badge {{ $status['class'] }}">{{ $status['label'] }}</span>
-                            </td>
-                            <td class="text-end">
-                                <div class="btn-group">
-                                    <a href="{{ route('admin.guides.show', $guide) }}" class="btn btn-sm btn-outline-secondary">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <a href="{{ route('admin.guides.edit', $guide) }}" class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <form action="{{ route('admin.guides.destroy', $guide) }}" method="POST"
-                                        onsubmit="return confirm('Xác nhận xoá hướng dẫn viên này?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
+                            <th class="col-id">ID</th>
+                            <th class="col-name">Họ tên</th>
+                            <th class="col-phone">SĐT</th>
+                            <th class="col-category">Nhóm</th>
+                            <th class="col-exp">Exp</th>
+                            <th class="col-rating">Rating</th>
+                            <th class="col-status">Status</th>
+                            <th class="col-actions">Action</th>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="8" class="text-center py-4">Chưa có hướng dẫn viên nào.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @forelse ($guides as $guide)
+                            <tr>
+                                <td class="col-id">
+                                    <div class="guide-id">{{ $guide->code ?? 'HDV' . $guide->id }}</div>
+                                </td>
+                                <td class="col-name">
+                                    <div class="guide-name-compact" title="{{ $guide->full_name ?? 'N/A' }}">
+                                        {{ Str::limit($guide->full_name ?? 'N/A', 15) }}
+                                    </div>
+                                </td>
+                                <td class="col-phone">
+                                    <div class="guide-phone-compact">
+                                        {{ $guide->phone ? Str::limit($guide->phone, 10) : 'N/A' }}
+                                    </div>
+                                </td>
+                                <td class="col-category">
+                                    @if($guide->categories->count() > 0)
+                                        <span class="guide-category-compact" title="{{ $guide->categories->first()->name }}">
+                                            {{ Str::limit($guide->categories->first()->name, 8) }}
+                                        </span>
+                                    @else
+                                        <span style="color: #9ca3af; font-size: 8px;">N/A</span>
+                                    @endif
+                                </td>
+                                <td class="col-exp">
+                                    <div class="guide-exp-compact">{{ $guide->experience_years ?? 0 }}y</div>
+                                </td>
+                                <td class="col-rating">
+                                    <div class="guide-rating-compact">
+                                        ⭐ {{ number_format($guide->rating_average ?? 0, 1) }}
+                                    </div>
+                                </td>
+                                <td class="col-status">
+                                    @php
+                                        $status = $guide->status ?? 'active';
+                                        $statusClass = match($status) {
+                                            'active', 'available' => 'status-active',
+                                            'on_leave' => 'status-leave',
+                                            'inactive' => 'status-inactive',
+                                            default => 'status-active'
+                                        };
+                                        $statusText = match($status) {
+                                            'active', 'available' => 'OK',
+                                            'on_leave' => 'OFF',
+                                            'inactive' => 'NO',
+                                            default => 'OK'
+                                        };
+                                    @endphp
+                                    <span class="status-compact {{ $statusClass }}">{{ $statusText }}</span>
+                                </td>
+                                <td class="col-actions">
+                                    <div class="actions-compact">
+                                        <a href="{{ route('admin.guides.show', $guide) }}" 
+                                           class="btn-compact btn-view-compact" 
+                                           title="Xem">
+                                            👁
+                                        </a>
+                                        <a href="{{ route('admin.guides.edit', $guide) }}" 
+                                           class="btn-compact btn-edit-compact" 
+                                           title="Sửa">
+                                            ✏
+                                        </a>
+                                        <form action="{{ route('admin.guides.destroy', $guide) }}" 
+                                              method="POST" 
+                                              style="display: inline;"
+                                              onsubmit="return confirm('Xóa HDV này?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" 
+                                                    class="btn-compact btn-delete-compact" 
+                                                    title="Xóa">
+                                                🗑
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="8">
+                                    <div class="empty-compact">
+                                        <div>📋 Chưa có HDV nào</div>
+                                        <a href="{{ route('admin.guides.create') }}" class="btn btn-primary btn-sm mt-2">
+                                            + Thêm HDV
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
         <div class="card-footer">
             {{ $guides->links() }}
