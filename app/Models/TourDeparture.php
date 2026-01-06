@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class TourDeparture extends Model
 {
@@ -25,6 +26,7 @@ class TourDeparture extends Model
         'status', // string: available|contact|sold_out
         // THÊM CÁC TRƯỜNG MỚI VÀO ĐÂY:
         'guide_id',
+        'vehicle_id',
         'vehicle_type', // 16, 29, 45
         'vehicle_details',
         'driver_contact',
@@ -43,6 +45,13 @@ class TourDeparture extends Model
         'emergency_phone',
         'special_notes',
         'preparation_status',
+        // Thông tin điều hành
+        'tour_status', // preparing, running, completed, has_issue
+        'management_notes', // Ghi chú điều hành
+        'guest_list_file', // File PDF danh sách khách
+        'assembly_time', // Giờ tập trung
+        'pickup_point', // Điểm đón
+        'bus_company', // Nhà xe
     ];
     // THÊM QUAN HỆ VỚI USER (GUIDE)
     public function guide()
@@ -55,11 +64,25 @@ class TourDeparture extends Model
         return $this->belongsTo(User::class, 'backup_guide_id');
     }
 
+    /**
+     * Thông tin hồ sơ hướng dẫn viên (Guide) tương ứng với user_id = guide_id.
+     */
+    public function guideProfile(): HasOne
+    {
+        return $this->hasOne(Guide::class, 'user_id', 'guide_id');
+    }
+
+    public function vehicle(): BelongsTo
+    {
+        return $this->belongsTo(Vehicle::class, 'vehicle_id');
+    }
+
     protected $casts = [
         'departure_date' => 'date',
         'start_time'     => 'datetime:H:i',
         'end_time'       => 'datetime:H:i',
         'departure_time' => 'datetime:H:i',
+        'assembly_time' => 'datetime:H:i',
         'price'         => 'decimal:2',
         'child_price'   => 'decimal:2',
         'infant_price'  => 'decimal:2',
@@ -72,8 +95,39 @@ class TourDeparture extends Model
 
     public function getStatusAttribute($value)
     {
+        // Nếu tour bị hủy thủ công thì ưu tiên trạng thái hủy
+        if ($value === 'cancelled') {
+            return 'cancelled';
+        }
+
+        $today = now()->startOfDay();
+        $departureDate = $this->departure_date ? $this->departure_date->copy()->startOfDay() : null;
+
+        // Nếu không có ngày khởi hành, trả về trạng thái gốc
+        if (!$departureDate) {
+            return $value;
+        }
+
+        // Đã kết thúc: ngày hiện tại > ngày khởi hành
+        if ($today->gt($departureDate)) {
+            return 'finished';
+        }
+
+        $daysUntilDeparture = $today->diffInDays($departureDate, false);
+
+        // Đã đủ khách: hết chỗ
         if ($this->seats_available <= 0) {
             return 'sold_out';
+        }
+
+        // Sắp khởi hành: còn ≤ 7 ngày
+        if ($daysUntilDeparture >= 0 && $daysUntilDeparture <= 7) {
+            return 'upcoming';
+        }
+
+        // Đang mở bán: ngày hiện tại < ngày khởi hành và còn chỗ
+        if ($today->lt($departureDate) && $this->seats_available > 0) {
+            return 'available';
         }
 
         return $value;

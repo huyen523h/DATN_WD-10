@@ -3,7 +3,9 @@
 use App\Http\Controllers\Admin\DepartureController;
 use App\Http\Controllers\Admin\TourScheduleController;
 use App\Http\Controllers\Admin\GuideWebController;
+use App\Http\Controllers\Admin\VehicleWebController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
@@ -80,6 +82,38 @@ Route::get('/web/invoices/booking/{bookingId}/pdf', function ($bookingId) {
         // Load booking with promotion relationship
         $booking->load('promotion');
 
+        // ===== TÍNH TOÁN GIỐNG PHẦN TÓM TẮT ĐẶT TOUR =====
+        // Giá tour theo lịch khởi hành (ưu tiên giá trên departure, fallback về tour)
+        $departure = $booking->departure;
+        $promotion = $booking->promotion ?? null;
+        $adultPrice = $departure->price ?? ($booking->tour->price_adult ?? $booking->tour->price);
+        $childPrice = $departure->child_price ?? ($booking->tour->price_child ?? ($booking->tour->price * 0.7));
+        // Em bé miễn phí
+        $infantPrice = 0;
+
+        $adultTotal  = $adultPrice * $booking->adults;
+        $childTotal  = $childPrice * $booking->children;
+        $infantTotal = $infantPrice * $booking->infants; // hiện tại = 0
+
+        // Tiền tour gốc (không tính dịch vụ, không giảm giá)
+        $baseTotal = $adultTotal + $childTotal + $infantTotal;
+
+        // Dịch vụ thêm: lấy từ trường additional_services_total nếu có
+        $additionalTotal = (float) ($booking->additional_services_total ?? 0);
+        $additionalServices = $booking->additional_services ?? [];
+
+        // Tổng tạm tính = tiền tour + dịch vụ thêm
+        $subTotal = $baseTotal + $additionalTotal;
+
+        // Giảm giá từ promotion (nếu có)
+        $discountAmount = 0;
+        if ($promotion && method_exists($promotion, 'calculateDiscount')) {
+            $discountAmount = $promotion->calculateDiscount($subTotal);
+        }
+
+        // Tổng cộng sau giảm giá
+        $finalTotal = $subTotal - $discountAmount;
+
         // Company information
         $company = [
             'name' => 'Tour365 - Công ty Du lịch',
@@ -98,7 +132,10 @@ Route::get('/web/invoices/booking/{bookingId}/pdf', function ($bookingId) {
             'user' => $booking->user,
             'departure' => $booking->departure,
             'company' => $company,
-            'promotion' => $booking->promotion ?? null,
+            'promotion' => $promotion,
+            'baseTotal' => $baseTotal,
+            'additionalTotal' => $additionalTotal,
+            'discountAmount' => $discountAmount,
         ])->render();
 
         // Save HTML to public directory for direct access
@@ -160,6 +197,34 @@ Route::get('/web/invoices/booking/{bookingId}/download', function ($bookingId) {
         // Load booking with promotion relationship
         $booking->load('promotion');
 
+        // ===== TÍNH TOÁN GIỐNG PHẦN TÓM TẮT ĐẶT TOUR =====
+        // Giá tour theo lịch khởi hành (ưu tiên giá trên departure, fallback về tour)
+        $departure = $booking->departure;
+        $promotion = $booking->promotion ?? null;
+        $adultPrice = $departure->price ?? ($booking->tour->price_adult ?? $booking->tour->price);
+        $childPrice = $departure->child_price ?? ($booking->tour->price_child ?? ($booking->tour->price * 0.7));
+        $infantPrice = 0; // em bé FREE
+
+        $adultTotal  = $adultPrice * $booking->adults;
+        $childTotal  = $childPrice * $booking->children;
+        $infantTotal = $infantPrice * $booking->infants;
+
+        $baseTotal = $adultTotal + $childTotal + $infantTotal;
+
+        // Dịch vụ thêm
+        $additionalTotal = (float) ($booking->additional_services_total ?? 0);
+        $additionalServices = $booking->additional_services ?? [];
+
+        $subTotal = $baseTotal + $additionalTotal;
+
+        // Giảm giá từ promotion (nếu có)
+        $discountAmount = 0;
+        if ($promotion && method_exists($promotion, 'calculateDiscount')) {
+            $discountAmount = $promotion->calculateDiscount($subTotal);
+        }
+
+        $finalTotal = $subTotal - $discountAmount;
+
         // Company information
         $company = [
             'name' => 'Tour365 - Công ty Du lịch',
@@ -178,7 +243,11 @@ Route::get('/web/invoices/booking/{bookingId}/download', function ($bookingId) {
             'user' => $booking->user,
             'departure' => $booking->departure,
             'company' => $company,
-            'promotion' => $booking->promotion ?? null,
+            'promotion'        => $promotion,
+            'baseTotal'        => $baseTotal,
+            'additionalTotal'  => $additionalTotal,
+            'discountAmount'   => $discountAmount,
+            'finalTotal'       => $finalTotal,
         ])->render();
 
         // Generate filename
@@ -209,6 +278,9 @@ Route::get('/about', function () {
 Route::get('/contact', function () {
     return view('contact');
 })->name('contact');
+Route::get('/payment-policy', function () {
+    return view('payment-policy');
+})->name('payment-policy');
 Route::get('/sitemap', function () {
     return view('sitemap');
 })->name('sitemap');
@@ -250,6 +322,10 @@ Route::middleware('auth')->group(function () {
     // Route upload danh sách đoàn 
     Route::post('/bookings/{booking}/upload-manifest', [BookingController::class, 'uploadManifest'])
         ->name('bookings.upload-manifest');
+    
+    // Route tải file mẫu danh sách đoàn (cho khách hàng)
+    Route::get('/bookings/download-manifest-template', [\App\Http\Controllers\AdminController::class, 'downloadManifestTemplate'])
+        ->name('bookings.download-manifest-template');
 
 
     // Lịch sử yêu cầu tour đoàn
@@ -275,6 +351,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
     Route::get('/bookings/{booking}', [BookingController::class, 'show'])->name('bookings.show');
     Route::delete('/bookings/{booking}', [BookingController::class, 'destroy'])->name('bookings.destroy');
+    Route::post('/bookings/{id}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel');
 
     // Wishlist routes
     Route::get('/wishlists', [WishlistsController::class, 'index'])->name('wishlists.index');
@@ -454,6 +531,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/tours/{tour}/edit', [AdminController::class, 'editTour'])->name('tours.edit');
     Route::put('/tours/{tour}', [AdminController::class, 'updateTour'])->name('tours.update');
     Route::delete('/tours/{tour}', [AdminController::class, 'deleteTour'])->name('tours.destroy');
+    
+    // Tour Management Hub - Trang trung tâm quản lý tour
+    Route::get('/tours/{tour}/manage', [AdminController::class, 'tourManagementHub'])->name('tours.manage');
 
     // Tour Schedules management
     Route::get('/tours/{tour}/schedules', [\App\Http\Controllers\Admin\TourScheduleController::class, 'index'])->name('schedules.index');
@@ -462,6 +542,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/tours/{tour}/schedules/{schedule}/edit', [\App\Http\Controllers\Admin\TourScheduleController::class, 'edit'])->name('schedules.edit');
     Route::put('/tours/{tour}/schedules/{schedule}', [\App\Http\Controllers\Admin\TourScheduleController::class, 'update'])->name('schedules.update');
     Route::delete('/tours/{tour}/schedules/{schedule}', [\App\Http\Controllers\Admin\TourScheduleController::class, 'destroy'])->name('schedules.destroy');
+    
+    // Tour Schedule Management (với tour context)
+    Route::get('/tours/{tour}/schedule-management', [AdminController::class, 'tourScheduleManagement'])->name('tours.schedule-management');
 
     // Xóa ảnh của tour
     Route::delete('/tours/{tour}/images/{image}', [AdminController::class, 'deleteTourImage'])
@@ -470,12 +553,20 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         // route mới 3/12/2025
         Route::put('/departures/{id}/operating', [\App\Http\Controllers\Admin\DepartureController::class, 'updateOperating'])
         ->name('departures.update_operating');
+        
+        // Cập nhật thông tin điều hành (Ghi chú, Trạng thái tour, File danh sách khách)
+        Route::put('/departures/{id}/management', [\App\Http\Controllers\Admin\DepartureController::class, 'updateManagement'])
+        ->name('departures.update_management');
 
-        // route mới 4/12/2025
+        
+        Route::get('/bookings/download-manifest-template', [AdminController::class, 'downloadManifestTemplate'])->name('bookings.download-manifest-template');
         Route::post('/bookings/{booking}/admin-upload-manifest', [AdminController::class, 'uploadManifest'])->name('bookings.upload-manifest');
 
     // Guides management
     Route::resource('guides', GuideWebController::class);
+
+    // Vehicles management
+    Route::resource('vehicles', VehicleWebController::class);
 
     // Invoices management
     Route::resource('invoices', \App\Http\Controllers\InvoiceController::class);
@@ -487,22 +578,35 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     // Bookings management
     Route::get('/bookings', [AdminController::class, 'bookings'])->name('bookings');
+    Route::get('/bookings/manual/create', [AdminController::class, 'createManualBooking'])->name('bookings.manual.create');
+    Route::post('/bookings/manual', [AdminController::class, 'storeManualBooking'])->name('bookings.manual.store');
+    
+    // Departures management
+    Route::get('/departures/{departure}/customers', [AdminController::class, 'departureCustomers'])->name('departures.customers');
+    Route::get('/departures/{departure}/customers/export', [AdminController::class, 'exportDepartureCustomers'])->name('departures.customers.export');
+    Route::post('/departures/{departure}/customers/import', [AdminController::class, 'importDepartureCustomers'])->name('departures.customers.import');
+
+    //  Group management & helper APIs (đặt TRƯỚC route /bookings/{booking} để tránh bị nuốt bởi {booking})
+    Route::get('/bookings/by-departure/{departureId}', [AdminController::class, 'getBookingsByDeparture'])->name('bookings.by-departure');
+    Route::post('/bookings/confirm-group', [AdminController::class, 'confirmGroup'])->name('bookings.confirm-group');
+    Route::get('/bookings/available-guides', [AdminController::class, 'getAvailableGuides'])->name('bookings.available-guides');
+    Route::get('/bookings/available-vehicles', [AdminController::class, 'getAvailableVehicles'])->name('bookings.available-vehicles');
+    Route::post('/bookings/assign-guide', [AdminController::class, 'assignGuide'])->name('bookings.assign-guide');
+    Route::post('/bookings/assign-vehicle', [AdminController::class, 'assignVehicle'])->name('bookings.assign-vehicle');
+    Route::post('/bookings/send-pre-tour-info', [AdminController::class, 'sendPreTourInfo'])->name('bookings.send-pre-tour-info');
+
+    // Các route theo id booking (đặt SAU cùng để không bắt nhầm available-guides, available-vehicles,...)
     Route::get('/bookings/{booking}', [AdminController::class, 'showBooking'])->name('bookings.show');
     Route::put('/bookings/{booking}', [AdminController::class, 'updateBooking'])->name('bookings.update');
     Route::post('/bookings/{booking}/confirm', [AdminController::class, 'confirmBooking'])->name('bookings.confirm');
     Route::post('/bookings/{booking}/mark-as-paid', [AdminController::class, 'markAsPaid'])->name('bookings.markAsPaid');
     Route::post('/bookings/{booking}/cancel', [AdminController::class, 'cancelBooking'])->name('bookings.cancel');
     Route::delete('/bookings/{booking}', [AdminController::class, 'deleteBooking'])->name('bookings.destroy');
-
-    //  Group management operations
-    Route::post('/bookings/confirm-group', [AdminController::class, 'confirmGroup'])->name('bookings.confirm-group');
-    Route::post('/bookings/assign-guide', [AdminController::class, 'assignGuide'])->name('bookings.assign-guide');
-    Route::post('/bookings/assign-vehicle', [AdminController::class, 'assignVehicle'])->name('bookings.assign-vehicle');
-    Route::post('/bookings/send-pre-tour-info', [AdminController::class, 'sendPreTourInfo'])->name('bookings.send-pre-tour-info');
+    Route::post('/bookings/{booking}/update-receipt', [AdminController::class, 'updateReceiptImage'])->name('bookings.updateReceipt');
 
     // Customers management
     Route::get('/customers', [AdminController::class, 'customers'])->name('customers');
-    Route::get('/customers/{user}', [AdminController::class, 'showCustomer'])->name('customers.show');
+    Route::get('/customers/{user}', [AdminController::class, 'showCustomer'])->name('customers.show');  
     Route::put('/customers/{user}', [AdminController::class, 'updateCustomer'])->name('customers.update');
     Route::delete('/customers/{user}', [AdminController::class, 'deleteCustomer'])->name('customers.destroy');
 
@@ -532,7 +636,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::delete('/group-requests/{id}', [GroupRequestController::class, 'destroy'])->name('group-requests.destroy');
 
     // --- (THÊM MỚI) Route chuyển đổi thành Booking ---
-    Route::post('/group-requests/{id}/convert', [GroupRequestController::class, 'convertToBooking'])->name('group-requests.convert');
+    // Route::post('/group-requests/{id}/convert', [GroupRequestController::class, 'convertToBooking'])->name('group-requests.convert');
 
     // reviews mới admin có thêm 2 nút sửa - xóa đánh giá 
 
@@ -610,6 +714,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/banners/{banner}/edit', [AdminController::class, 'editBanner'])->name('banners.edit');
     Route::put('/banners/{banner}', [AdminController::class, 'updateBanner'])->name('banners.update');
     Route::delete('/banners/{banner}', [AdminController::class, 'deleteBanner'])->name('banners.destroy');
+    Route::post('/banners/{banner}/move', [AdminController::class, 'moveBanner'])->name('banners.move');
 
     // Tour Schedule Management Routes
     Route::get('/tour-schedule-management', function () {
@@ -638,8 +743,13 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     // Tour Schedule Management Routes
 // Trang quản lý lịch trình cho admin
+// Redirect old route to new tour-based route
 Route::get('/admin/tour-schedule-management', function () {
-    return view('admin.tour-schedule-management');
+    $tourId = request('tour_id');
+    if ($tourId) {
+        return redirect()->route('admin.tours.schedule-management', $tourId);
+    }
+    return redirect()->route('admin.tours.index')->with('error', 'Vui lòng chọn tour từ danh sách');
 })->name('admin.tour-schedule-management')->middleware(['auth', 'admin']);
 
 

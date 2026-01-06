@@ -12,6 +12,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use App\Models\Payment;
 
 class BookingController extends Controller
 {
@@ -95,20 +96,68 @@ class BookingController extends Controller
         }
 
 
-        //Tính tổng tiền dựa theo giá của lịch khởi hành (TourDeparture)
-        $totalAmount = ($departure->price * $adults) +
-            ($departure->child_price * $children) +
-            ($departure->infant_price * $infants);
+        // Tính tiền tour dựa theo giá của lịch khởi hành (TourDeparture)
+        // Giống logic JS trong updateBookingSummary (adultTotal, childTotal, infantTotal)
+        $adultPrice  = $departure->price;
+        $childPrice  = $departure->child_price;
+        $infantPrice = $departure->infant_price;
 
-        // Apply promotion if provided
+        $adultTotal  = $adultPrice  * $adults;
+        $childTotal  = $childPrice  * $children;
+        $infantTotal = $infantPrice * $infants;
+
+        $baseTourAmount = $adultTotal + $childTotal + $infantTotal;
+
+        // Dịch vụ thêm (lưu chi tiết để in hóa đơn)
+        $selectedServices = $request->input('additional_services', []);
+        $serviceDefinitions = [
+            'insurance' => [
+                'label' => 'Bảo hiểm du lịch',
+                'amount' => 50000,
+            ],
+            'airport_pickup' => [
+                'label' => 'Đón sân bay',
+                'amount' => 200000,
+            ],
+            'single_room' => [
+                'label' => 'Phòng đơn',
+                'amount' => 300000,
+            ],
+            'guide_tip' => [
+                'label' => 'Tip hướng dẫn viên',
+                'amount' => 100000,
+            ],
+        ];
+
+        $additionalServices = [];
+        $additionalTotal = 0;
+        foreach ($selectedServices as $key) {
+            if (isset($serviceDefinitions[$key])) {
+                $def = $serviceDefinitions[$key];
+                $additionalServices[] = [
+                    'key' => $key,
+                    'label' => $def['label'],
+                    'amount' => $def['amount'],
+                ];
+                $additionalTotal += $def['amount'];
+            }
+        }
+
+        // Tổng tạm tính = tiền tour + dịch vụ thêm (giống subtotal trong JS)
+        $subtotal = $baseTourAmount + $additionalTotal;
+
+        // Apply promotion nếu có (giảm trực tiếp 10% trên subtotal, giống JS: subtotal * 0.1)
         $promotion = null;
+        $discountAmount = 0;
         if (!empty($validated['promotion_code'] ?? null)) {
             $promotion = Promotion::where('code', $validated['promotion_code'])->first();
             if ($promotion && $promotion->isActive()) {
-                $discount = $promotion->calculateDiscount($totalAmount);
-                $totalAmount -= $discount;
+                $discountAmount = $subtotal * 0.1;
             }
         }
+
+        // Tổng cuối cùng = subtotal - discount (chính là số trong \"Tóm tắt đặt tour\")
+        $totalAmount = $subtotal - $discountAmount;
 
         $booking = Booking::create([
             'user_id' => Auth::id(),
@@ -118,6 +167,8 @@ class BookingController extends Controller
             'adults' => $adults,
             'children' => $children,
             'infants' => $infants,
+            'additional_services' => $additionalServices,
+            'additional_services_total' => $additionalTotal,
             'total_amount' => $totalAmount,
             'status' => 'pending',
             'note' => $validated['note'],
@@ -166,25 +217,42 @@ class BookingController extends Controller
     {
         $booking = Booking::where('user_id', Auth::id())->findOrFail($id);
 
+        // Kiểm tra trạng thái booking
+        if (!in_array($booking->status, ['paid', 'completed'])) {
+            return back()->with('error', 'Chỉ có thể upload danh sách đoàn khi đơn hàng đã thanh toán.');
+        }
+
         $request->validate([
-            // Cho phép: Ảnh, PDF, Word, Excel
-            'manifest_file' => 'required|file|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx|max:5120', // Max 5MB
+            // Cho phép: CSV, Excel, PDF, Word
+            'manifest_file' => 'required|file|mimes:csv,xls,xlsx,pdf,doc,docx|max:5120', // Max 5MB
+        ], [
+            'manifest_file.required' => 'Vui lòng chọn file để upload.',
+            'manifest_file.mimes' => 'File phải có định dạng: CSV, XLS, XLSX, PDF, DOC, DOCX.',
+            'manifest_file.max' => 'File không được vượt quá 5MB.',
         ]);
 
         if ($request->hasFile('manifest_file')) {
-            // Xóa file cũ nếu có
-            if ($booking->passenger_manifest_file) {
-                Storage::disk('public')->delete($booking->passenger_manifest_file);
+            try {
+                // Xóa file cũ nếu có
+                if ($booking->passenger_manifest_file) {
+                    Storage::disk('public')->delete($booking->passenger_manifest_file);
+                }
+
+                // Lưu file mới
+                $path = $request->file('manifest_file')->store('manifests', 'public');
+                
+                $booking->update([
+                    'passenger_manifest_file' => $path
+                ]);
+                
+                // Refresh booking để đảm bảo dữ liệu mới nhất
+                $booking->refresh();
+
+                return redirect()->route('bookings.show', $booking->id)
+                    ->with('success', 'Đã tải lên danh sách đoàn thành công! Bạn có thể xem file đã upload ở phần "Danh sách đoàn".');
+            } catch (\Exception $e) {
+                return back()->with('error', 'Có lỗi xảy ra khi upload file: ' . $e->getMessage());
             }
-
-            // Lưu file mới
-            $path = $request->file('manifest_file')->store('manifests', 'public');
-            
-            $booking->update([
-                'passenger_manifest_file' => $path
-            ]);
-
-            return back()->with('success', 'Đã tải lên danh sách đoàn thành công!');
         }
 
         return back()->with('error', 'Vui lòng chọn file.');

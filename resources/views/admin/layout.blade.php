@@ -232,6 +232,10 @@
                     href="{{ route('admin.bookings') }}"><i class="bi bi-journal-check me-2"></i>Đặt tour</a>
                 <a class="nav-link {{ request()->routeIs('admin.customers') ? 'active' : '' }}"
                     href="{{ route('admin.customers') }}"><i class="bi bi-people me-2"></i>Khách hàng</a>
+                <a class="nav-link {{ request()->routeIs('admin.guides.*') ? 'active' : '' }}"
+                    href="{{ route('admin.guides.index') }}"><i class="bi bi-person-badge me-2"></i>Hướng dẫn viên</a>
+                <a class="nav-link {{ request()->routeIs('admin.vehicles.*') ? 'active' : '' }}"
+                    href="{{ route('admin.vehicles.index') }}"><i class="bi bi-bus-front me-2"></i>Xe du lịch</a>
                 <a class="nav-link {{ request()->routeIs('admin.banners') ? 'active' : '' }}"
                     href="{{ route('admin.banners') }}"><i class="bi bi-image me-2"></i>Banner</a>
                 <a class="nav-link {{ request()->routeIs('admin.check-in-out.*') ? 'active' : '' }}"

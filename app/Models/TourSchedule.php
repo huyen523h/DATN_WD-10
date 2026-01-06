@@ -12,11 +12,13 @@ class TourSchedule extends Model
 
     protected $fillable = [
         'tour_id',
+        'departure_id', // Liên kết với lịch khởi hành cụ thể
+        'guide_id', // Hướng dẫn viên phụ trách
         'day_number',
         'title',
-        'description',
-        'location',
-        'start_time',
+        'description', // Mô tả ngày
+        'location', // Địa điểm
+        'start_time', // Giờ khởi hành
         'end_time',
         'meeting_point',
         'activities',
@@ -39,5 +41,21 @@ class TourSchedule extends Model
     public function tour(): BelongsTo
     {
         return $this->belongsTo(Tour::class);
+    }
+
+    /**
+     * Get the departure associated with this schedule.
+     */
+    public function departure(): BelongsTo
+    {
+        return $this->belongsTo(TourDeparture::class, 'departure_id');
+    }
+
+    /**
+     * Get the guide assigned to this schedule day.
+     */
+    public function guide(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'guide_id');
     }
 }

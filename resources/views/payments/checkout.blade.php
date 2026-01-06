@@ -239,6 +239,20 @@
                                 </div>
                             </div>
 
+                            <!-- Terms and Conditions Agreement -->
+                            <div class="alert alert-light border mt-4 mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="agreeTerms" required>
+                                    <label class="form-check-label" for="agreeTerms">
+                                        Tôi đã đọc và đồng ý với 
+                                        <a href="{{ route('payment-policy') }}" target="_blank" class="text-primary fw-bold">
+                                            Chính sách & Điều khoản Tour Đoàn
+                                            <i class="fas fa-external-link-alt ms-1"></i>
+                                        </a>
+                                    </label>
+                                </div>
+                            </div>
+
                             <div class="d-grid gap-2 mt-4">
                                 <button class="btn btn-primary btn-lg" onclick="processPayment()">
                                     <i class="fas fa-credit-card"></i> Thanh toán
@@ -334,6 +348,33 @@ document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
 });
 
 function processPayment() {
+    // Check if terms are agreed
+    const agreeTerms = document.getElementById('agreeTerms');
+    if (!agreeTerms.checked) {
+        // Show alert with better styling
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-warning alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+        alertDiv.style.zIndex = '9999';
+        alertDiv.style.minWidth = '400px';
+        alertDiv.innerHTML = `
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Vui lòng đọc và đồng ý với Chính sách & Điều khoản trước khi thanh toán!</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alertDiv);
+        
+        // Scroll to checkbox
+        agreeTerms.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        agreeTerms.focus();
+        
+        // Remove alert after 5 seconds
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+        
+        return;
+    }
+
     const selectedMethod = document.querySelector('input[name="payment_method"]:checked').value;
 
     // Show processing modal

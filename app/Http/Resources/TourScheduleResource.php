@@ -17,6 +17,8 @@ class TourScheduleResource extends JsonResource
         return [
             'id' => $this->id,
             'tour_id' => $this->tour_id,
+            'departure_id' => $this->departure_id,
+            'guide_id' => $this->guide_id,
             'day_number' => $this->day_number,
             'title' => $this->title,
             'description' => $this->description,
@@ -30,6 +32,19 @@ class TourScheduleResource extends JsonResource
             'transportation' => $this->transportation,
             'notes' => $this->notes,
             'images' => $this->images,
+            'departure' => $this->whenLoaded('departure', function() {
+                return [
+                    'id' => $this->departure->id,
+                    'departure_date' => $this->departure->departure_date,
+                ];
+            }),
+            'guide' => $this->whenLoaded('guide', function() {
+                return [
+                    'id' => $this->guide->id,
+                    'name' => $this->guide->name,
+                    'phone' => $this->guide->phone,
+                ];
+            }),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

@@ -916,20 +916,11 @@
                 <div class="nav-section-title">Quản lý Tours</div>
                 <div class="nav-item">
                     <a href="{{ route('admin.tours.index') }}"
-                        class="nav-link {{ request()->routeIs('admin.tours*') ? 'active' : '' }}">
+                        class="nav-link {{ request()->routeIs('admin.tours.index') || request()->routeIs('admin.tours.manage') ? 'active' : '' }}">
                         <div class="nav-icon">
                             <i class="fas fa-map-marked-alt"></i>
                         </div>
                         <span class="nav-text">Danh sách Tours</span>
-                    </a>
-                </div>
-                <div class="nav-item">
-                    <a href="{{ route('admin.tour-schedule-management') }}"
-                        class="nav-link {{ request()->routeIs('admin.tour-schedule-management*') ? 'active' : '' }}">
-                        <div class="nav-icon">
-                            <i class="fas fa-calendar-alt"></i>
-                        </div>
-                        <span class="nav-text">Quản lý Lịch trình</span>
                     </a>
                 </div>
                 <div class="nav-item">
@@ -950,7 +941,17 @@
                         <span class="nav-text">Quản lý HDV</span>
                     </a>
                 </div>
+                <div class="nav-item">
+                    <a href="{{ route('admin.vehicles.index') }}"
+                        class="nav-link {{ request()->routeIs('admin.vehicles*') ? 'active' : '' }}">
+                        <div class="nav-icon">
+                            <i class="fas fa-bus"></i>
+                        </div>
+                        <span class="nav-text">Quản lý xe</span>
+                    </a>
+                </div>
             </div>
+
 
             <!-- Bookings & Operations -->
             <div class="nav-section">
@@ -964,7 +965,7 @@
                         <span class="nav-text">Quản lý Đặt tour</span>
                     </a>
                 </div>
-                <div class="nav-item">
+                {{-- <div class="nav-item">
                     <a href="{{ route('admin.check-in-out.index') }}"
                         class="nav-link {{ request()->routeIs('admin.check-in-out*') ? 'active' : '' }}">
                         <div class="nav-icon">
@@ -972,8 +973,24 @@
                         </div>
                         <span class="nav-text">Check-in/Check-out</span>
                     </a>
-                </div>
-            </div>
+                </div> --}}
+
+            {{-- <div class="nav-item">
+                <a href="#"
+                    class="nav-link {{ request()->routeIs('admin.guides*') ? 'active' : '' }}">
+                    <i class="fas fa-user-tie"></i>
+                    <span class="nav-text">Quản lý HDV</span>
+                </a>
+            </div> --}}
+
+            <!-- Bookings Management -->
+            {{-- <div class="nav-item">
+                <a href="{{ route('admin.bookings') }}"
+                    class="nav-link {{ request()->routeIs('admin.bookings*') ? 'active' : '' }}">
+                    <i class="fas fa-calendar-check"></i>
+                    <span class="nav-text">Quản lý Đặt tour</span>
+                </a>
+            </div> --}}
 
             <!-- Users Management -->
             <div class="nav-section">

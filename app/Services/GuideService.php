@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Role;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class GuideService
@@ -76,7 +77,6 @@ class GuideService
                 
                 // Lưu user_id vào trường user_id và metadata
                 $data['user_id'] = $user->id;
-                
                 $currentMetadata = $data['metadata'] ?? [];
                 if (is_string($currentMetadata)) {
                     $currentMetadata = json_decode($currentMetadata, true) ?? [];
@@ -107,19 +107,18 @@ class GuideService
             }
             
             // Debug: Log data before creating guide
-            \Log::info('Creating guide with data:', $data);
+            Log::info('Creating guide with data:', $data);
             
             try {
                 $guide = Guide::create($data);
-                \Log::info('Guide created successfully:', ['id' => $guide->id]);
+                Log::info('Guide created successfully:', ['id' => $guide->id]);
             } catch (\Exception $e) {
-                \Log::error('Failed to create guide:', [
+                Log::error('Failed to create guide:', [
                     'error' => $e->getMessage(),
                     'data' => $data
                 ]);
                 throw $e;
             }
-            
             $this->syncRelations($guide, $data);
 
             return $guide->load(['categories', 'languages', 'documents', 'healthRecords']);

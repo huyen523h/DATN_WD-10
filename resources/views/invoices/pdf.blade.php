@@ -230,6 +230,12 @@
                     <div class="detail-label">Mã đặt tour:</div>
                     <div class="detail-value">#{{ $booking->id }}</div>
                 </div>
+                @if(isset($discountAmount) && $discountAmount > 0)
+                <div class="detail-row">
+                    <div class="detail-label">Tiền giảm giá:</div>
+                    <div class="detail-value">-{{ number_format($discountAmount, 0, ',', '.') }} VNĐ</div>
+                </div>
+                @endif
             </div>
 
             <div class="customer-details">
@@ -319,12 +325,24 @@
                     </tr>
                 </thead>
                 <tbody>
+                    @php
+                        // Giống logic JS: đọc giá từ departure (price, childPrice, infantPrice)
+                        $adultPrice  = $departure->price ?? ($tour->price_adult ?? $tour->price ?? 0);
+                        $childPrice  = $departure->child_price ?? ($tour->price_child ?? ($tour->price * 0.7 ?? 0));
+                        $infantPrice = $departure->infant_price ?? 0;
+
+                        $adultTotal  = $adultPrice  * $booking->adults;
+                        $childTotal  = $childPrice  * $booking->children;
+                        $infantTotal = $infantPrice * $booking->infants;
+
+                        $baseTotal   = $adultTotal + $childTotal + $infantTotal;
+                    @endphp
                     @if($booking->adults > 0)
                     <tr>
                         <td>Người lớn</td>
                         <td>{{ $booking->adults }}</td>
-                        <td>{{ number_format($tour->price_adult ?? $tour->price, 0, ',', '.') }} VNĐ</td>
-                        <td>{{ number_format(($tour->price_adult ?? $tour->price) * $booking->adults, 0, ',', '.') }} VNĐ</td>
+                        <td>{{ number_format($adultPrice, 0, ',', '.') }} VNĐ</td>
+                        <td>{{ number_format($adultPrice * $booking->adults, 0, ',', '.') }} VNĐ</td>
                     </tr>
                     @endif
                     
@@ -332,8 +350,8 @@
                     <tr>
                         <td>Trẻ em</td>
                         <td>{{ $booking->children }}</td>
-                        <td>{{ number_format($tour->price_child ?? ($tour->price * 0.7), 0, ',', '.') }} VNĐ</td>
-                        <td>{{ number_format(($tour->price_child ?? ($tour->price * 0.7)) * $booking->children, 0, ',', '.') }} VNĐ</td>
+                        <td>{{ number_format($childPrice, 0, ',', '.') }} VNĐ</td>
+                        <td>{{ number_format($childPrice * $booking->children, 0, ',', '.') }} VNĐ</td>
                     </tr>
                     @endif
                     
@@ -341,45 +359,49 @@
                     <tr>
                         <td>Em bé</td>
                         <td>{{ $booking->infants }}</td>
-                        <td>{{ number_format($tour->price_infant ?? ($tour->price * 0.3), 0, ',', '.') }} VNĐ</td>
-                        <td>{{ number_format(($tour->price_infant ?? ($tour->price * 0.3)) * $booking->infants, 0, ',', '.') }} VNĐ</td>
+                        <td>{{ number_format($infantPrice, 0, ',', '.') }} VNĐ</td>
+                        <td>{{ number_format($infantTotal, 0, ',', '.') }} VNĐ</td>
                     </tr>
                     @endif
                 </tbody>
             </table>
         </div>
 
-        <!-- Promotion Info -->
-        @if($promotion)
-        <div class="promotion-info">
-            <strong>Mã giảm giá đã áp dụng:</strong> {{ $promotion->code }}<br>
-            <strong>Mô tả:</strong> {{ $promotion->description }}<br>
-            <strong>Giảm giá:</strong> {{ $promotion->discount_type === 'percentage' ? $promotion->discount_value . '%' : number_format($promotion->discount_value, 0, ',', '.') . ' VNĐ' }}
-        </div>
-        @endif
-
         <!-- Amount Section -->
         <div class="amount-section">
             <div class="amount-row">
-                <div class="amount-label">Tổng tiền tour:</div>
-                <div>{{ number_format($booking->total_amount, 0, ',', '.') }} VNĐ</div>
+                <div class="amount-label">Tiền tour (người lớn + trẻ em):</div>
+                <div>{{ number_format($baseTotal ?? 0, 0, ',', '.') }} VNĐ</div>
             </div>
-            
-            @if($promotion)
-            @php
-                $discountAmount = $promotion->discount_type === 'percentage' 
-                    ? ($booking->total_amount * $promotion->discount_value / 100)
-                    : $promotion->discount_value;
-            @endphp
+
+            @if(($booking->additional_services ?? []) && ($additionalTotal ?? 0) > 0)
+                @foreach($booking->additional_services as $service)
+                <div class="amount-row">
+                    <div class="amount-label">Dịch vụ thêm - {{ $service['label'] }}:</div>
+                    <div>+{{ number_format($service['amount'], 0, ',', '.') }} VNĐ</div>
+                </div>
+                @endforeach
+                <div class="amount-row">
+                    <div class="amount-label">Tổng dịch vụ thêm:</div>
+                    <div>+{{ number_format($additionalTotal, 0, ',', '.') }} VNĐ</div>
+                </div>
+            @elseif(($additionalTotal ?? 0) > 0)
+                <div class="amount-row">
+                    <div class="amount-label">Dịch vụ thêm:</div>
+                    <div>+{{ number_format($additionalTotal, 0, ',', '.') }} VNĐ</div>
+                </div>
+            @endif
+
+            @if(($discountAmount ?? 0) > 0 && $promotion)
             <div class="amount-row">
-                <div class="amount-label">Giảm giá:</div>
+                <div class="amount-label">Giảm giá ({{ $promotion->code }}):</div>
                 <div>-{{ number_format($discountAmount, 0, ',', '.') }} VNĐ</div>
             </div>
             @endif
-            
+
             <div class="amount-row total-row">
                 <div class="amount-label">TỔNG CỘNG:</div>
-                <div>{{ number_format($invoice->amount, 0, ',', '.') }} VNĐ</div>
+                <div>{{ number_format($finalTotal ?? $booking->total_amount, 0, ',', '.') }} VNĐ</div>
             </div>
         </div>
 

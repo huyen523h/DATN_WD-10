@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Carbon\Carbon;
 
 class Booking extends Model
 {
@@ -19,17 +20,45 @@ class Booking extends Model
         'adults',
         'children',
         'infants',
+        'additional_services',
+        'additional_services_total',
         'total_amount',
+        'paid_amount',
+        'payment_method',
         'status',
+        'source',
+        'booking_source', // Nguồn booking: website, zalo, facebook, phone
+        'sale_staff_id', // Sale phụ trách booking
         'promotion_code',
         'note',
         'passenger_manifest_file',
         'expires_at',
+        'cancel_reason',
+        'receipt_image',
+       'contract_file',      
+    'service_details',
+    ];
+    
+    /**
+     * Booking source constants
+     */
+    const SOURCE_WEBSITE = 'website';
+    const SOURCE_ZALO = 'zalo';
+    const SOURCE_FACEBOOK = 'facebook';
+    const SOURCE_PHONE = 'phone';
+    
+    const BOOKING_SOURCES = [
+        self::SOURCE_WEBSITE => 'Website',
+        self::SOURCE_ZALO => 'Zalo',
+        self::SOURCE_FACEBOOK => 'Facebook',
+        self::SOURCE_PHONE => 'Điện thoại',
     ];
 
     protected $casts = [
         'total_amount' => 'decimal:2',
         'expires_at' => 'datetime',
+        'additional_services' => 'array',
+        'additional_services_total' => 'decimal:2',
     ];
 
     /**
@@ -71,15 +100,28 @@ class Booking extends Model
     {
         return $this->belongsTo(User::class, 'staff_id');
     }
+    
+    /**
+     * Get the sale staff member assigned to this booking.
+     */
+    public function saleStaff(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'sale_staff_id');
+    }
 
     /**
      * Get the payments for the booking.
      */
     public function payment()
     {
-        return $this->hasMany(Payment::class, 'booking_id', 'id');
+        return $this->hasMany(Payment::class, 'booking_id', 'id')->orderBy('id', 'desc');
     }
 
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(Payment::class, 'booking_id')->orderBy('id', 'desc');
+    }
+    
     /**
      * Get the invoice for the booking.
      */
@@ -153,13 +195,27 @@ class Booking extends Model
             ];
         }
 
-        // Booking phải ở trạng thái 'confirmed' hoặc 'pending' để có thể thanh toán
-        if (!in_array($this->status, ['confirmed', 'pending'])) {
+        // bổ xung thêm code mới khi chưa xác nhận đã hiện nút thanh toán 2/1/2026
+    if ($this->status !== 'confirmed') {
+            $msg = 'Đơn hàng chưa sẵn sàng thanh toán.';
+            
+            if ($this->status === 'pending') {
+                $msg = 'Đơn hàng đang chờ Admin xác nhận chỗ. Vui lòng quay lại sau.';
+            }
+
             return [
                 'can_pay' => false,
-                'message' => 'Đặt tour này không thể thanh toán. Trạng thái: ' . $this->status
+                'message' => $msg
             ];
         }
+
+        // Booking phải ở trạng thái 'confirmed' hoặc 'pending' để có thể thanh toán
+        // if (!in_array($this->status, ['confirmed', 'pending'])) {
+        //     return [
+        //         'can_pay' => false,
+        //         'message' => 'Đặt tour này không thể thanh toán. Trạng thái: ' . $this->status
+        //     ];
+        // }
 
         // Kiểm tra xem đã có payment completed chưa
         $hasCompletedPayment = $this->payment()
@@ -197,5 +253,51 @@ class Booking extends Model
     public function isCompleted(): bool
     {
         return $this->status === 'completed';
+    }
+
+    /**
+     * Tính toán thông tin hoàn tiền dựa trên ngày khởi hành
+     * Trả về mảng: % hoàn, số tiền hoàn, và lý do gợi ý.
+     */
+    public function getRefundInfo()
+    {
+        // 1. Nếu chưa có lịch khởi hành hoặc chưa thanh toán -> Hoàn 100% (hoặc 0đ)
+        if (!$this->departure || $this->status !== 'paid') {
+            return [
+                'percent' => 100,
+                'amount' => $this->total_amount, // Hoàn toàn bộ
+                'policy' => 'Khách chưa chốt lịch hoặc chưa thanh toán. Hủy không mất phí.'
+            ];
+        }
+
+        // 2. Tính khoảng cách ngày: (Ngày khởi hành) - (Hôm nay)
+        $departureDate = Carbon::parse($this->departure->departure_date);
+        $now = Carbon::now();
+        $daysDiff = $now->diffInDays($departureDate, false); // false để lấy số âm nếu đã qua ngày
+
+        // 3. Áp dụng chính sách hủy tour
+        if ($daysDiff >= 30) {
+            $percent = 100;
+            $note = "Hủy trước 30 ngày. Hoàn 100%.";
+        } elseif ($daysDiff >= 7) {
+            $percent = 70;
+            $note = "Hủy trước 7-29 ngày. Hoàn 70%.";
+        } elseif ($daysDiff >= 3) {
+            $percent = 30;
+            $note = "Hủy trước 3-6 ngày. Hoàn 30%.";
+        } else {
+            $percent = 0;
+            $note = "Hủy sát ngày (dưới 3 ngày) hoặc đã qua ngày đi. Không hoàn tiền.";
+        }
+
+        // 4. Tính ra số tiền cụ thể
+        $refundAmount = ($this->total_amount * $percent) / 100;
+
+        return [
+            'days_diff' => $daysDiff,
+            'percent' => $percent,
+            'amount' => $refundAmount,
+            'policy' => $note
+        ];
     }
 }

@@ -9,6 +9,107 @@
         <a href="{{ route('bookings.index') }}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left"></i> Quay lại</a>
     </div>
 
+    {{-- Hiển thị thông báo success/error --}}
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert" id="upload-success-alert" style="border-left: 4px solid #28a745;">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-check-circle fa-2x me-3"></i>
+                <div class="flex-grow-1">
+                    <h5 class="alert-heading mb-1">Thành công!</h5>
+                    <p class="mb-0">{{ session('success') }}</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+        <script>
+            // Tự động scroll đến thông báo và highlight
+            document.addEventListener('DOMContentLoaded', function() {
+                const alert = document.getElementById('upload-success-alert');
+                if (alert) {
+                    alert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    alert.style.animation = 'pulse 2s ease-in-out';
+                }
+            });
+        </script>
+        <style>
+            @keyframes pulse {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.02); }
+            }
+            @keyframes slideIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(-10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+        </style>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert" style="border-left: 4px solid #dc3545;">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-exclamation-circle fa-2x me-3"></i>
+                <div class="flex-grow-1">
+                    <h5 class="alert-heading mb-1">Lỗi!</h5>
+                    <p class="mb-0">{{ session('error') }}</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+    @endif
+
+    {{-- HIỂN THỊ THÔNG BÁO HỦY TOUR (Dành cho khách hàng) --}}
+@if($booking->status === 'cancelled')
+    <div class="alert alert-danger border-danger shadow-sm mb-4">
+        <div class="d-flex">
+            <div class="me-3">
+                <i class="fas fa-exclamation-circle fa-3x text-danger"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h4 class="alert-heading fw-bold">Tour này đã bị hủy!</h4>
+                <p class="mb-1">
+                    <strong>Lý do hủy:</strong> {{ $booking->cancel_reason ?? 'Không có lý do cụ thể.' }}
+                </p>
+                
+                {{-- Kiểm tra xem có giao dịch hoàn tiền nào không --}}
+                @php
+                    $refundTransaction = $booking->payment->where('amount', '<', 0)->first();
+                @endphp
+
+                @if($refundTransaction)
+                    <hr>
+                    <div class="bg-white p-3 rounded border border-danger border-opacity-25">
+                        <h6 class="text-danger fw-bold"><i class="fas fa-undo"></i> Thông tin hoàn tiền:</h6>
+                        <ul class="mb-0 ps-3">
+                            <li>Số tiền hoàn lại: <strong class="text-danger">{{ number_format(abs($refundTransaction->amount)) }} VNĐ</strong></li>
+                            <li>Thời gian xử lý: {{ $refundTransaction->created_at->format('d/m/Y H:i') }}</li>
+                            <li>Ghi chú: {{ $refundTransaction->note }}</li>
+                        </ul>
+                        
+                        {{-- Hiển thị ảnh bằng chứng nếu có --}}
+                        @if($refundTransaction->refund_proof)
+                            <div class="mt-2">
+                                <a href="{{ Storage::url($refundTransaction->refund_proof) }}" target="_blank" class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-image"></i> Xem biên lai chuyển khoản
+                                </a>
+                            </div>
+                        @endif
+                    </div>
+                @else
+                    <hr>
+                    <p class="mb-0 fst-italic">
+                        <i class="fas fa-info-circle"></i> Nếu bạn đã thanh toán, nhân viên sẽ liên hệ để xử lý hoàn tiền theo quy định.
+                    </p>
+                @endif
+            </div>
+        </div>
+    </div>
+@endif
+
     <div class="row">
         <div class="col-lg-8">
             
@@ -65,6 +166,32 @@
                             @endif
                         </div>
                     </div>
+
+                    @if($booking->service_details || $booking->contract_file)
+<div class="card mb-4 border-success shadow-sm">
+    <div class="card-header bg-success text-white">
+        <h6 class="mb-0 fw-bold"><i class="fas fa-file-signature me-2"></i> Cam kết & Hợp đồng</h6>
+    </div>
+    <div class="card-body">
+        @if($booking->service_details)
+            <div class="mb-3">
+                <strong class="text-success">Dịch vụ bao gồm:</strong>
+                <div class="bg-light p-2 rounded mt-1 border border-success border-opacity-25">
+                    {!! nl2br(e($booking->service_details)) !!}
+                </div>
+            </div>
+        @endif
+        @if($booking->contract_file)
+            <div>
+                <strong>File hợp đồng:</strong>
+                <a href="{{ Storage::url($booking->contract_file) }}" target="_blank" class="btn btn-sm btn-outline-success fw-bold ms-2">
+                    <i class="fas fa-download me-1"></i> Tải về xem
+                </a>
+            </div>
+        @endif
+    </div>
+</div>
+@endif
                 </div>
             @else
                 <div class="alert alert-warning mb-4">
@@ -124,55 +251,362 @@
 
         </div>
 
-        <div class="col-lg-4">
-             <div class="card mb-4 border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between mb-3">
-                        <span>Tổng tiền:</span>
-                        <span class="fw-bold text-primary fs-5">{{ number_format($booking->total_amount) }}đ</span>
-                    </div>
-                    @if ($booking->status === 'paid' || $booking->status === 'completed')
-                        <div class="alert alert-success text-center mb-0 p-2"><i class="fas fa-check-circle"></i> Đã thanh toán</div>
-                    @else
-                        <div class="alert alert-warning text-center mb-3 p-2">Chưa thanh toán</div>
-                        
-                        <!-- Các nút thanh toán -->
-                        <div class="d-grid gap-2">
-                            <form action="{{ route('momo_payment', $booking->id) }}" method="POST" class="d-inline">
-                                @csrf
-                                <button type="submit" class="btn w-100" style="background: linear-gradient(135deg, #A50064 0%, #FF007F 100%); border: none; color: white; padding: 12px;">
-                                    <i class="fas fa-mobile-alt me-2"></i>Thanh toán với MoMo
-                                </button>
-                            </form>
-                            
-                            <form action="{{ route('payment.vnpay', $booking->id) }}" method="POST" class="d-inline">
-                                @csrf
-                                <button type="submit" class="btn btn-primary w-100" style="background: linear-gradient(135deg, #1E88E5 0%, #1565C0 100%); border: none; padding: 12px;">
-                                    <i class="fas fa-credit-card me-2"></i>Thanh toán với VNPay
-                                </button>
-                            </form>
+       <div class="col-lg-4">
+    <div class="card mb-4 border-0 shadow-sm">
+        <div class="card-body">
+            <h5 class="card-title text-muted mb-3 border-bottom pb-2">Thông tin thanh toán</h5>
+            
+            <div class="d-flex justify-content-between mb-3">
+                <span>Tổng tiền:</span>
+                <span class="fw-bold text-primary fs-5">{{ number_format($booking->total_amount) }}đ</span>
+            </div>
+
+            {{-- HIỂN THỊ BILL NẾU CÓ --}}
+            @if($booking->receipt_image)
+                <div class="alert alert-success mt-3 shadow-sm">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-receipt fa-2x me-3"></i>
+                        <div>
+                            <h5 class="alert-heading h6 fw-bold mb-1">Biên lai thu tiền</h5>
+                            <a href="{{ Storage::url($booking->receipt_image) }}" target="_blank" class="btn btn-sm btn-light text-success fw-bold">
+                                <i class="fas fa-eye me-1"></i> Xem hóa đơn
+                            </a>
                         </div>
+                    </div>
+                </div>
+            @endif
+
+            {{-- LOGIC KIỂM TRA TRẠNG THÁI --}}
+
+            {{-- TRƯỜNG HỢP 1: ĐÃ HỦY --}}
+            @if ($booking->status === 'cancelled' || $booking->status === 'cancel_requested')
+                <div class="alert alert-secondary text-center mb-0 p-3 bg-light border-secondary">
+                    @if($booking->status === 'cancelled')
+                        <i class="fas fa-ban fa-2x mb-2 text-secondary"></i><br>
+                        <strong class="text-uppercase text-secondary">Đơn hàng đã hủy</strong>
+                    @else
+                        <i class="fas fa-hourglass-half fa-2x mb-2 text-warning"></i><br>
+                        <strong class="text-uppercase text-warning">Đang chờ xử lý hủy</strong>
                     @endif
                 </div>
+
+            {{-- TRƯỜNG HỢP 2: ĐÃ THANH TOÁN --}}
+            @elseif ($booking->status === 'paid' || $booking->status === 'completed')
+                <div class="alert alert-success text-center mb-0 p-3">
+                    <i class="fas fa-check-circle fa-2x mb-2"></i><br>
+                    <strong>Đã thanh toán thành công</strong>
+                </div>
+
+            {{-- TRƯỜNG HỢP 3: MỚI ĐẶT (PENDING) -> CHỈ HIỆN THÔNG BÁO CHỜ --}}
+            @elseif ($booking->status === 'pending')
+                <div class="alert alert-warning text-center mb-3 p-3 border-warning" style="background-color: #fff3cd;">
+                    <i class="fas fa-user-clock fa-2x mb-2 text-warning"></i>
+                    <h6 class="fw-bold text-dark">Đang chờ xác nhận</h6>
+                    <p class="small mb-0 text-muted">
+                        Admin đang kiểm tra tình trạng chỗ trống. Vui lòng quay lại sau khi đơn hàng chuyển sang trạng thái 
+                        <span class="badge bg-success">Đã xác nhận</span>.
+                    </p>
+                </div>
+                {{-- Nút giả bị vô hiệu hóa để khách biết chưa thanh toán được --}}
+                <button class="btn btn-secondary w-100" disabled>
+                    <i class="fas fa-lock me-2"></i>Chưa mở cổng thanh toán
+                </button>
+
+            {{-- TRƯỜNG HỢP 4: ĐÃ XÁC NHẬN (CONFIRMED) -> HIỆN CHECKBOX & THANH TOÁN --}}
+            @elseif ($booking->status === 'confirmed')
+                
+                <div class="alert alert-info text-center mb-3 p-2 small border-info bg-info bg-opacity-10">
+                    <i class="fas fa-check-circle text-info"></i> Admin đã xác nhận chỗ! Mời bạn thanh toán.
+                </div>
+
+                {{-- CODE CHECKBOX CŨ CỦA BẠN ĐÂY --}}
+                <div class="alert alert-light border mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="agreeTermsBooking" required>
+                        <label class="form-check-label" for="agreeTermsBooking">
+                            Tôi đã đọc và đồng ý với 
+                            <a href="{{ route('payment-policy') }}" target="_blank" class="text-primary fw-bold">
+                                Chính sách & Điều khoản Tour Đoàn
+                                <i class="fas fa-external-link-alt ms-1"></i>
+                            </a>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    {{-- Form MoMo --}}
+                    <form action="{{ route('momo_payment', $booking->id) }}" method="POST" class="d-inline" id="momoForm" onsubmit="return validateTermsBeforePayment(event)">
+                        @csrf
+                        <button type="submit" class="btn w-100 fw-bold shadow-sm" 
+                                style="background: linear-gradient(135deg, #A50064 0%, #FF007F 100%); border: none; color: white; padding: 12px;">
+                            <i class="fas fa-mobile-alt me-2"></i>Thanh toán với MoMo
+                        </button>
+                    </form>
+                    
+                    {{-- Form VNPay --}}
+                    <form action="{{ route('payment.vnpay', $booking->id) }}" method="POST" class="d-inline" id="vnpayForm" onsubmit="return validateTermsBeforePayment(event)">
+                        @csrf
+                        <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm" 
+                                style="background: linear-gradient(135deg, #005C97 0%, #363795 100%); border: none; padding: 12px;">
+                            <i class="fas fa-university me-2"></i>Thanh toán với VNPay
+                        </button>
+                    </form>
+                </div>
+                
+                <div class="mt-3 text-center">
+                    <small class="text-muted fst-italic">Vui lòng thanh toán để hệ thống giữ chỗ cho bạn.</small>
+                </div>
+            @else
+                {{-- Trường hợp khác (Expired...) --}}
+                <div class="alert alert-danger text-center">
+                    Trạng thái đơn: {{ $booking->status }}
+                </div>
+            @endif
+        </div>
+    </div>
+
+
+            {{-- LOGIC HIỂN THỊ NÚT HỦY --}}
+{{-- LOGIC HIỂN THỊ NÚT HỦY TOUR (ĐÃ UPDATE CHECK NGÀY) --}}
+<div class="mt-3 pt-3 border-top">
+
+    @php
+        // 1. Kiểm tra xem Tour đã khởi hành hay chưa
+        $departureDate = \Carbon\Carbon::parse($booking->departure->departure_date);
+        $isTourStarted = $departureDate->isPast(); // True nếu ngày đi < ngày hiện tại
+    @endphp
+
+    {{-- TRƯỜNG HỢP 1: Tour ĐÃ KHỞI HÀNH hoặc ĐÃ KẾT THÚC --}}
+    @if($isTourStarted && $booking->status !== 'cancelled')
+        <div class="alert alert-secondary text-center mb-0 p-2 bg-light border-secondary">
+            <i class="fas fa-flag-checkered fa-2x mb-2 text-secondary"></i><br>
+            <strong class="text-uppercase text-secondary">Tour đã kết thúc / Đã khởi hành</strong>
+            <div class="small text-muted mt-1">Không thể hủy hoặc hoàn tiền sau ngày khởi hành.</div>
+        </div>
+
+    {{-- TRƯỜNG HỢP 2: Đã thanh toán + CHƯA ĐI -> Hiện nút "Yêu cầu Hoàn tiền" --}}
+    @elseif(($booking->status === 'paid' || $booking->status === 'completed') && !$isTourStarted)
+        <div class="text-center">
+            <small class="d-block text-muted mb-2">Bạn muốn thay đổi kế hoạch?</small>
+            <button type="button" class="btn btn-warning w-100 fw-bold text-dark shadow-sm" 
+                    data-bs-toggle="modal" data-bs-target="#requestRefundModal">
+                <i class="fas fa-headset me-1"></i> Yêu cầu Hủy / Hoàn tiền
+            </button>
+        </div>
+
+    {{-- TRƯỜNG HỢP 3: Chưa thanh toán + CHƯA ĐI -> Hiện nút "Hủy đơn" --}}
+    @elseif(in_array($booking->status, ['pending', 'confirmed']) && !$isTourStarted)
+        <button type="button" class="btn btn-outline-danger w-100" 
+                data-bs-toggle="modal" data-bs-target="#userCancelModal">
+            <i class="fas fa-times-circle me-1"></i> Hủy đơn hàng này
+        </button>
+
+    {{-- TRƯỜNG HỢP 4: Đã hủy --}}
+    @elseif($booking->status === 'cancelled')
+        <div class="alert alert-secondary text-center mb-0 p-2 small">
+            <i class="fas fa-ban me-1"></i> Đơn hàng đã hủy
+        </div>
+        
+    {{-- TRƯỜNG HỢP 5: Đang chờ hủy --}}
+    @elseif($booking->status === 'cancel_requested')
+        <div class="alert alert-warning text-center mb-0 p-2 small">
+            <i class="fas fa-clock me-1"></i> Đang chờ xử lý hoàn tiền
+        </div>
+    @endif
+</div>
+            
+          <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white">
+        <h6 class="mb-0 fw-bold text-primary"><i class="fas fa-users me-2"></i>Danh sách đoàn</h6>
+    </div>
+    <div class="card-body">
+        {{-- LOGIC CHẶT CHẼ: Phải thanh toán xong mới được nộp danh sách --}}
+        @if($booking->status === 'paid' || $booking->status === 'completed')
+            
+            {{-- Nút tải file mẫu --}}
+            <div class="mb-3 p-3 bg-light rounded border">
+                <label class="form-label fw-bold mb-2 d-block">
+                    <i class="fas fa-file-download text-success"></i> Tải file mẫu danh sách đoàn
+                </label>
+                <a href="{{ route('bookings.download-manifest-template') }}" 
+                   class="btn btn-success btn-sm" target="_blank">
+                    <i class="fas fa-download"></i> Tải file mẫu danh sách đoàn
+                </a>
+                <small class="text-muted d-block mt-2">
+                    <i class="fas fa-info-circle"></i> File CSV - Mở bằng Excel hoặc Google Sheets để điền thông tin
+                </small>
             </div>
             
-             <div class="card border-0 shadow-sm">
-                 <div class="card-header bg-white"><h6 class="mb-0">Danh sách đoàn</h6></div>
-                 <div class="card-body">
-                    <form action="{{ route('bookings.upload-manifest', $booking->id) }}" method="POST" enctype="multipart/form-data">
-                        @csrf
-                        <div class="mb-2">
-                             @if($booking->passenger_manifest_file)
-                                <a href="{{ Storage::url($booking->passenger_manifest_file) }}" target="_blank" class="d-block mb-2 fw-bold text-success">
-                                    <i class="fas fa-file-download"></i> Xem danh sách đã gửi
+            <hr class="my-3">
+            
+            {{-- Hiển thị file đã upload --}}
+            @if($booking->passenger_manifest_file)
+                <div class="alert alert-success mb-3 p-3 shadow-sm" id="file-uploaded-info" style="border-left: 4px solid #28a745; animation: slideIn 0.5s ease;">
+                    <div class="d-flex align-items-start">
+                        <i class="fas fa-check-circle fa-2x me-3 text-success"></i>
+                        <div class="flex-grow-1">
+                            <h6 class="alert-heading mb-2 fw-bold">
+                                <i class="fas fa-file-check me-2"></i>Đã upload file thành công!
+                            </h6>
+                            <p class="mb-2 small">File danh sách đoàn đã được tải lên hệ thống. Bạn có thể xem hoặc tải về file đã upload.</p>
+                            <div class="d-flex gap-2 mb-2">
+                                <a href="{{ Storage::url($booking->passenger_manifest_file) }}" target="_blank" class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-download me-1"></i> Xem/Tải về file
                                 </a>
-                            @endif
-                            <input type="file" name="manifest_file" class="form-control form-control-sm" required>
+                            </div>
+                            <small class="d-block text-muted">
+                                <i class="fas fa-clock me-1"></i> Upload lúc: {{ \Carbon\Carbon::parse($booking->updated_at)->format('d/m/Y H:i') }}
+                            </small>
                         </div>
-                        <button class="btn btn-primary btn-sm w-100">Cập nhật</button>
-                    </form>
-                 </div>
-             </div>
+                    </div>
+                </div>
+                <hr class="my-3">
+                <div class="alert alert-info small mb-2">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Bạn có thể upload file mới để thay thế file hiện tại.
+                </div>
+            @else
+                <div class="alert alert-info mb-2 p-2">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <span class="small">Sau khi điền thông tin vào file mẫu, vui lòng upload file đã điền lên hệ thống.</span>
+                </div>
+            @endif
+            
+            {{-- Form upload file đã điền --}}
+            <form action="{{ route('bookings.upload-manifest', $booking->id) }}" method="POST" enctype="multipart/form-data" id="upload-manifest-form">
+                @csrf
+                <div class="mb-2">
+                    <label class="form-label fw-bold small mb-2 d-block">
+                        <i class="fas fa-upload text-primary"></i> {{ $booking->passenger_manifest_file ? 'Upload file mới (thay thế)' : 'Upload file đã điền thông tin' }}
+                    </label>
+                    <input type="file" name="manifest_file" class="form-control form-control-sm" accept=".csv,.xls,.xlsx" {{ !$booking->passenger_manifest_file ? 'required' : '' }} id="manifest-file-input">
+                    <small class="text-muted d-block mt-1">
+                        <i class="fas fa-info-circle"></i> Chấp nhận file: CSV, XLS, XLSX (tối đa 5MB)
+                    </small>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm w-100" id="upload-manifest-btn">
+                    <i class="fas fa-cloud-upload-alt me-1"></i> {{ $booking->passenger_manifest_file ? 'Cập nhật file mới' : 'Cập nhật danh sách' }}
+                </button>
+            </form>
+            
+            <script>
+                // Xử lý sau khi upload thành công
+                document.addEventListener('DOMContentLoaded', function() {
+                    const form = document.getElementById('upload-manifest-form');
+                    const uploadBtn = document.getElementById('upload-manifest-btn');
+                    
+                    if (form) {
+                        form.addEventListener('submit', function(e) {
+                            // Hiển thị loading state
+                            if (uploadBtn) {
+                                uploadBtn.disabled = true;
+                                uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Đang upload...';
+                            }
+                            
+                            // Form sẽ submit bình thường, sau khi upload thành công sẽ reload và hiển thị thông báo
+                        });
+                    }
+                    
+                    // Nếu có thông báo success, scroll đến đó
+                    @if(session('success'))
+                        const successAlert = document.getElementById('upload-success-alert');
+                        if (successAlert) {
+                            setTimeout(() => {
+                                successAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }, 100);
+                        }
+                    @endif
+                });
+            </script>
+
+        @elseif($booking->status === 'cancelled')
+            <div class="text-center text-muted py-2 small">
+                <i class="fas fa-ban"></i> Đơn hàng đã hủy.
+            </div>
+
+        @else
+            {{-- CHƯA THANH TOÁN --}}
+            <div class="text-center text-secondary py-3 bg-light rounded">
+                <i class="fas fa-lock fa-2x mb-2 text-muted"></i>
+                <div class="small fw-bold">Chức năng đang khóa</div>
+                <div style="font-size: 11px;">Vui lòng thanh toán để mở khóa chức năng nộp danh sách đoàn.</div>
+            </div>
+        @endif
+    </div>
+</div>
+        </div>
+    </div>
+</div>
+
+                    <div class="modal fade" id="userCancelModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="false" data-bs-keyboard="false">
+    <div class="modal-dialog" >
+        <div class="modal-content" >
+            <form action="{{ route('bookings.cancel', $booking->id) }}" method="POST" >
+                @csrf
+                <div class="modal-header bg-danger text-white" >
+                    <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Xác nhận Hủy Tour</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning small">
+                        <i class="fas fa-info-circle"></i> Hành động này sẽ hủy bỏ đơn đặt chỗ của bạn và không thể hoàn tác.
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Lý do hủy <span class="text-danger">*</span></label>
+                        <textarea name="cancel_reason" class="form-control" rows="3" required placeholder="VD: Bận việc đột xuất..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-danger">Xác nhận Hủy</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="requestRefundModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="false" data-bs-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ route('bookings.cancel', $booking->id) }}" method="POST">
+                @csrf
+                {{-- Cờ đánh dấu đây là yêu cầu hoàn tiền --}}
+                <input type="hidden" name="is_refund_request" value="1">
+
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title text-dark"><i class="fas fa-money-bill-wave me-2"></i>Yêu cầu Hủy & Hoàn tiền</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info small">
+                        Đơn hàng đã thanh toán. Vui lòng cung cấp thông tin tài khoản để Admin hoàn tiền (nếu đủ điều kiện).
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Lý do hủy <span class="text-danger">*</span></label>
+                        <textarea name="cancel_reason" class="form-control" rows="2" required></textarea>
+                    </div>
+                    <hr>
+                    <h6 class="fw-bold text-primary mb-3">Thông tin nhận tiền:</h6>
+                    <div class="mb-2">
+                        <label class="small fw-bold">Ngân hàng</label>
+                        <input type="text" name="refund_bank" class="form-control" required placeholder="VD: Vietcombank">
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-2">
+                            <label class="small fw-bold">Số tài khoản</label>
+                            <input type="text" name="refund_account" class="form-control" required>
+                        </div>
+                        <div class="col-6 mb-2">
+                            <label class="small fw-bold">Chủ tài khoản</label>
+                            <input type="text" name="refund_holder" class="form-control" required placeholder="TEN IN HOA">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-warning fw-bold">Gửi yêu cầu</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -242,5 +676,39 @@
                             });
                             // --- (KẾT THÚC CODE MỚI) ---
                         });
+
+                        // Validate terms before payment
+                        function validateTermsBeforePayment(event) {
+                            const agreeTerms = document.getElementById('agreeTermsBooking');
+                            if (!agreeTerms || !agreeTerms.checked) {
+                                event.preventDefault();
+                                
+                                // Show alert
+                                const alertDiv = document.createElement('div');
+                                alertDiv.className = 'alert alert-warning alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+                                alertDiv.style.zIndex = '9999';
+                                alertDiv.style.minWidth = '400px';
+                                alertDiv.innerHTML = `
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>Vui lòng đọc và đồng ý với Chính sách & Điều khoản trước khi thanh toán!</strong>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                `;
+                                document.body.appendChild(alertDiv);
+                                
+                                // Scroll to checkbox
+                                if (agreeTerms) {
+                                    agreeTerms.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    agreeTerms.focus();
+                                }
+                                
+                                // Remove alert after 5 seconds
+                                setTimeout(() => {
+                                    alertDiv.remove();
+                                }, 5000);
+                                
+                                return false;
+                            }
+                            return true;
+                        }
                     </script>
                 @endsection
