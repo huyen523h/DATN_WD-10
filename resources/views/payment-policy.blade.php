@@ -20,90 +20,149 @@
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-lg-10">
-                <!-- Chính sách trẻ em -->
-                <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-body p-4">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="policy-icon me-3">
-                                <i class="fas fa-child fa-2x text-primary"></i>
-                            </div>
-                            <h2 class="card-title mb-0 fw-bold">1. Chính sách trẻ em</h2>
-                        </div>
-                        <div class="policy-content">
-                            <div class="row g-3">
-                                <div class="col-md-4">
-                                    <div class="policy-item p-3 bg-light rounded">
-                                        <div class="d-flex align-items-center mb-2">
-                                            <i class="fas fa-baby text-info me-2"></i>
-                                            <strong class="text-primary">Trẻ em dưới 5 tuổi</strong>
-                                        </div>
-                                        <p class="mb-0 text-muted">Miễn phí (ngồi chung với bố mẹ)</p>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="policy-item p-3 bg-light rounded">
-                                        <div class="d-flex align-items-center mb-2">
-                                            <i class="fas fa-child text-success me-2"></i>
-                                            <strong class="text-success">Trẻ em từ 5 - 11 tuổi</strong>
-                                        </div>
-                                        <p class="mb-0 text-muted">Tính 50% giá người lớn</p>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="policy-item p-3 bg-light rounded">
-                                        <div class="d-flex align-items-center mb-2">
-                                            <i class="fas fa-user text-warning me-2"></i>
-                                            <strong class="text-warning">Trẻ em trên 11 tuổi</strong>
-                                        </div>
-                                        <p class="mb-0 text-muted">Tính như người lớn</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <!-- 1. Chính sách trẻ em (dạng văn bản) -->
+                <div class="mb-4">
+                    <h2 class="h4 fw-bold mb-3">1. Chính sách trẻ em</h2>
+                    <ul class="mb-0">
+                        <li>
+                            <strong>Trẻ em dưới 5 tuổi:</strong>
+                            được miễn phí dịch vụ tour cơ bản, sử dụng chung giường và chỗ ngồi với người lớn đi kèm
+                            (trừ khi có quy định khác trong từng chương trình cụ thể).
+                        </li>
+                        <li>
+                            <strong>Trẻ em từ 5 đến dưới 12 tuổi:</strong>
+                            thông thường áp dụng mức giá khoảng <strong>50% – 70% giá người lớn</strong>, tùy theo chính sách
+                            của từng tour và từng thời điểm.
+                        </li>
+                        <li>
+                            <strong>Trẻ em từ đủ 12 tuổi trở lên:</strong>
+                            được tính giá như một khách người lớn.
+                        </li>
+                        <li>
+                            Chính sách cụ thể về giá, dịch vụ bao gồm/không bao gồm cho trẻ em sẽ được nêu rõ trong
+                            mô tả chi tiết của từng chương trình tour hoặc trong hợp đồng (nếu có).
+                        </li>
+                    </ul>
                 </div>
 
-                <!-- Chính sách hoàn hủy -->
-                <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-body p-4">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="policy-icon me-3">
-                                <i class="fas fa-undo-alt fa-2x text-danger"></i>
-                            </div>
-                            <h2 class="card-title mb-0 fw-bold">2. Chính sách hoàn hủy</h2>
-                        </div>
-                        <div class="policy-content">
-                            <div class="row g-3">
-                                <div class="col-md-4">
-                                    <div class="policy-item p-4 bg-success bg-opacity-10 border border-success rounded">
-                                        <div class="d-flex align-items-center mb-3">
-                                            <i class="fas fa-check-circle fa-2x text-success me-2"></i>
-                                            <strong class="text-success fs-5">Hủy trước 15 ngày</strong>
-                                        </div>
-                                        <p class="mb-0 fw-bold text-success">Hoàn 100% tiền cọc</p>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="policy-item p-4 bg-warning bg-opacity-10 border border-warning rounded">
-                                        <div class="d-flex align-items-center mb-3">
-                                            <i class="fas fa-exclamation-triangle fa-2x text-warning me-2"></i>
-                                            <strong class="text-warning fs-5">Hủy trước 7 ngày</strong>
-                                        </div>
-                                        <p class="mb-0 fw-bold text-warning">Phạt 50% tiền cọc</p>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="policy-item p-4 bg-danger bg-opacity-10 border border-danger rounded">
-                                        <div class="d-flex align-items-center mb-3">
-                                            <i class="fas fa-times-circle fa-2x text-danger me-2"></i>
-                                            <strong class="text-danger fs-5">Hủy sau 7 ngày</strong>
-                                        </div>
-                                        <p class="mb-0 fw-bold text-danger">Không hoàn tiền cọc</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <!-- 2. Chính sách hoàn hủy (dạng văn bản) -->
+                <div class="mb-4">
+                    <h2 class="h4 fw-bold mb-3">2. Chính sách hoàn hủy</h2>
+                    <p class="mb-2">
+                        Khách hàng có nhu cầu hủy tour cần thông báo cho công ty bằng văn bản hoặc các kênh liên lạc
+                        chính thức. Tùy thuộc vào thời điểm hủy so với ngày khởi hành, các điều kiện phạt/hoàn tiền được
+                        áp dụng như sau (có thể thay đổi theo từng chương trình tour cụ thể):
+                    </p>
+                    <ul class="mb-0">
+                        <li>
+                            <strong>Hủy trước ngày khởi hành từ 15 ngày trở lên:</strong>
+                            có thể được hoàn lại tối đa đến <strong>100% số tiền đã thanh toán</strong>, sau khi trừ các chi phí
+                            phát sinh thực tế (nếu có).
+                        </li>
+                        <li>
+                            <strong>Hủy trước ngày khởi hành từ 7 đến dưới 15 ngày:</strong>
+                            có thể áp dụng mức phạt khoảng <strong>50% giá trị tiền đã thanh toán</strong> hoặc theo tỷ lệ ghi rõ
+                            trong chương trình/ hợp đồng.
+                        </li>
+                        <li>
+                            <strong>Hủy trước ngày khởi hành dưới 7 ngày hoặc hủy/không tham gia vào ngày khởi hành:</strong>
+                            thông thường <strong>không được hoàn tiền</strong>, trừ trường hợp hai bên có thỏa thuận khác bằng văn bản.
+                        </li>
+                        <li>
+                            Các chi phí đã thanh toán cho bên thứ ba (hãng hàng không, khách sạn, đối tác dịch vụ…) và
+                            không thể hoàn lại sẽ được thông báo rõ cho khách hàng và được trừ vào số tiền hoàn (nếu có).
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- 3. Chính sách khởi hành & hủy tour do thiếu khách (dạng văn bản) -->
+                <div class="mb-4">
+                    <h2 class="h4 fw-bold mb-3">3. Chính sách khởi hành &amp; hủy tour do thiếu khách</h2>
+
+                    <p class="mb-2">
+                        3.1. <strong>Điều kiện khởi hành tour</strong>
+                    </p>
+                    <p class="mb-2">
+                        Tour chỉ được khởi hành khi đạt đủ <strong>số lượng khách tối thiểu</strong> theo quy định của công ty
+                        cho từng chương trình tour cụ thể.
+                    </p>
+                    <p class="mb-3">
+                        Số lượng khách tối thiểu sẽ được thông báo cụ thể trong chương trình tour, báo giá hoặc tại thời điểm
+                        khách hàng đặt tour, và có thể thay đổi tùy theo mùa, tuyến điểm và hình thức tổ chức.
+                    </p>
+
+                    <p class="mb-2">
+                        3.2. <strong>Trường hợp không đủ khách khởi hành</strong>
+                    </p>
+                    <p class="mb-2">
+                        Trong trường hợp đến thời hạn cận ngày khởi hành mà không đủ số lượng khách tối thiểu, công ty có quyền
+                        điều chỉnh hoặc hủy tour và sẽ thông báo cho khách hàng. Các phương án xử lý có thể bao gồm:
+                    </p>
+                    <ul class="mb-3">
+                        <li>
+                            <strong>Dời ngày khởi hành</strong> sang thời điểm khác phù hợp và có sự xác nhận lại của khách hàng;
+                        </li>
+                        <li>
+                            <strong>Gộp đoàn</strong> với tour khác có cùng hoặc tương đương hành trình (nếu có và khách hàng đồng ý);
+                        </li>
+                        <li>
+                            <strong>Hủy tour</strong> và áp dụng chính sách hoàn tiền theo quy định tại Mục 3.3 dưới đây.
+                        </li>
+                    </ul>
+
+                    <p class="mb-2">
+                        3.3. <strong>Chính sách hoàn tiền khi hủy tour do thiếu khách</strong>
+                    </p>
+                    <p class="mb-2">
+                        Khi phải hủy tour do không đủ khách, công ty sẽ thông báo cho khách hàng trước ngày khởi hành
+                        tối thiểu <strong>03 (ba) ngày làm việc</strong> hoặc trong thời hạn phù hợp với từng chương trình tour cụ thể.
+                    </p>
+                    <p class="mb-2">
+                        Khách hàng được lựa chọn một trong các phương án sau:
+                    </p>
+                    <ul class="mb-3">
+                        <li>
+                            <strong>Hoàn trả 100% số tiền đã thanh toán</strong> cho chương trình tour (không bao gồm
+                            các chi phí phát sinh ngoài chương trình do khách hàng tự đặt, nếu các chi phí này không thể hoàn lại
+                            từ bên cung cấp dịch vụ); hoặc
+                        </li>
+                        <li>
+                            <strong>Chuyển sang tour khác</strong> có giá trị tương đương hoặc cao hơn; trường hợp giá tour mới
+                            cao hơn, khách hàng thanh toán phần chênh lệch theo thỏa thuận.
+                        </li>
+                    </ul>
+                    <p class="mb-3">
+                        Việc hoàn tiền (nếu có) sẽ được thực hiện trong vòng <strong>03 – 07 ngày làm việc</strong> kể từ ngày
+                        công ty xác nhận hủy tour do thiếu khách, bằng hình thức chuyển khoản hoặc phương thức khác phù hợp
+                        theo thỏa thuận với khách hàng.
+                    </p>
+
+                    <p class="mb-2">
+                        3.4. <strong>Trách nhiệm và giới hạn bồi thường</strong>
+                    </p>
+                    <p class="mb-2">
+                        Trong trường hợp tour bị hủy do thiếu khách, công ty không chịu trách nhiệm đối với các chi phí
+                        phát sinh ngoài chương trình tour mà khách hàng tự đặt trước, bao gồm nhưng không giới hạn: vé máy bay
+                        tự túc, vé tàu/xe, phí bảo hiểm cá nhân, chi phí lưu trú hoặc các chi phí cá nhân khác,
+                        nếu các khoản này không thể hoàn lại từ bên cung cấp dịch vụ.
+                    </p>
+                    <p class="mb-3">
+                        Công ty không có nghĩa vụ bồi thường thêm bất kỳ khoản nào khác ngoài số tiền đã hoàn trả cho khách hàng
+                        theo chính sách tại Mục 3.3, trừ khi có thỏa thuận khác bằng văn bản giữa hai bên.
+                    </p>
+
+                    <p class="mb-2">
+                        3.5. <strong>Điều khoản chung</strong>
+                    </p>
+                    <p class="mb-2">
+                        Việc khách hàng đặt tour và thanh toán được xem là khách hàng đã đọc, hiểu rõ và đồng ý với các điều khoản
+                        liên quan đến điều kiện khởi hành và hủy tour do thiếu khách nêu tại Mục 3 này.
+                    </p>
+                    <p class="mb-0">
+                        Công ty có quyền điều chỉnh, cập nhật chính sách khi cần thiết và sẽ công khai trên website hoặc các kênh
+                        thông tin chính thức khác. Trong trường hợp có Hợp đồng Du lịch riêng, các điều khoản trong hợp đồng (nếu khác)
+                        sẽ được ưu tiên áp dụng.
+                    </p>
                 </div>
 
                 <!-- Lưu ý quan trọng -->

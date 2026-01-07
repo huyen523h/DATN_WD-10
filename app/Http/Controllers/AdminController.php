@@ -48,8 +48,9 @@ class AdminController extends Controller
             return 3;
         }
     }
-    public function dashboard()
+    public function dashboard(Request $request)
     {
+        // Thống kê tổng quan
         $stats = [
             'total_tours' => Tour::count(),
             'total_bookings' => Booking::count(),
@@ -59,12 +60,140 @@ class AdminController extends Controller
             'pending_bookings' => Booking::where('status', 'pending')->count(),
         ];
 
+        // Đơn đặt tour gần đây
         $recent_bookings = Booking::with(['tour', 'user'])
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get();
 
-        return view('admin.dashboard', compact('stats', 'recent_bookings'));
+        // Bộ lọc doanh thu theo tháng / năm
+        $selectedMonth = $request->get('month', null);
+        $selectedYear = (int) $request->get('year', now()->year);
+
+        if ($selectedMonth) {
+            $dailyRevenue = $this->getDailyRevenue($selectedYear, $selectedMonth);
+            $revenueData = $dailyRevenue;
+        } else {
+            $revenueData = $this->getRevenueByMonth($selectedYear);
+            $dailyRevenue = [];
+        }
+
+        // Tổng doanh thu theo tháng được chọn
+        if ($selectedMonth) {
+            $monthlyTotal = Payment::whereIn('status', ['paid', 'completed'])
+                ->where(function ($query) use ($selectedYear, $selectedMonth) {
+                    $query->where(function ($q) use ($selectedYear, $selectedMonth) {
+                        $q->whereYear('payment_date', $selectedYear)
+                          ->whereMonth('payment_date', $selectedMonth);
+                    })->orWhere(function ($q) use ($selectedYear, $selectedMonth) {
+                        $q->whereNull('payment_date')
+                          ->whereYear('created_at', $selectedYear)
+                          ->whereMonth('created_at', $selectedMonth);
+                    });
+                })
+                ->sum('amount');
+        } else {
+            $monthlyTotal = 0;
+        }
+
+        // Tổng doanh thu cả năm
+        $yearlyTotal = Payment::whereIn('status', ['paid', 'completed'])
+            ->where(function ($query) use ($selectedYear) {
+                $query->whereYear('payment_date', $selectedYear)
+                      ->orWhere(function ($q) use ($selectedYear) {
+                          $q->whereNull('payment_date')
+                            ->whereYear('created_at', $selectedYear);
+                      });
+            })
+            ->sum('amount');
+
+        // Danh sách năm có giao dịch + đảm bảo có năm hiện tại
+        $availableYears = Payment::whereIn('status', ['paid', 'completed'])
+            ->selectRaw('YEAR(COALESCE(payment_date, created_at)) as year')
+            ->distinct()
+            ->orderBy('year', 'desc')
+            ->pluck('year')
+            ->filter();
+
+        $availableYears = $availableYears->push(now()->year)->unique()->sortDesc()->values();
+
+        return view('admin.dashboard', compact(
+            'stats',
+            'recent_bookings',
+            'revenueData',
+            'dailyRevenue',
+            'selectedMonth',
+            'selectedYear',
+            'monthlyTotal',
+            'yearlyTotal',
+            'availableYears'
+        ));
+    }
+
+    /**
+     * Doanh thu theo tháng trong một năm.
+     */
+    protected function getRevenueByMonth(int $year): array
+    {
+        $payments = Payment::whereIn('status', ['paid', 'completed'])
+            ->where(function ($query) use ($year) {
+                $query->whereYear('payment_date', $year)
+                      ->orWhere(function ($q) use ($year) {
+                          $q->whereNull('payment_date')
+                            ->whereYear('created_at', $year);
+                      });
+            })
+            ->selectRaw('MONTH(COALESCE(payment_date, created_at)) as month, SUM(amount) as revenue')
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get();
+
+        // Chuẩn hoá đủ 12 tháng
+        $result = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $item = $payments->firstWhere('month', $m);
+            $result[] = [
+                'month' => $m,
+                'monthName' => 'Tháng ' . $m,
+                'revenue' => $item ? (float) $item->revenue : 0,
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Doanh thu theo ngày trong một tháng.
+     */
+    protected function getDailyRevenue(int $year, int $month): array
+    {
+        $payments = Payment::whereIn('status', ['paid', 'completed'])
+            ->where(function ($query) use ($year, $month) {
+                $query->whereYear('payment_date', $year)
+                      ->whereMonth('payment_date', $month)
+                      ->orWhere(function ($q) use ($year, $month) {
+                          $q->whereNull('payment_date')
+                            ->whereYear('created_at', $year)
+                            ->whereMonth('created_at', $month);
+                      });
+            })
+            ->selectRaw('DAY(COALESCE(payment_date, created_at)) as day, SUM(amount) as revenue')
+            ->groupBy('day')
+            ->orderBy('day')
+            ->get();
+
+        $daysInMonth = Carbon::createFromDate($year, $month, 1)->daysInMonth;
+        $result = [];
+
+        for ($d = 1; $d <= $daysInMonth; $d++) {
+            $item = $payments->firstWhere('day', $d);
+            $result[] = [
+                'day' => $d,
+                'revenue' => $item ? (float) $item->revenue : 0,
+            ];
+        }
+
+        return $result;
     }
 
     public function tours(Request $request)
