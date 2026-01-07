@@ -949,15 +949,27 @@
                 }
             });
 
-            // Tours Chart
+            // Tours Chart - Tour phổ biến theo danh mục (loại bỏ nước ngoài)
+            const popularToursData = @json($popularToursByCategory);
             const toursCtx = document.getElementById('toursChart').getContext('2d');
+            
+            // Chuẩn bị dữ liệu cho biểu đồ
+            const tourLabels = popularToursData.map(item => item.name);
+            const tourCounts = popularToursData.map(item => item.count);
+            
+            // Màu sắc động cho các danh mục
+            const colors = [
+                '#6366F1', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
+                '#EC4899', '#06B6D4', '#84CC16', '#F97316', '#14B8A6'
+            ];
+            
             new Chart(toursCtx, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Trong nước', 'Nước ngoài', 'Du lịch sinh thái', 'Du lịch văn hóa'],
+                    labels: tourLabels,
                     datasets: [{
-                        data: [40, 30, 20, 10],
-                        backgroundColor: ['#6366F1', '#10B981', '#F59E0B', '#EF4444'],
+                        data: tourCounts,
+                        backgroundColor: colors.slice(0, tourLabels.length),
                         borderWidth: 0
                     }]
                 },
@@ -969,7 +981,19 @@
                             position: 'bottom',
                             labels: {
                                 padding: 20,
-                                usePointStyle: true
+                                usePointStyle: true,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    return label + ': ' + value + ' tour';
+                                }
                             }
                         }
                     }

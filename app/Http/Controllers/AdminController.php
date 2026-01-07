@@ -117,6 +117,22 @@ class AdminController extends Controller
 
         $availableYears = $availableYears->push(now()->year)->unique()->sortDesc()->values();
 
+        // Tour phổ biến theo danh mục 
+        $popularToursByCategory = Category::where('name', '!=', 'Du lịch nước ngoài')
+            ->withCount(['tours' => function ($query) {
+                $query->where('status', 'active');
+            }])
+            ->having('tours_count', '>', 0)
+            ->orderByDesc('tours_count')
+            ->limit(10)
+            ->get()
+            ->map(function ($category) {
+                return [
+                    'name' => $category->name,
+                    'count' => $category->tours_count
+                ];
+            });
+
         return view('admin.dashboard', compact(
             'stats',
             'recent_bookings',
@@ -126,7 +142,8 @@ class AdminController extends Controller
             'selectedYear',
             'monthlyTotal',
             'yearlyTotal',
-            'availableYears'
+            'availableYears',
+            'popularToursByCategory'
         ));
     }
 
