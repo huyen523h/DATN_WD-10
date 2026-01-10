@@ -14,7 +14,7 @@
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     
-    <style>
+<style>
         :root {
             --guide-primary: #0EA5E9;
             --guide-primary-dark: #0284C7;
@@ -352,19 +352,22 @@
         .guide-table tbody tr:hover {
             background: var(--guide-bg);
         }
-    </style>
-    @yield('styles')
+</style>
+@yield('styles')
 </head>
 
 <body>
     <!-- Sidebar -->
     <aside class="guide-sidebar" id="guideSidebar">
-        <div class="guide-sidebar-header">
-            <a href="{{ route('guide.dashboard') }}" class="brand">
-                <i class="fas fa-user-tie"></i>
-                <span>HDV Dashboard</span>
-            </a>
-        </div>
+ <div class="guide-sidebar-header">
+    <a href="{{ route('guide.dashboard') }}" class="brand">
+        <i class="fas fa-user-tie"></i>
+        <span>HDV Dashboard</span>
+    </a>
+</div>
+
+
+
 
         <nav class="guide-sidebar-nav">
             <div class="guide-nav-item">
@@ -374,6 +377,15 @@
                     <span>Tổng quan</span>
                 </a>
             </div>
+
+            <div class="guide-nav-item">
+    <a href="{{ route('guide.salary.index') }}"
+       class="guide-nav-link {{ request()->routeIs('guide.salary.*') ? 'active' : '' }}">
+        <i class="fas fa-wallet"></i>
+        <span>Thu nhập</span>
+    </a>
+</div>
+
             <div class="guide-nav-item">
                 <a href="{{ route('guide.departures') }}" 
                    class="guide-nav-link {{ request()->routeIs('guide.departures*') ? 'active' : '' }}">

@@ -164,4 +164,15 @@ class TourDeparture extends Model
     {
         return $this->seats_available > 0;
     }
+
+    /**
+ * Nhật ký tour của hành trình
+ */
+public function logs(): HasMany
+{
+    return $this->hasMany(
+        \App\Models\TourLog::class,
+        'departure_id'
+    );
+}
 }

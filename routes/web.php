@@ -23,8 +23,9 @@ use App\Http\Controllers\EmployeeAuthController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\GroupTourController;
 use App\Http\Controllers\Admin\GroupRequestController;
-
-
+use App\Http\Controllers\Guide\GuideAttendanceController;
+use App\Http\Controllers\Guide\GuideCalendarController;
+use App\Http\Controllers\Guide\GuideSalaryController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -351,6 +352,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
     Route::get('/bookings/{booking}', [BookingController::class, 'show'])->name('bookings.show');
     Route::delete('/bookings/{booking}', [BookingController::class, 'destroy'])->name('bookings.destroy');
+    Route::post('/bookings/{id}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel');
 
     // Wishlist routes
     Route::get('/wishlists', [WishlistsController::class, 'index'])->name('wishlists.index');
@@ -627,7 +629,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::delete('/group-requests/{id}', [GroupRequestController::class, 'destroy'])->name('group-requests.destroy');
 
     // --- (THÊM MỚI) Route chuyển đổi thành Booking ---
-    Route::post('/group-requests/{id}/convert', [GroupRequestController::class, 'convertToBooking'])->name('group-requests.convert');
+    // Route::post('/group-requests/{id}/convert', [GroupRequestController::class, 'convertToBooking'])->name('group-requests.convert');
 
     // reviews mới admin có thêm 2 nút sửa - xóa đánh giá 
 
@@ -753,7 +755,9 @@ Route::get('/admin/tour-schedule-management', function () {
 Route::middleware(['auth', 'guide'])->prefix('guide')->name('guide.')->group(function () {
     // Dashboard
     Route::get('/dashboard', [\App\Http\Controllers\Guide\GuideDashboardController::class, 'index'])->name('dashboard');
-    
+            // 📅 LỊCH LÀM VIỆC HDV
+        Route::get('/calendar', [GuideCalendarController::class, 'index'])
+            ->name('calendar');
     // Departures
     Route::get('/departures/{id}', [\App\Http\Controllers\Guide\GuideDashboardController::class, 'showDeparture'])->name('departures.show');
     Route::get('/departures/{departureId}/customers', [\App\Http\Controllers\Guide\GuideDashboardController::class, 'showCustomers'])->name('departures.customers');
@@ -766,14 +770,39 @@ Route::middleware(['auth', 'guide'])->prefix('guide')->name('guide.')->group(fun
     Route::get('/departures/{departureId}/logs/{logId}/edit', [\App\Http\Controllers\Guide\TourLogController::class, 'edit'])->name('tour-logs.edit');
     Route::put('/departures/{departureId}/logs/{logId}', [\App\Http\Controllers\Guide\TourLogController::class, 'update'])->name('tour-logs.update');
     Route::delete('/departures/{departureId}/logs/{logId}', [\App\Http\Controllers\Guide\TourLogController::class, 'destroy'])->name('tour-logs.destroy');
+    // ghi nhật ký tổng hợp
+    Route::get('/tour-logs',[\App\Http\Controllers\Guide\TourLogController::class, 'dashboard'])->name('tour-logs.logg');
+
     
-    // Check-ins (Điểm danh)
-    Route::get('/departures/{departureId}/check-ins', [\App\Http\Controllers\Guide\CheckInController::class, 'index'])->name('check-ins.index');
-    Route::get('/departures/{departureId}/check-ins/{checkInId}', [\App\Http\Controllers\Guide\CheckInController::class, 'show'])->name('check-ins.show');
-    Route::post('/departures/{departureId}/check-ins', [\App\Http\Controllers\Guide\CheckInController::class, 'store'])->name('check-ins.store');
-    Route::put('/departures/{departureId}/check-ins/{checkInId}', [\App\Http\Controllers\Guide\CheckInController::class, 'update'])->name('check-ins.update');
-    Route::delete('/departures/{departureId}/check-ins/{checkInId}', [\App\Http\Controllers\Guide\CheckInController::class, 'destroy'])->name('check-ins.destroy');
-    
+ // 🕒 Chấm công theo tour
+        Route::get('/departures/{departure}/attendance', [GuideAttendanceController::class, 'index'])
+            ->name('attendance.index');
+
+        Route::post('/departures/{departure}/attendance', [GuideAttendanceController::class, 'store'])
+            ->name('attendance.store');
+
+  
+
+    // Roll-call (Điểm danh đoàn – HDV)
+    Route::prefix('roll-calls')->middleware(['auth'])->group(function () {
+
+        // Màn hình điểm danh đoàn
+        Route::get(
+            '/departures/{departureId}',
+            [\App\Http\Controllers\Guide\RollCallController::class, 'index']
+        )->name('roll-calls.index');
+
+        // Tick / bỏ tick điểm danh (AJAX)
+        Route::post(
+            '/departures/{departureId}',
+            [\App\Http\Controllers\Guide\RollCallController::class, 'store']
+        )->name('roll-calls.store');
+    //       // ✅ KẾT THÚC TOUR (THIẾU DÒNG NÀY)
+    // Route::post(
+    //     '/departures/{departureId}/complete',
+    //     [\App\Http\Controllers\Guide\RollCallController::class, 'complete']
+    // )->name('guide.roll-calls.complete');
+    });
     // Special Requests (Yêu cầu đặc biệt)
     Route::get('/departures/{departureId}/special-requests', [\App\Http\Controllers\Guide\SpecialRequestController::class, 'index'])->name('special-requests.index');
     Route::get('/departures/{departureId}/special-requests/create', [\App\Http\Controllers\Guide\SpecialRequestController::class, 'create'])->name('special-requests.create');

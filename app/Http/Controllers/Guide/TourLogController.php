@@ -11,6 +11,25 @@ use Illuminate\View\View;
 
 class TourLogController extends Controller
 {
+
+     // Trang NHẬT KÝ TỔNG
+
+public function dashboard()
+{
+    $guide = auth()->user();
+
+    $departures = TourDeparture::query()
+        ->where('guide_id', $guide->id)
+        ->whereHas('logs')          //  chỉ tour có nhật ký
+        ->withCount('logs')         //  đếm số nhật ký
+        ->with('tour')              //  lấy thông tin tour
+        ->orderByDesc('departure_date')
+        ->get();
+
+     return view('guide.tour-logs.logg', compact('departures'));
+}
+
+
     /**
      * Danh sách nhật ký tour theo departure
      */

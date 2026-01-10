@@ -14,14 +14,22 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Payment;
 
+//  chỉnh sửa số lượng người đặt
+use App\Models\BookingPassenger;
+use Illuminate\Support\Facades\DB;
+
 class BookingController extends Controller
 {
+
+
+
+
     /**
      * Display a listing of bookings.
      */
     public function index(): View
     {
-      // Lấy danh sách đơn hàng của user đang đăng nhập
+        // Lấy danh sách đơn hàng của user đang đăng nhập
         $bookings = Booking::with(['tour', 'payment']) // Eager load để tránh N+1 query
             ->where('user_id', auth()->id())
             ->orderBy('created_at', 'desc')
@@ -174,6 +182,28 @@ class BookingController extends Controller
             'note' => $validated['note'],
         ]);
 
+
+        // ================================
+        // LƯU DANH SÁCH HÀNH KHÁCH
+        // ================================
+        if ($request->has('passengers')) {
+            foreach ($request->passengers as $group) {
+                foreach ($group as $p) {
+                    BookingPassenger::create([
+                        'booking_id'     => $booking->id,
+                        'full_name'      => $p['full_name'],
+                        'gender'         => $p['gender'] ?? null,
+                        'birth_year'     => $p['birth_year'] ?? null,
+                        'id_number'      => $p['id_number'] ?? null,
+                        'passenger_type' => $p['passenger_type'],
+                        'payment_status' => 'unpaid',
+                    ]);
+                }
+            }
+        }
+
+
+
         // Update available seats
         // Giảm chỗ trống theo số ghế cần (người lớn + trẻ em)
         $departure->decrement('seats_available', $seatPassengers);
@@ -191,7 +221,7 @@ class BookingController extends Controller
      */
     public function show(Booking $booking): View
     {
-        $booking->load(['tour.images', 'departure', 'payment']);
+        $booking->load(['tour.images', 'departure', 'payment', 'passengers',]);
 
         return view('bookings.show', compact('booking'));
     }
@@ -202,7 +232,7 @@ class BookingController extends Controller
         // Chỉ cho phép huỷ nếu chưa thanh toán hoặc đang chờ
         if (in_array($booking->status, ['pending', 'confirmed'])) {
             $booking->update(['status' => 'cancelled']);
-            
+
             // Send notification
             $notificationService = new NotificationService();
             $notificationService->notifyBookingCancelled($booking, 'Người dùng tự hủy');
@@ -240,11 +270,11 @@ class BookingController extends Controller
 
                 // Lưu file mới
                 $path = $request->file('manifest_file')->store('manifests', 'public');
-                
+
                 $booking->update([
                     'passenger_manifest_file' => $path
                 ]);
-                
+
                 // Refresh booking để đảm bảo dữ liệu mới nhất
                 $booking->refresh();
 

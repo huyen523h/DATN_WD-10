@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Carbon\Carbon;
+use App\Models\BookingPassenger;
 
 class Booking extends Model
 {
@@ -35,8 +36,10 @@ class Booking extends Model
         'expires_at',
         'cancel_reason',
         'receipt_image',
+        'contract_file',
+        'service_details',
     ];
-    
+
     /**
      * Booking source constants
      */
@@ -44,7 +47,7 @@ class Booking extends Model
     const SOURCE_ZALO = 'zalo';
     const SOURCE_FACEBOOK = 'facebook';
     const SOURCE_PHONE = 'phone';
-    
+
     const BOOKING_SOURCES = [
         self::SOURCE_WEBSITE => 'Website',
         self::SOURCE_ZALO => 'Zalo',
@@ -98,7 +101,7 @@ class Booking extends Model
     {
         return $this->belongsTo(User::class, 'staff_id');
     }
-    
+
     /**
      * Get the sale staff member assigned to this booking.
      */
@@ -113,6 +116,11 @@ class Booking extends Model
     public function payment()
     {
         return $this->hasMany(Payment::class, 'booking_id', 'id')->orderBy('id', 'desc');
+    }
+
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(Payment::class, 'booking_id')->orderBy('id', 'desc');
     }
 
     /**
@@ -233,6 +241,16 @@ class Booking extends Model
     {
         return $this->status === 'completed';
     }
+
+  /**
+     * Get passengers of this booking
+     */
+    public function passengers(): HasMany
+    {
+        return $this->hasMany(BookingPassenger::class, 'booking_id');
+    }
+
+
 
     /**
      * Tính toán thông tin hoàn tiền dựa trên ngày khởi hành
