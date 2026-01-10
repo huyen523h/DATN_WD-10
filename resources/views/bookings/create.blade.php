@@ -48,8 +48,8 @@
                         <div class="alert alert-info mb-4">
                             <div class="fw-bold mb-2"><i class="fas fa-info-circle me-1"></i>Quy tắc hành khách</div>
                             <ul class="mb-0 ps-3">
-                                <li>Mỗi người lớn có thể đi kèm tối đa <strong>2 trẻ em (2–11 tuổi)</strong> và <strong>1 em bé (&lt; 2 tuổi)</strong>.</li>
-                                <li>Trẻ em/em bé <strong>bắt buộc</strong> phải đi cùng ít nhất 1 người lớn.</li>
+                                <li>Mỗi người lớn có thể đi kèm tối đa <strong>2 trẻ em (2–11 tuổi)</strong>.</li>
+                                <li>Trẻ em <strong>bắt buộc</strong> phải đi cùng ít nhất 1 người lớn.</li>
                                 <li>Người lớn <strong>&gt; 11 tuổi</strong></li>
                             </ul>
                         </div>
@@ -84,7 +84,7 @@
 
                             <!-- Passenger Count -->
                             <div class="row mb-4">
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <label for="adults" class="form-label">Người lớn <span
                                             class="text-danger">*</span></label>
                                     <input type="number" class="form-control @error('adults') is-invalid @enderror"
@@ -95,7 +95,7 @@
                                     @enderror
                                     <small class="text-muted">Người lớn ≥ 12 tuổi</small>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <label for="children" class="form-label">Trẻ em</label>
                                     <input type="number" class="form-control @error('children') is-invalid @enderror"
                                         id="children" name="children" value="{{ old('children', 0) }}" min="0">
@@ -103,15 +103,6 @@
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                     <div class="invalid-feedback d-block" id="childrenError" style="display:none;"></div>
-                                </div>
-                                <div class="col-md-4">
-                                    <label for="infants" class="form-label">Em bé</label>
-                                    <input type="number" class="form-control @error('infants') is-invalid @enderror"
-                                        id="infants" name="infants" value="{{ old('infants', 0) }}" min="0">
-                                    @error('infants')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                    <div class="invalid-feedback d-block" id="infantsError" style="display:none;"></div>
                                 </div>
                             </div>
 
@@ -228,12 +219,10 @@
             const departureSelect = document.getElementById('departure_id');
             const adultsInput = document.getElementById('adults');
             const childrenInput = document.getElementById('children');
-            const infantsInput = document.getElementById('infants');
             const bookingForm = document.getElementById('bookingForm');
             const promotionInput = document.getElementById('promotion_code');
             const bookingSummary = document.getElementById('bookingSummary');
             const childrenError = document.getElementById('childrenError');
-            const infantsError = document.getElementById('infantsError');
             const seatsError = document.getElementById('seatsError');
 
             //Hàm chuẩn hóa số
@@ -252,13 +241,11 @@
                 const opt = departureSelect.options[departureSelect.selectedIndex];
                 if (!opt) return {
                     price: 0,
-                    child: 0,
-                    infant: 0
+                    child: 0
                 };
                 return {
                     price: parseNumber(opt.dataset.price),
-                    child: parseNumber(opt.dataset.childPrice || opt.dataset.child_price),
-                    infant: parseNumber(opt.dataset.infantPrice || opt.dataset.infant_price)
+                    child: parseNumber(opt.dataset.childPrice || opt.dataset.child_price)
                 };
             }
 
@@ -266,15 +253,11 @@
                 const departureId = departureSelect.value;
                 const adults = parseInt(adultsInput.value) || 0;
                 const children = parseInt(childrenInput.value) || 0;
-                const infants = parseInt(infantsInput.value) || 0;
                 const childLimit = adults * 2;
-                const infantLimit = adults * 1;
                 const opt = departureSelect.options[departureSelect.selectedIndex];
                 const seatsAvailable = opt ? parseNumber(opt.dataset.seats) : 0;
-                const seatPassengers = adults + children; // em bé không trừ chỗ
-                const totalPassengers = seatPassengers + infants;
+                const seatPassengers = adults + children;
                 let childMsg = '';
-                let infantMsg = '';
                 let seatsMsg = '';
 
                 if (!departureId || adults === 0) {
@@ -288,14 +271,12 @@
 
                 const {
                     price: tourPrice,
-                    child: childPrice,
-                    infant: infantPrice
+                    child: childPrice
                 } = readPrices();
 
                 //Tính giá cơ bản
                 const adultTotal = tourPrice * adults;
                 const childTotal = childPrice * children;
-                const infantTotal = infantPrice * infants;
 
                 //Dịch vụ thêm
                 let additionalTotal = 0;
@@ -315,27 +296,22 @@
                 });
 
                 //Tính tổng
-                const subtotal = adultTotal + childTotal + infantTotal + additionalTotal;
+                const subtotal = adultTotal + childTotal + additionalTotal;
                 const discount = promotionInput.value ? subtotal * 0.1 : 0;
                 const total = subtotal - discount;
                 
 
                 //Render giao diện + cảnh báo nếu vi phạm quy tắc
                 let warnings = '';
-                if (adults <= 0 && (children > 0 || infants > 0)) {
-                    warnings += `<div class="text-danger small mt-2"><i class="fas fa-exclamation-triangle"></i> Trẻ em/em bé cần ít nhất 1 người lớn.</div>`;
+                if (adults <= 0 && children > 0) {
+                    warnings += `<div class="text-danger small mt-2"><i class="fas fa-exclamation-triangle"></i> Trẻ em cần ít nhất 1 người lớn.</div>`;
                 }
                 if (children > childLimit) {
                     childMsg = `${adults} người lớn chỉ kèm tối đa ${childLimit} trẻ em. Vui lòng tăng số người lớn hoặc giảm số trẻ.`;
                     warnings += `<div class="text-danger small mt-1"><i class="fas fa-exclamation-triangle"></i> ${childMsg}</div>`;
                 }
-                if (infants > infantLimit) {
-                    infantMsg = `${adults} người lớn chỉ kèm tối đa ${infantLimit} em bé.`;
-                    warnings += `<div class="text-danger small mt-1"><i class="fas fa-exclamation-triangle"></i> ${infantMsg}</div>`;
-                }
-                if ((children > 0 || infants > 0) && adults < 1) {
+                if (children > 0 && adults < 1) {
                     childMsg = childMsg || 'Cần ít nhất 1 người lớn đi cùng trẻ em.';
-                    infantMsg = infantMsg || 'Cần ít nhất 1 người lớn đi cùng em bé.';
                 }
                 if (seatsAvailable && seatPassengers > seatsAvailable) {
                     seatsMsg = `Số ghế cần (${seatPassengers}) vượt quá số chỗ trống (${seatsAvailable}). Vui lòng giảm người lớn/trẻ em hoặc chọn ngày khác.`;
@@ -365,17 +341,6 @@
                         departureSelect.classList.remove('is-invalid');
                     }
                 }
-                if (infantsError) {
-                    if (infantMsg) {
-                        infantsError.style.display = 'block';
-                        infantsError.textContent = infantMsg;
-                        infantsInput.classList.add('is-invalid');
-                    } else {
-                        infantsError.style.display = 'none';
-                        infantsError.textContent = '';
-                        infantsInput.classList.remove('is-invalid');
-                    }
-                }
 
                 //Render giao diện
                 bookingSummary.innerHTML = `
@@ -392,12 +357,6 @@
                     <div class="d-flex justify-content-between">
                         <span>Trẻ em (${children} x ${formatVND(childPrice)})</span>
                         <span>${formatVND(childTotal)}</span>
-                    </div>` : ''}
-
-                ${infants > 0 ? `
-                    <div class="d-flex justify-content-between">
-                        <span>Em bé (${infants} x ${formatVND(infantPrice)})</span>
-                        <span>${formatVND(infantTotal)}</span>
                     </div>` : ''}
 
                 ${additionalList}
@@ -426,7 +385,7 @@
             }
 
             //Gắn sự kiện
-            [departureSelect, adultsInput, childrenInput, infantsInput, promotionInput].forEach(el => {
+            [departureSelect, adultsInput, childrenInput, promotionInput].forEach(el => {
                 if (el) el.addEventListener('input', updateBookingSummary);
                 if (el && el.tagName === 'SELECT') el.addEventListener('change', updateBookingSummary);
             });
@@ -442,13 +401,10 @@
                 bookingForm.addEventListener('submit', function(e) {
                     const adults = parseInt(adultsInput.value) || 0;
                     const children = parseInt(childrenInput.value) || 0;
-                    const infants = parseInt(infantsInput.value) || 0;
                     const opt = departureSelect.options[departureSelect.selectedIndex];
                     const seatsAvailable = opt ? parseNumber(opt.dataset.seats) : 0;
                     const seatPassengers = adults + children;
-                    const totalPassengers = seatPassengers + infants;
                     const childLimit = adults * 2;
-                    const infantLimit = adults * 1;
                     const errors = [];
 
                     if (adults < 1) {
@@ -457,11 +413,8 @@
                     if (children > childLimit) {
                         errors.push(`${adults} người lớn chỉ có thể đi kèm tối đa ${childLimit} trẻ em. Vui lòng tăng số người lớn hoặc giảm số trẻ.`);
                     }
-                    if (infants > infantLimit) {
-                        errors.push(`${adults} người lớn chỉ có thể đi kèm tối đa ${infantLimit} em bé. Vui lòng tăng số người lớn hoặc giảm số em bé.`);
-                    }
-                    if ((children > 0 || infants > 0) && adults < 1) {
-                        errors.push('Trẻ em/em bé bắt buộc phải đi cùng ít nhất 1 người lớn.');
+                    if (children > 0 && adults < 1) {
+                        errors.push('Trẻ em bắt buộc phải đi cùng ít nhất 1 người lớn.');
                     }
                     if (seatsAvailable && seatPassengers > seatsAvailable) {
                         errors.push(`Số ghế cần (${seatPassengers}) vượt quá số chỗ trống (${seatsAvailable}). Vui lòng giảm người lớn/trẻ em hoặc chọn ngày khác.`);

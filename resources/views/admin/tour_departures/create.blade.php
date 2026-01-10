@@ -89,17 +89,13 @@
         </div>
 
         <div class="row mb-3">
-            <div class="col-md-4">
+            <div class="col-md-6">
                 <label class="form-label">Giá người lớn</label>
                 <input type="number" name="price" class="form-control" value="{{ old('price') }}" step="0.01" required>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-6">
                 <label class="form-label">Giá trẻ em</label>
                 <input type="number" name="child_price" class="form-control" value="{{ old('child_price') }}" step="0.01">
-            </div>
-            <div class="col-md-4">
-                <label class="form-label">Giá trẻ nhỏ</label>
-                <input type="number" name="infant_price" class="form-control" value="{{ old('infant_price') }}" step="0.01">
             </div>
         </div>
 

@@ -216,14 +216,6 @@
                             <input type="number" name="price_child" class="form-control" min="0" step="1000"
                                    value="{{ old('price_child') }}" placeholder="Tùy chọn">
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label d-flex align-items-center gap-2">
-                                <i class="fas fa-baby text-info"></i> Giá em bé
-                                <span class="text-muted small" data-bs-toggle="tooltip" title="Em bé: < 2 tuổi">(?)</span>
-                            </label>
-                            <input type="number" name="price_infant" class="form-control" min="0" step="1000"
-                                   value="{{ old('price_infant') }}" placeholder="Miễn phí / tùy chọn">
-                        </div>
                         <div class="form-check mt-2">
                             <input class="form-check-input" type="checkbox" value="1" id="apply_same_price" name="apply_same_price"
                                    {{ old('apply_same_price') ? 'checked' : '' }}>
