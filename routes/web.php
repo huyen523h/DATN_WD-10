@@ -27,7 +27,7 @@ use App\Http\Controllers\Admin\GroupRequestController;
 use App\Http\Controllers\Guide\GuideAttendanceController;
 use App\Http\Controllers\Guide\GuideCalendarController;
 use App\Http\Controllers\Guide\GuideSalaryController;
-
+use App\Http\Controllers\Guide\TourLogController;
 use App\Http\Controllers\Staff\StaffBookingMailController;
 
 
@@ -859,3 +859,66 @@ Route::middleware(['auth', 'staff'])->prefix('staff')->name('staff.')->group(fun
 Route::get('/test-guide-auto-sync', function () {
     return view('test-guide-auto-sync');
 });
+
+// quản lý khách hàng-admin
+Route::prefix('admin')->middleware(['auth'])->group(function () {
+
+    // Danh sách
+    Route::get('/customer', 
+        [App\Http\Controllers\Admin\CustomerController::class, 'index']
+    )->name('admin.customer.index');
+
+    // Form thêm khách hàng
+    Route::get('/customer/create',
+        [App\Http\Controllers\Admin\CustomerController::class, 'create']
+    )->name('admin.customer.create');
+
+    // Lưu khách hàng
+    Route::post('/customer',
+        [App\Http\Controllers\Admin\CustomerController::class, 'store']
+    )->name('admin.customer.store');
+
+    // Chi tiết khách hàng
+    Route::get('/customer/{id}',
+        [App\Http\Controllers\Admin\CustomerController::class, 'show']
+    )->name('admin.customer.show');
+
+    // Form chỉnh sửa
+    Route::get('/customer/{id}/edit',
+        [App\Http\Controllers\Admin\CustomerController::class, 'edit']
+    )->name('admin.customer.edit');
+
+    // Cập nhật khách hàng
+    Route::put('/customer/{id}',
+        [App\Http\Controllers\Admin\CustomerController::class, 'update']
+    )->name('admin.customer.update');
+
+    // Xóa khách hàng
+    Route::delete('/customer/{id}',
+        [App\Http\Controllers\Admin\CustomerController::class, 'destroy']
+    )->name('admin.customer.destroy');
+});
+
+
+
+
+
+Route::prefix('admin')->middleware(['auth', 'admin'])->name('admin.')->group(function () {
+    
+    Route::prefix('tour-logs')->name('tour-logs.')->group(function () {
+
+        Route::get('/', [\App\Http\Controllers\Admin\TourLogController::class, 'index'])->name('index');
+
+        Route::get('/create', [\App\Http\Controllers\Admin\TourLogController::class, 'create'])->name('create');
+        Route::post('/', [\App\Http\Controllers\Admin\TourLogController::class, 'store'])->name('store');
+
+        Route::get('/{id}', [\App\Http\Controllers\Admin\TourLogController::class, 'show'])->name('show');
+
+        Route::get('/{id}/edit', [\App\Http\Controllers\Admin\TourLogController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [\App\Http\Controllers\Admin\TourLogController::class, 'update'])->name('update');
+
+        Route::delete('/{id}', [\App\Http\Controllers\Admin\TourLogController::class, 'destroy'])->name('destroy');
+    });
+
+});
+
