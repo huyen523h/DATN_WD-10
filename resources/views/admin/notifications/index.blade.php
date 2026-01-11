@@ -28,7 +28,7 @@
                 @forelse($notifications as $notification)
                 <tr class="border-t">
                     <td class="px-4 py-2">{{ $notification->title }}</td>
-                    <td class="px-4 py-2">{{ Str::limit($notification->content, 50) }}</td>
+                    <td class="px-4 py-2">{{ $notification->message }}</td>
                     <td class="px-4 py-2">
                         <span class="px-2 py-1 text-xs rounded
                             @if($notification->type == 'success') bg-green-100 text-green-800

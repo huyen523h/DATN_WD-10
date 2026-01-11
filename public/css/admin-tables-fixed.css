@@ -1,0 +1,436 @@
+/* Fixed Table Styles - Sửa lệch cột */
+
+/* Base table styling */
+.table-fixed {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.table-responsive-fixed {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Departures Table */
+.departures-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.departures-table th {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 600;
+    padding: 16px 12px;
+    text-align: left;
+    font-size: 14px;
+    border: none;
+    white-space: nowrap;
+}
+
+.departures-table td {
+    padding: 14px 12px;
+    border-bottom: 1px solid #e5e7eb;
+    vertical-align: middle;
+    font-size: 14px;
+}
+
+.departures-table tbody tr:hover {
+    background-color: #f8fafc;
+    transition: background-color 0.2s ease;
+}
+
+/* Column widths for departures table */
+.departures-table .col-date { width: 15%; }
+.departures-table .col-time { width: 10%; }
+.departures-table .col-location { width: 20%; }
+.departures-table .col-guide { width: 15%; }
+.departures-table .col-backup { width: 15%; }
+.departures-table .col-status { width: 12%; }
+.departures-table .col-actions { width: 13%; }
+
+/* Schedules Table */
+.schedules-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.schedules-table th {
+    background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+    color: white;
+    font-weight: 600;
+    padding: 16px 12px;
+    text-align: left;
+    font-size: 14px;
+    border: none;
+}
+
+.schedules-table td {
+    padding: 14px 12px;
+    border-bottom: 1px solid #e5e7eb;
+    vertical-align: top;
+    font-size: 14px;
+}
+
+.schedules-table tbody tr:hover {
+    background-color: #f0fff4;
+    transition: background-color 0.2s ease;
+}
+
+/* Column widths for schedules table */
+.schedules-table .col-day { width: 8%; }
+.schedules-table .col-title { width: 25%; }
+.schedules-table .col-location { width: 20%; }
+.schedules-table .col-description { width: 30%; }
+.schedules-table .col-activities { width: 12%; }
+.schedules-table .col-actions { width: 5%; }
+
+/* Guides Table */
+.guides-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.guides-table th {
+    background: linear-gradient(135deg, #9f7aea 0%, #805ad5 100%);
+    color: white;
+    font-weight: 600;
+    padding: 16px 12px;
+    text-align: left;
+    font-size: 14px;
+    border: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.guides-table td {
+    padding: 14px 12px;
+    border-bottom: 1px solid #e5e7eb;
+    vertical-align: middle;
+    font-size: 14px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.guides-table tbody tr:hover {
+    background-color: #faf5ff;
+    transition: background-color 0.2s ease;
+}
+
+/* Column widths for guides table */
+.guides-table .col-name { width: 22%; }
+.guides-table .col-contact { width: 22%; }
+.guides-table .col-experience { width: 20%; }
+.guides-table .col-rating { width: 16%; }
+.guides-table .col-status { width: 12%; }
+.guides-table .col-actions { width: 8%; }
+
+/* Status badges */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-pending {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.status-ready {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.status-confirmed {
+    background-color: #dbeafe;
+    color: #1e40af;
+}
+
+.status-cancelled {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+.status-draft {
+    background-color: #f3f4f6;
+    color: #374151;
+}
+
+/* Action buttons */
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin: 0 1px;
+    font-size: 12px;
+}
+
+.action-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.action-btn-edit {
+    background-color: #3b82f6;
+    color: white;
+}
+
+.action-btn-edit:hover {
+    background-color: #2563eb;
+}
+
+.action-btn-delete {
+    background-color: #ef4444;
+    color: white;
+}
+
+.action-btn-delete:hover {
+    background-color: #dc2626;
+}
+
+.action-btn-view {
+    background-color: #10b981;
+    color: white;
+}
+
+.action-btn-view:hover {
+    background-color: #059669;
+}
+
+/* Guide avatar */
+.guide-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #e5e7eb;
+}
+
+.guide-avatar-placeholder {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+/* Rating stars */
+.rating-stars {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.rating-star {
+    color: #fbbf24;
+    font-size: 14px;
+}
+
+.rating-star.empty {
+    color: #d1d5db;
+}
+
+/* Empty state */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6b7280;
+}
+
+.empty-state i {
+    font-size: 48px;
+    margin-bottom: 16px;
+    color: #d1d5db;
+}
+
+.empty-state h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #374151;
+}
+
+.empty-state p {
+    font-size: 14px;
+    margin-bottom: 24px;
+}
+
+/* Loading state */
+.loading-state {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    border: 3px solid #e5e7eb;
+    border-radius: 50%;
+    border-top-color: #3b82f6;
+    animation: spin 1s ease-in-out infinite;
+    margin-bottom: 16px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .departures-table th,
+    .departures-table td,
+    .schedules-table th,
+    .schedules-table td,
+    .guides-table th,
+    .guides-table td {
+        padding: 10px 6px;
+        font-size: 12px;
+    }
+    
+    .action-btn {
+        width: 24px;
+        height: 24px;
+        margin: 0 1px;
+        font-size: 10px;
+    }
+    
+    .guide-avatar,
+    .guide-avatar-placeholder {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+    }
+    
+    /* Hide less important columns on mobile */
+    .col-backup,
+    .col-activities,
+    .col-experience {
+        display: none;
+    }
+    
+    /* Adjust guides table for mobile */
+    .guides-table .col-name { width: 35%; }
+    .guides-table .col-contact { width: 30%; }
+    .guides-table .col-rating { width: 20%; }
+    .guides-table .col-actions { width: 15%; }
+}
+
+@media (max-width: 480px) {
+    .col-location,
+    .col-description {
+        display: none;
+    }
+    
+    .departures-table .col-date { width: 25%; }
+    .departures-table .col-guide { width: 25%; }
+    .departures-table .col-status { width: 20%; }
+    .departures-table .col-actions { width: 30%; }
+}
+
+/* Table container improvements */
+.table-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.table-header {
+    background: #f8fafc;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: between;
+    align-items: center;
+}
+
+.table-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+}
+
+.table-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* Improved pagination */
+.pagination-container {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    padding: 16px 20px;
+    background: #f8fafc;
+    border-top: 1px solid #e5e7eb;
+}
+
+.pagination-info {
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.pagination-buttons {
+    display: flex;
+    gap: 4px;
+}
+
+.pagination-btn {
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    background: white;
+    color: #374151;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+}
+
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination-btn.active {
+    background: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
+}

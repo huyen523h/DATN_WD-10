@@ -23,32 +23,17 @@ use App\Http\Controllers\EmployeeAuthController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\GroupTourController;
 use App\Http\Controllers\Admin\GroupRequestController;
+
 use App\Http\Controllers\Guide\GuideAttendanceController;
 use App\Http\Controllers\Guide\GuideCalendarController;
 use App\Http\Controllers\Guide\GuideSalaryController;
 
+use App\Http\Controllers\Staff\StaffBookingMailController;
+
+
 Route::get('/', function () {
     return view('welcome');
 })->name('welcome');
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 // ============================================
@@ -312,6 +297,30 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middl
 Route::get('/logout', [AuthController::class, 'logout'])->name('logout.get')->middleware('auth');
 
 // ============================================
+// BOOKING HANDLE ROUTES
+// ============================================
+
+Route::get(
+    'staff/bookings/{booking}/send-action-mail',
+    [StaffBookingMailController::class, 'send']
+)->name('staff.bookings.sendActionMail');
+
+Route::get(
+    '/booking/action/{booking}/{action}',
+    [BookingController::class, 'handle']
+)->name('booking.action');
+
+Route::get(
+    '/booking/refund/{booking}',
+    [BookingController::class, 'refund']
+)->name('booking.refund');
+
+Route::get(
+    '/booking/reschedule/{booking}',
+    [BookingController::class, 'reschedule']
+)->name('booking.reschedule');
+
+// ============================================
 // CUSTOMER ROUTES (Authenticated Users)
 // ============================================
 
@@ -323,7 +332,7 @@ Route::middleware('auth')->group(function () {
     // Route upload danh sách đoàn 
     Route::post('/bookings/{booking}/upload-manifest', [BookingController::class, 'uploadManifest'])
         ->name('bookings.upload-manifest');
-    
+
     // Route tải file mẫu danh sách đoàn (cho khách hàng)
     Route::get('/bookings/download-manifest-template', [\App\Http\Controllers\AdminController::class, 'downloadManifestTemplate'])
         ->name('bookings.download-manifest-template');
@@ -335,7 +344,7 @@ Route::middleware('auth')->group(function () {
 
     // Route để User gửi đánh giá
     Route::post('/bookings/{booking}/reviews', [ReviewController::class, 'store'])
-         ->name('bookings.reviews.store'); // <-- Tên route mới
+        ->name('bookings.reviews.store'); // <-- Tên route mới
 
     // Notifications
     Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
@@ -372,7 +381,6 @@ Route::middleware('auth')->group(function () {
 
     // Thanh toán VNPay
     Route::post('/payment/vnpay/{id}', [CheckoutController::class, 'vnpay_payment'])->name('payment.vnpay');
-
 });
 
 // VNPay callback routes (không cần auth)
@@ -524,7 +532,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/tours/{tour}/edit', [AdminController::class, 'editTour'])->name('tours.edit');
     Route::put('/tours/{tour}', [AdminController::class, 'updateTour'])->name('tours.update');
     Route::delete('/tours/{tour}', [AdminController::class, 'deleteTour'])->name('tours.destroy');
-    
+
     // Tour Management Hub - Trang trung tâm quản lý tour
     Route::get('/tours/{tour}/manage', [AdminController::class, 'tourManagementHub'])->name('tours.manage');
 
@@ -535,25 +543,25 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/tours/{tour}/schedules/{schedule}/edit', [\App\Http\Controllers\Admin\TourScheduleController::class, 'edit'])->name('schedules.edit');
     Route::put('/tours/{tour}/schedules/{schedule}', [\App\Http\Controllers\Admin\TourScheduleController::class, 'update'])->name('schedules.update');
     Route::delete('/tours/{tour}/schedules/{schedule}', [\App\Http\Controllers\Admin\TourScheduleController::class, 'destroy'])->name('schedules.destroy');
-    
+
     // Tour Schedule Management (với tour context)
     Route::get('/tours/{tour}/schedule-management', [AdminController::class, 'tourScheduleManagement'])->name('tours.schedule-management');
 
     // Xóa ảnh của tour
     Route::delete('/tours/{tour}/images/{image}', [AdminController::class, 'deleteTourImage'])
         ->name('tours.images.delete');
-        
-        // route mới 3/12/2025
-        Route::put('/departures/{id}/operating', [\App\Http\Controllers\Admin\DepartureController::class, 'updateOperating'])
+
+    // route mới 3/12/2025
+    Route::put('/departures/{id}/operating', [\App\Http\Controllers\Admin\DepartureController::class, 'updateOperating'])
         ->name('departures.update_operating');
-        
-        // Cập nhật thông tin điều hành (Ghi chú, Trạng thái tour, File danh sách khách)
-        Route::put('/departures/{id}/management', [\App\Http\Controllers\Admin\DepartureController::class, 'updateManagement'])
+
+    // Cập nhật thông tin điều hành (Ghi chú, Trạng thái tour, File danh sách khách)
+    Route::put('/departures/{id}/management', [\App\Http\Controllers\Admin\DepartureController::class, 'updateManagement'])
         ->name('departures.update_management');
 
-        
-        Route::get('/bookings/download-manifest-template', [AdminController::class, 'downloadManifestTemplate'])->name('bookings.download-manifest-template');
-        Route::post('/bookings/{booking}/admin-upload-manifest', [AdminController::class, 'uploadManifest'])->name('bookings.upload-manifest');
+
+    Route::get('/bookings/download-manifest-template', [AdminController::class, 'downloadManifestTemplate'])->name('bookings.download-manifest-template');
+    Route::post('/bookings/{booking}/admin-upload-manifest', [AdminController::class, 'uploadManifest'])->name('bookings.upload-manifest');
 
     // Guides management
     Route::resource('guides', GuideWebController::class);
@@ -573,7 +581,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/bookings', [AdminController::class, 'bookings'])->name('bookings');
     Route::get('/bookings/manual/create', [AdminController::class, 'createManualBooking'])->name('bookings.manual.create');
     Route::post('/bookings/manual', [AdminController::class, 'storeManualBooking'])->name('bookings.manual.store');
-    
+
     // Departures management
     Route::get('/departures/{departure}/customers', [AdminController::class, 'departureCustomers'])->name('departures.customers');
     Route::get('/departures/{departure}/customers/export', [AdminController::class, 'exportDepartureCustomers'])->name('departures.customers.export');
@@ -599,7 +607,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     // Customers management
     Route::get('/customers', [AdminController::class, 'customers'])->name('customers');
-    Route::get('/customers/{user}', [AdminController::class, 'showCustomer'])->name('customers.show');  
+    Route::get('/customers/{user}', [AdminController::class, 'showCustomer'])->name('customers.show');
     Route::put('/customers/{user}', [AdminController::class, 'updateCustomer'])->name('customers.update');
     Route::delete('/customers/{user}', [AdminController::class, 'deleteCustomer'])->name('customers.destroy');
 
@@ -619,7 +627,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     // Route::post('/reviews/{review}/hide', [AdminController::class, 'hideReview'])->name('reviews.hide');
     // Route::post('/reviews/{review}/reply', [AdminController::class, 'storeReviewReply'])->name('reviews.reply');
 
-// ============================================
+    // ============================================
     // Yêu cầu Tour đoàn (Group Requests) - VIẾT TƯỜNG MINH
     // ============================================
     // Route viết tường minh cho Group Requests (như chúng ta đã chốt)
@@ -716,25 +724,25 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 });
 
 
-    // INVOICE MANAGEMENT (Admin Only)
-    // ============================================
-    Route::get('/invoices', function () {
-        return view('admin.invoices.index');
-    })->name('invoices');
+// INVOICE MANAGEMENT (Admin Only)
+// ============================================
+Route::get('/invoices', function () {
+    return view('admin.invoices.index');
+})->name('invoices');
 
-    Route::post('/invoices', [App\Http\Controllers\InvoiceWebController::class, 'createInvoice']);
-    Route::put('/invoices/{invoice}/status', [App\Http\Controllers\InvoiceWebController::class, 'updateStatus']);
-    Route::get('/invoices/{invoice}', [App\Http\Controllers\InvoiceWebController::class, 'show']);
-    
-    // Quản lý lịch trình
-    Route::get('tours/{tour}/schedules', [TourScheduleController::class, 'index'])->name('schedules.index');
-    Route::get('tours/{tour}/schedules/create', [TourScheduleController::class, 'create'])->name('schedules.create');
-    Route::post('tours/{tour}/schedules', [TourScheduleController::class, 'store'])->name('schedules.store');
-    Route::get('schedules/{id}/edit', [TourScheduleController::class, 'edit'])->name('schedules.edit');
-    Route::put('schedules/{id}', [TourScheduleController::class, 'update'])->name('schedules.update');
-    Route::delete('schedules/{id}', [TourScheduleController::class, 'destroy'])->name('schedules.destroy');
+Route::post('/invoices', [App\Http\Controllers\InvoiceWebController::class, 'createInvoice']);
+Route::put('/invoices/{invoice}/status', [App\Http\Controllers\InvoiceWebController::class, 'updateStatus']);
+Route::get('/invoices/{invoice}', [App\Http\Controllers\InvoiceWebController::class, 'show']);
 
-    // Tour Schedule Management Routes
+// Quản lý lịch trình
+Route::get('tours/{tour}/schedules', [TourScheduleController::class, 'index'])->name('schedules.index');
+Route::get('tours/{tour}/schedules/create', [TourScheduleController::class, 'create'])->name('schedules.create');
+Route::post('tours/{tour}/schedules', [TourScheduleController::class, 'store'])->name('schedules.store');
+Route::get('schedules/{id}/edit', [TourScheduleController::class, 'edit'])->name('schedules.edit');
+Route::put('schedules/{id}', [TourScheduleController::class, 'update'])->name('schedules.update');
+Route::delete('schedules/{id}', [TourScheduleController::class, 'destroy'])->name('schedules.destroy');
+
+// Tour Schedule Management Routes
 // Trang quản lý lịch trình cho admin
 // Redirect old route to new tour-based route
 Route::get('/admin/tour-schedule-management', function () {
@@ -755,13 +763,17 @@ Route::get('/admin/tour-schedule-management', function () {
 Route::middleware(['auth', 'guide'])->prefix('guide')->name('guide.')->group(function () {
     // Dashboard
     Route::get('/dashboard', [\App\Http\Controllers\Guide\GuideDashboardController::class, 'index'])->name('dashboard');
+
             // 📅 LỊCH LÀM VIỆC HDV
         Route::get('/calendar', [GuideCalendarController::class, 'index'])
             ->name('calendar');
+
+
+
     // Departures
     Route::get('/departures/{id}', [\App\Http\Controllers\Guide\GuideDashboardController::class, 'showDeparture'])->name('departures.show');
     Route::get('/departures/{departureId}/customers', [\App\Http\Controllers\Guide\GuideDashboardController::class, 'showCustomers'])->name('departures.customers');
-    
+
     // Tour Logs (Nhật ký tour)
     Route::get('/departures/{departureId}/logs', [\App\Http\Controllers\Guide\TourLogController::class, 'index'])->name('tour-logs.index');
     Route::get('/departures/{departureId}/logs/create', [\App\Http\Controllers\Guide\TourLogController::class, 'create'])->name('tour-logs.create');
@@ -770,6 +782,7 @@ Route::middleware(['auth', 'guide'])->prefix('guide')->name('guide.')->group(fun
     Route::get('/departures/{departureId}/logs/{logId}/edit', [\App\Http\Controllers\Guide\TourLogController::class, 'edit'])->name('tour-logs.edit');
     Route::put('/departures/{departureId}/logs/{logId}', [\App\Http\Controllers\Guide\TourLogController::class, 'update'])->name('tour-logs.update');
     Route::delete('/departures/{departureId}/logs/{logId}', [\App\Http\Controllers\Guide\TourLogController::class, 'destroy'])->name('tour-logs.destroy');
+
     // ghi nhật ký tổng hợp
     Route::get('/tour-logs',[\App\Http\Controllers\Guide\TourLogController::class, 'dashboard'])->name('tour-logs.logg');
 
@@ -803,6 +816,7 @@ Route::middleware(['auth', 'guide'])->prefix('guide')->name('guide.')->group(fun
     //     [\App\Http\Controllers\Guide\RollCallController::class, 'complete']
     // )->name('guide.roll-calls.complete');
     });
+
     // Special Requests (Yêu cầu đặc biệt)
     Route::get('/departures/{departureId}/special-requests', [\App\Http\Controllers\Guide\SpecialRequestController::class, 'index'])->name('special-requests.index');
     Route::get('/departures/{departureId}/special-requests/create', [\App\Http\Controllers\Guide\SpecialRequestController::class, 'create'])->name('special-requests.create');
@@ -810,7 +824,7 @@ Route::middleware(['auth', 'guide'])->prefix('guide')->name('guide.')->group(fun
     Route::get('/departures/{departureId}/special-requests/{requestId}', [\App\Http\Controllers\Guide\SpecialRequestController::class, 'show'])->name('special-requests.show');
     Route::put('/departures/{departureId}/special-requests/{requestId}', [\App\Http\Controllers\Guide\SpecialRequestController::class, 'update'])->name('special-requests.update');
     Route::delete('/departures/{departureId}/special-requests/{requestId}', [\App\Http\Controllers\Guide\SpecialRequestController::class, 'destroy'])->name('special-requests.destroy');
-    
+
     // Feedback (Phản hồi đánh giá)
     Route::get('/feedback', [\App\Http\Controllers\Guide\TourFeedbackController::class, 'index'])->name('feedback.index');
     Route::get('/departures/{departureId}/feedback/create', [\App\Http\Controllers\Guide\TourFeedbackController::class, 'create'])->name('feedback.create');

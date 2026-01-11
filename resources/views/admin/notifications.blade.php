@@ -28,113 +28,116 @@
             </div>
             <div class="card-body">
                 @if($notifications->count() > 0)
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Tiêu đề</th>
-                                    <th>Nội dung</th>
-                                    <th>Người nhận</th>
-                                    <th>Loại</th>
-                                    <th>Trạng thái</th>
-                                    <th>Ngày gửi</th>
-                                    <th width="150">Thao tác</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($notifications as $notification)
-                                    <tr>
-                                        <td>
-                                            <div class="fw-bold">{{ $notification->title }}</div>
-                                        </td>
-                                        <td>
-                                            <small class="text-muted">{{ Str::limit($notification->content, 50) }}</small>
-                                        </td>
-                                        <td>
-                                            @if($notification->user)
-                                                <div class="d-flex align-items-center">
-                                                    <div class="user-avatar me-2">
-                                                        {{ strtoupper(substr($notification->user->name, 0, 1)) }}
-                                                    </div>
-                                                    <div>
-                                                        <div class="fw-bold">{{ $notification->user->name }}</div>
-                                                        <small class="text-muted">{{ $notification->user->email }}</small>
-                                                    </div>
-                                                </div>
-                                            @else
-                                                <span class="badge bg-info">Tất cả người dùng</span>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            <span class="badge 
+
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Tiêu đề</th>
+                                <th>Nội dung</th>
+                                <th>Người nhận</th>
+                                <th>Loại</th>
+                                <th>Trạng thái</th>
+                                <th>Ngày gửi</th>
+                                <th width="150">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($notifications as $notification)
+                            <tr>
+                                <td>
+                                    <div class="fw-bold">{{ $notification->title }}</div>
+                                </td>
+                                <td>
+                                    <small class="text-muted">
+                                        {{ \Illuminate\Support\Str::limit($notification->message, 50) }}
+                                    </small>
+                                </td>
+                                <td>
+                                    @if($notification->user)
+                                    <div class="d-flex align-items-center">
+                                        <div class="user-avatar me-2">
+                                            {{ strtoupper(substr($notification->user->name, 0, 1)) }}
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold">{{ $notification->user->name }}</div>
+                                            <small class="text-muted">{{ $notification->user->email }}</small>
+                                        </div>
+                                    </div>
+                                    @else
+                                    <span class="badge bg-info">Tất cả người dùng</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    <span class="badge 
                                                 @if($notification->type === 'info') bg-info
                                                 @elseif($notification->type === 'success') bg-success
                                                 @elseif($notification->type === 'warning') bg-warning
                                                 @elseif($notification->type === 'error') bg-danger
                                                 @else bg-secondary
                                                 @endif">
-                                                @switch($notification->type)
-                                                    @case('info') Thông tin @break
-                                                    @case('success') Thành công @break
-                                                    @case('warning') Cảnh báo @break
-                                                    @case('error') Lỗi @break
-                                                    @default {{ $notification->type }} @break
-                                                @endswitch
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span class="badge 
+                                        @switch($notification->type)
+                                        @case('info') Thông tin @break
+                                        @case('success') Thành công @break
+                                        @case('warning') Cảnh báo @break
+                                        @case('error') Lỗi @break
+                                        @default {{ $notification->type }} @break
+                                        @endswitch
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge 
                                                 @if($notification->is_read) bg-success
                                                 @else bg-warning
                                                 @endif">
-                                                @if($notification->is_read)
-                                                    Đã đọc
-                                                @else
-                                                    Chưa đọc
-                                                @endif
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <small class="text-muted">{{ $notification->created_at->format('d/m/Y H:i') }}</small>
-                                        </td>
-                                        <td>
-                                            <div class="btn-group btn-group-sm" role="group">
-                                                <button class="btn btn-outline-info" onclick="viewNotification({{ $notification->id }})" title="Xem">
-                                                    <i class="fas fa-eye"></i>
-                                                </button>
-                                                <button class="btn btn-outline-primary" onclick="editNotification({{ $notification->id }})" title="Sửa">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button class="btn btn-outline-danger" onclick="deleteNotification({{ $notification->id }})" title="Xóa">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
+                                        @if($notification->is_read)
+                                        Đã đọc
+                                        @else
+                                        Chưa đọc
+                                        @endif
+                                    </span>
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ $notification->created_at->format('d/m/Y H:i') }}</small>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button class="btn btn-outline-info" onclick="viewNotification({{ $notification->id }})" title="Xem">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-primary" onclick="editNotification({{ $notification->id }})" title="Sửa">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" onclick="deleteNotification({{ $notification->id }})" title="Xóa">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
 
-                    <!-- Pagination -->
-                    <div class="d-flex justify-content-between align-items-center mt-3">
-                        <div class="text-muted">
-                            Hiển thị {{ $notifications->firstItem() }} đến {{ $notifications->lastItem() }} 
-                            trong tổng số {{ $notifications->total() }} thông báo
-                        </div>
-                        <div>
-                            {{ $notifications->links() }}
-                        </div>
+                <!-- Pagination -->
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div class="text-muted">
+                        Hiển thị {{ $notifications->firstItem() }} đến {{ $notifications->lastItem() }}
+                        trong tổng số {{ $notifications->total() }} thông báo
                     </div>
+                    <div>
+                        {{ $notifications->links() }}
+                    </div>
+                </div>
                 @else
-                    <div class="text-center py-5">
-                        <i class="fas fa-bell fa-4x text-muted mb-3"></i>
-                        <h5 class="text-muted">Chưa có thông báo nào</h5>
-                        <p class="text-muted">Hãy gửi thông báo đầu tiên</p>
-                        <button class="btn btn-admin-primary" data-bs-toggle="modal" data-bs-target="#sendNotificationModal">
-                            <i class="fas fa-paper-plane"></i> Gửi thông báo mới
-                        </button>
-                    </div>
+                <div class="text-center py-5">
+                    <i class="fas fa-bell fa-4x text-muted mb-3"></i>
+                    <h5 class="text-muted">Chưa có thông báo nào</h5>
+                    <p class="text-muted">Hãy gửi thông báo đầu tiên</p>
+                    <button class="btn btn-admin-primary" data-bs-toggle="modal" data-bs-target="#sendNotificationModal">
+                        <i class="fas fa-paper-plane"></i> Gửi thông báo mới
+                    </button>
+                </div>
                 @endif
             </div>
         </div>
@@ -180,7 +183,7 @@
                         <select class="form-select" id="user_id" name="user_id">
                             <option value="">Tất cả người dùng</option>
                             @foreach(\App\Models\User::all() as $user)
-                                <option value="{{ $user->id }}">{{ $user->name }} ({{ $user->email }})</option>
+                            <option value="{{ $user->id }}">{{ $user->name }} ({{ $user->email }})</option>
                             @endforeach
                         </select>
                     </div>
@@ -197,38 +200,38 @@
 
 @section('styles')
 <style>
-.user-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    font-size: 0.875rem;
-}
+    .user-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 0.875rem;
+    }
 </style>
 @endsection
 
 @section('scripts')
 <script>
-function viewNotification(notificationId) {
-    // Implement view functionality
-    console.log('View notification:', notificationId);
-}
-
-function editNotification(notificationId) {
-    // Implement edit functionality
-    console.log('Edit notification:', notificationId);
-}
-
-function deleteNotification(notificationId) {
-    if (confirm('Bạn có chắc chắn muốn xóa thông báo này?')) {
-        // Implement delete functionality
-        console.log('Delete notification:', notificationId);
+    function viewNotification(notificationId) {
+        // Implement view functionality
+        console.log('View notification:', notificationId);
     }
-}
+
+    function editNotification(notificationId) {
+        // Implement edit functionality
+        console.log('Edit notification:', notificationId);
+    }
+
+    function deleteNotification(notificationId) {
+        if (confirm('Bạn có chắc chắn muốn xóa thông báo này?')) {
+            // Implement delete functionality
+            console.log('Delete notification:', notificationId);
+        }
+    }
 </script>
 @endsection

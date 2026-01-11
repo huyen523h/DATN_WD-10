@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\BookingRefundedMail;
+use App\Mail\BookingRescheduledMail;
 use App\Models\Booking;
 use App\Models\Tour;
 use App\Models\TourDeparture;
@@ -13,6 +15,7 @@ use Illuminate\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Payment;
+use Illuminate\Support\Facades\Mail;
 
 //  chỉnh sửa số lượng người đặt
 use App\Models\BookingPassenger;
@@ -286,5 +289,88 @@ class BookingController extends Controller
         }
 
         return back()->with('error', 'Vui lòng chọn file.');
+    }
+
+    public function handle(Booking $booking, string $action)
+    {
+        abort_unless(
+            in_array($action, ['refund', 'change_tour', 'reschedule']),
+            404
+        );
+
+        switch ($action) {
+            case 'refund':
+                return redirect()->route('booking.refund', $booking);
+
+            case 'change_tour':
+                if ($booking->status !== 'cancelled') {
+                    $booking->update([
+                        'status' => 'cancelled',
+                        'cancelled_at' => now(),
+                    ]);
+                }
+
+                return redirect()
+                    ->route('tours.index')
+                    ->with('info', 'Booking cũ đã hủy. Vui lòng chọn tour mới!');
+
+            case 'reschedule':
+                return redirect()->route('booking.reschedule', $booking);
+        }
+    }
+
+
+    public function refund(Booking $booking)
+    {
+        if ($booking->status === 'cancelled') {
+            return redirect()
+                ->route('welcome')
+                ->with('info', 'Đơn đặt tour này đã được huỷ trước đó!');
+        }
+
+        $booking->update([
+            'status' => 'cancelled',
+            'cancelled_at' => now(),
+        ]);
+
+        Mail::to($booking->user->email)
+            ->send(new BookingRefundedMail($booking));
+
+        return redirect()
+            ->route('welcome')
+            ->with(
+                'success',
+                'Đơn đặt tour đã được huỷ thành công! Vui lòng đến trực tiếp cơ sở của chúng tôi để nhận tiền hoàn.'
+            );
+    }
+
+    public function reschedule(Request $request, Booking $booking)
+    {
+        $newDepartureId = $request->query('departure_id');
+
+        if (!$newDepartureId) {
+            return redirect()->route('welcome')->with('error', 'Không tìm thấy ngày khởi hành mới!');
+        }
+
+        $newDeparture = TourDeparture::find($newDepartureId);
+
+        if (!$newDeparture) {
+            return redirect()->route('welcome')->with('error', 'Ngày khởi hành không hợp lệ!');
+        }
+
+        if ($newDeparture->id == $booking->departure_id) {
+            return redirect()->route('welcome')->with('error', 'Bạn đã chọn ngày hiện tại!');
+        }
+
+        $booking->update([
+            'departure_id' => $newDeparture->id,
+            'status' => 'pending',
+        ]);
+
+        Mail::to($booking->user->email)
+            ->send(new BookingRescheduledMail($booking));
+
+        return redirect()->route('welcome')
+            ->with('success', 'Booking đã được dời sang ngày ' . $newDeparture->departure_date->format('d/m/Y'));
     }
 }

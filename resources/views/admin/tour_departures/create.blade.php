@@ -41,14 +41,14 @@
                 <select name="tour_id" class="form-select" required {{ isset($tour) ? 'readonly' : '' }}>
                     <option value="">-- Chọn tour --</option>
                     @foreach($tours as $t)
-                        <option value="{{ $t->id }}" 
-                            {{ (old('tour_id') == $t->id) || (isset($tour) && $tour->id == $t->id) ? 'selected' : '' }}>
-                            {{ $t->title }}
-                        </option>
+                    <option value="{{ $t->id }}"
+                        {{ (old('tour_id') == $t->id) || (isset($tour) && $tour->id == $t->id) ? 'selected' : '' }}>
+                        {{ $t->title }}
+                    </option>
                     @endforeach
                 </select>
                 @if(isset($tour))
-                    <input type="hidden" name="tour_id" value="{{ $tour->id }}">
+                <input type="hidden" name="tour_id" value="{{ $tour->id }}">
                 @endif
                 @error('tour_id') <div class="text-danger">{{ $message }}</div> @enderror
             </div>
@@ -63,33 +63,79 @@
         <div class="row mb-3">
             <div class="col-md-4">
                 <label class="form-label">Tổng chỗ</label>
-                <input type="number" name="seats_total" class="form-control" value="{{ old('seats_total') }}" min="1" required>
+                <input type="number"
+                    id="seats_total"
+                    name="seats_total"
+                    class="form-control"
+                    value="{{ old('seats_total') }}"
+                    min="1"
+                    required>
             </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Số ghế tối thiểu để khởi hành</label>
+                <input type="number"
+                    id="seats_min"
+                    name="seats_min"
+                    class="form-control"
+                    value="{{ old('seats_min') }}"
+                    min="1"
+                    required>
+                <div class="invalid-feedback">
+                    Số ghế tối thiểu phải nằm trong khoảng 1 → Tổng chỗ
+                </div>
+            </div>
+
         </div>
 
         <div class="row mb-3">
-            <div class="col-md-4">
+            <div class="col-md-6">
                 <label class="form-label">Giá người lớn</label>
                 <input type="number" name="price" class="form-control" value="{{ old('price') }}" step="0.01" required>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-6">
                 <label class="form-label">Giá trẻ em</label>
                 <input type="number" name="child_price" class="form-control" value="{{ old('child_price') }}" step="0.01">
-            </div>
-            <div class="col-md-4">
-                <label class="form-label">Giá trẻ nhỏ</label>
-                <input type="number" name="infant_price" class="form-control" value="{{ old('infant_price') }}" step="0.01">
             </div>
         </div>
 
         <div class="d-flex gap-2">
             <button class="btn btn-primary"><i class="fas fa-save"></i> Lưu lại</button>
             @if(isset($tour))
-                <a href="{{ route('admin.departures.index') }}?tour_id={{ $tour->id }}" class="btn btn-secondary">Hủy</a>
+            <a href="{{ route('admin.departures.index') }}?tour_id={{ $tour->id }}" class="btn btn-secondary">Hủy</a>
             @else
-                <a href="{{ route('admin.departures.index') }}" class="btn btn-secondary">Hủy</a>
+            <a href="{{ route('admin.departures.index') }}" class="btn btn-secondary">Hủy</a>
             @endif
         </div>
     </form>
 </div>
 @endsection
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const seatsTotal = document.getElementById('seats_total');
+        const seatsMin = document.getElementById('seats_min');
+
+        function validateSeatsMin() {
+            const total = parseInt(seatsTotal.value, 10);
+            const min = parseInt(seatsMin.value, 10);
+
+            if (isNaN(total) || isNaN(min)) {
+                seatsMin.classList.remove('is-invalid');
+                return;
+            }
+
+            if (min < 1 || min > total) {
+                seatsMin.classList.add('is-invalid');
+                seatsMin.setCustomValidity('invalid');
+            } else {
+                seatsMin.classList.remove('is-invalid');
+                seatsMin.setCustomValidity('');
+            }
+        }
+
+        seatsTotal.addEventListener('input', validateSeatsMin);
+        seatsMin.addEventListener('input', validateSeatsMin);
+    });
+</script>
+@endpush

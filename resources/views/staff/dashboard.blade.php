@@ -115,51 +115,81 @@
                 </div>
                 <div class="card-body">
                     @if($recent_bookings->count() > 0)
-                        <div class="table-responsive">
-                            <table class="table table-bordered" width="100%" cellspacing="0">
-                                <thead>
-                                    <tr>
-                                        <th>Tour</th>
-                                        <th>Khách hàng</th>
-                                        <th>Ngày đặt</th>
-                                        <th>Trạng thái</th>
-                                        <th>Thao tác</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($recent_bookings as $booking)
-                                    <tr>
-                                        <td>{{ $booking->tour->title }}</td>
-                                        <td>{{ $booking->user->name }}</td>
-                                        <td>{{ $booking->created_at->format('d/m/Y H:i') }}</td>
-                                        <td>
-                                            @switch($booking->status)
-                                                @case('pending')
-                                                    <span class="badge bg-warning">Chờ xác nhận</span>
-                                                    @break
-                                                @case('confirmed')
-                                                    <span class="badge bg-success">Đã xác nhận</span>
-                                                    @break
-                                                @case('cancelled')
-                                                    <span class="badge bg-danger">Đã hủy</span>
-                                                    @break
-                                                @case('completed')
-                                                    <span class="badge bg-info">Hoàn thành</span>
-                                                    @break
-                                            @endswitch
-                                        </td>
-                                        <td>
-                                            <a href="{{ route('staff.bookings.show', $booking) }}" class="btn btn-sm btn-primary">
-                                                <i class="fas fa-eye"></i> Xem
-                                            </a>
-                                        </td>
-                                    </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Tour</th>
+                                    <th>Chỗ ngồi</th>
+
+                                    <th>Khách hàng</th>
+                                    <th>Ngày đặt</th>
+                                    <th>Trạng thái</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($recent_bookings as $booking)
+                                <tr>
+                                    <td>{{ $booking->tour->title }}</td>
+                                    <td>
+                                        @if($booking->departure)
+                                        <span class="fw-bold">
+                                            {{ $booking->departure->seats_available }}
+                                        </span>
+                                        /
+                                        {{ $booking->departure->seats_total }}
+
+                                        <br>
+                                        <small class="text-muted">
+                                            Tối thiểu: {{ $booking->departure->seats_min }}
+                                        </small>
+
+                                        @if($booking->departure->seats_available < $booking->departure->seats_min)
+                                            <br>
+                                            <span class="badge bg-warning text-dark mt-1">
+                                                Chưa đủ khách
+                                            </span>
+                                            @endif
+                                            @else
+                                            <span class="text-muted">—</span>
+                                            @endif
+                                    </td>
+
+                                    <td>{{ $booking->user->name }}</td>
+                                    <td>{{ $booking->created_at->format('d/m/Y H:i') }}</td>
+                                    <td>
+                                        @switch($booking->status)
+                                        @case('pending')
+                                        <span class="badge bg-warning">Chờ xác nhận</span>
+                                        @break
+                                        @case('confirmed')
+                                        <span class="badge bg-success">Đã xác nhận</span>
+                                        @break
+                                        @case('cancelled')
+                                        <span class="badge bg-danger">Đã hủy</span>
+                                        @break
+                                        @case('completed')
+                                        <span class="badge bg-info">Hoàn thành</span>
+                                        @break
+                                        @endswitch
+                                    </td>
+                                    <td>
+                                        <a href="{{ route('staff.bookings.show', $booking) }}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye"></i> Xem
+                                        </a>
+                                        <a href="{{ route('staff.bookings.sendActionMail', $booking) }}"
+                                            class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-paper-plane"></i> Gửi email
+                                        </a>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
                     @else
-                        <p class="text-muted">Chưa có đặt tour nào.</p>
+                    <p class="text-muted">Chưa có đặt tour nào.</p>
                     @endif
                 </div>
             </div>

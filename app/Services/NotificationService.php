@@ -73,7 +73,7 @@ class NotificationService
     ): void {
         try {
             $emailTemplate = $this->getEmailTemplate($type);
-            
+
             Mail::send($emailTemplate, [
                 'user' => $user,
                 'title' => $title,
@@ -83,7 +83,7 @@ class NotificationService
                 'relatedType' => $relatedType,
             ], function ($mail) use ($user, $title) {
                 $mail->to($user->email, $user->name)
-                     ->subject($title . ' - Tour365');
+                    ->subject($title . ' - Tour365');
             });
         } catch (\Exception $e) {
             Log::error('Failed to send email notification: ' . $e->getMessage(), [
@@ -120,22 +120,45 @@ class NotificationService
         $tour = $booking->tour;
         $departure = $booking->departure;
 
-        $title = 'Đặt tour thành công!';
-        $message = "Bạn đã đặt tour \"{$tour->title}\" thành công. Ngày khởi hành: " . 
-                   ($departure ? $departure->departure_date->format('d/m/Y') : 'N/A') . 
-                   ". Tổng tiền: " . number_format($booking->total_amount, 0, ',', '.') . " VNĐ. " .
-                   "Vui lòng thanh toán để hoàn tất đặt tour.";
+        $titleUser = 'Đặt tour thành công!';
+        $messageUser = "Bạn đã đặt tour \"{$tour->title}\" thành công. Ngày khởi hành: " .
+            ($departure ? $departure->departure_date->format('d/m/Y') : 'N/A') .
+            ". Tổng tiền: " . number_format($booking->total_amount, 0, ',', '.') . " VNĐ. " .
+            "Vui lòng thanh toán để hoàn tất đặt tour.";
 
-        return $this->sendNotification(
+        $userNotification = $this->sendNotification(
             $user,
             self::TYPE_BOOKING_SUCCESS,
-            $title,
-            $message,
+            $titleUser,
+            $messageUser,
             $booking->id,
             'booking',
             true
         );
+
+        $admins = User::where('role', 'admin')->get();
+
+        $titleAdmin = 'Có đơn đặt tour mới';
+        $messageAdmin = "Khách hàng {$user->name} ({$user->email}) vừa đặt tour \"{$tour->title}\". " .
+            "Ngày khởi hành: " .
+            ($departure ? $departure->departure_date->format('d/m/Y') : 'N/A') .
+            ". Tổng tiền: " . number_format($booking->total_amount, 0, ',', '.') . " VNĐ.";
+
+        foreach ($admins as $admin) {
+            $this->sendNotification(
+                $admin,
+                self::TYPE_BOOKING_SUCCESS,
+                $titleAdmin,
+                $messageAdmin,
+                $booking->id,
+                'booking',
+                false
+            );
+        }
+
+        return $userNotification;
     }
+
 
     /**
      * Notify payment success
@@ -148,8 +171,8 @@ class NotificationService
 
         $title = 'Thanh toán thành công!';
         $message = "Thanh toán cho tour \"{$tour->title}\" đã thành công. " .
-                   "Số tiền: " . number_format($payment->amount, 0, ',', '.') . " VNĐ. " .
-                   "Mã giao dịch: {$payment->transaction_code}.";
+            "Số tiền: " . number_format($payment->amount, 0, ',', '.') . " VNĐ. " .
+            "Mã giao dịch: {$payment->transaction_code}.";
 
         return $this->sendNotification(
             $user,
@@ -173,8 +196,8 @@ class NotificationService
 
         $title = 'Thanh toán thất bại';
         $message = "Thanh toán cho tour \"{$tour->title}\" đã thất bại. " .
-                   ($reason ? "Lý do: {$reason}. " : '') .
-                   "Vui lòng thử lại hoặc liên hệ hỗ trợ.";
+            ($reason ? "Lý do: {$reason}. " : '') .
+            "Vui lòng thử lại hoặc liên hệ hỗ trợ.";
 
         return $this->sendNotification(
             $user,
@@ -202,8 +225,8 @@ class NotificationService
 
         $title = "Lịch khởi hành sắp tới - Còn {$daysBefore} ngày";
         $message = "Tour \"{$tour->title}\" của bạn sẽ khởi hành vào ngày " .
-                   $departure->departure_date->format('d/m/Y') . 
-                   " (còn {$daysBefore} ngày). Vui lòng chuẩn bị sẵn sàng!";
+            $departure->departure_date->format('d/m/Y') .
+            " (còn {$daysBefore} ngày). Vui lòng chuẩn bị sẵn sàng!";
 
         return $this->sendNotification(
             $user,
@@ -226,8 +249,8 @@ class NotificationService
 
         $title = 'Lịch khởi hành đã thay đổi';
         $message = "Lịch khởi hành của tour \"{$tour->title}\" đã được thay đổi. " .
-                   "Từ ngày: {$oldDate} → Ngày mới: {$newDate}. " .
-                   "Vui lòng kiểm tra và xác nhận.";
+            "Từ ngày: {$oldDate} → Ngày mới: {$newDate}. " .
+            "Vui lòng kiểm tra và xác nhận.";
 
         return $this->sendNotification(
             $user,
@@ -250,9 +273,9 @@ class NotificationService
 
         $title = 'Hoàn tiền thành công';
         $message = "Bạn đã được hoàn tiền cho tour \"{$tour->title}\". " .
-                   "Số tiền: " . number_format($amount, 0, ',', '.') . " VNĐ. " .
-                   ($reason ? "Lý do: {$reason}. " : '') .
-                   "Tiền sẽ được chuyển về tài khoản trong 3-5 ngày làm việc.";
+            "Số tiền: " . number_format($amount, 0, ',', '.') . " VNĐ. " .
+            ($reason ? "Lý do: {$reason}. " : '') .
+            "Tiền sẽ được chuyển về tài khoản trong 3-5 ngày làm việc.";
 
         return $this->sendNotification(
             $user,
@@ -275,8 +298,8 @@ class NotificationService
 
         $title = 'Đặt tour đã bị hủy';
         $message = "Đặt tour \"{$tour->title}\" của bạn đã bị hủy. " .
-                   ($reason ? "Lý do: {$reason}. " : '') .
-                   "Nếu bạn có thắc mắc, vui lòng liên hệ hỗ trợ.";
+            ($reason ? "Lý do: {$reason}. " : '') .
+            "Nếu bạn có thắc mắc, vui lòng liên hệ hỗ trợ.";
 
         return $this->sendNotification(
             $user,
@@ -289,4 +312,3 @@ class NotificationService
         );
     }
 }
-

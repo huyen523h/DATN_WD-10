@@ -104,16 +104,67 @@
                         Doanh thu theo tháng
                     </h5>
                     <div class="chart-actions">
-                        <button class="chart-btn" title="Tải xuống">
+                        <!-- Filter theo tháng và năm -->
+                        <form method="GET" action="{{ route('admin.dashboard') }}" class="d-inline-flex align-items-center gap-2 me-2">
+                            <div class="position-relative" style="display: inline-block;">
+                                <select name="year" id="yearFilter" class="form-select form-select-sm" style="width: auto; padding-right: 2rem;" onchange="this.form.submit()">
+                                    @foreach($availableYears as $year)
+                                        <option value="{{ $year }}" {{ $selectedYear == $year ? 'selected' : '' }}>
+                                            Năm {{ $year }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <i class="fas fa-chevron-down position-absolute" style="right: 0.5rem; top: 50%; transform: translateY(-50%); pointer-events: none; color: #6c757d;"></i>
+                            </div>
+                            <div class="position-relative" style="display: inline-block;">
+                                <select name="month" id="monthFilter" class="form-select form-select-sm" style="width: auto; padding-right: 2rem;" onchange="this.form.submit()">
+                                    <option value="">Tất cả tháng</option>
+                                    @for($i = 1; $i <= 12; $i++)
+                                        <option value="{{ $i }}" {{ $selectedMonth == $i ? 'selected' : '' }}>
+                                            Tháng {{ $i }}
+                                        </option>
+                                    @endfor
+                                </select>
+                                <i class="fas fa-chevron-down position-absolute" style="right: 0.5rem; top: 50%; transform: translateY(-50%); pointer-events: none; color: #6c757d;"></i>
+                            </div>
+                        </form>
+                        <button class="chart-btn" title="Tải xuống" onclick="downloadChart()">
                             <i class="fas fa-download"></i>
                         </button>
-                        <button class="chart-btn" title="Phóng to">
+                        <button class="chart-btn" title="Phóng to" onclick="toggleFullscreen()">
                             <i class="fas fa-expand"></i>
                         </button>
                     </div>
                 </div>
                 <div class="card-body">
-                    <canvas id="revenueChart" height="300"></canvas>
+                    <!-- Thống kê nhanh -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="stat-box bg-primary text-white p-3 rounded">
+                                <div class="stat-label">Tổng doanh thu năm {{ $selectedYear }}</div>
+                                <div class="stat-value">{{ number_format($yearlyTotal, 0, ',', '.') }} đ</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="stat-box bg-success text-white p-3 rounded">
+                                <div class="stat-label">
+                                    @if($selectedMonth)
+                                        Doanh thu tháng {{ $selectedMonth }}/{{ $selectedYear }}
+                                    @else
+                                        Xem theo tháng cụ thể
+                                    @endif
+                                </div>
+                                <div class="stat-value">
+                                    @if($selectedMonth)
+                                        {{ number_format($monthlyTotal, 0, ',', '.') }} đ
+                                    @else
+                                        Chọn tháng để xem
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <canvas id="revenueChart" height="200"></canvas>
                 </div>
             </div>
 
@@ -694,6 +745,95 @@
             opacity: 0.9;
         }
 
+        /* Revenue Chart Styles */
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .chart-title {
+            margin: 0;
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .chart-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .chart-btn {
+            background: none;
+            border: 1px solid var(--gray-300);
+            border-radius: 6px;
+            padding: 0.375rem 0.75rem;
+            cursor: pointer;
+            color: var(--gray-600);
+            transition: all 0.2s;
+        }
+
+        .chart-btn:hover {
+            background: var(--gray-50);
+            border-color: var(--gray-400);
+            color: var(--gray-900);
+        }
+
+        .stat-box {
+            border-radius: 8px;
+        }
+
+        .stat-box .stat-label {
+            font-size: 0.875rem;
+            opacity: 0.9;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-box .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .form-select-sm {
+            padding: 0.25rem 0.5rem;
+            padding-right: 2rem;
+            font-size: 0.875rem;
+            border-radius: 4px;
+            border: 1px solid var(--gray-300);
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: none;
+        }
+
+        .me-2 {
+            margin-right: 0.5rem;
+        }
+
+        .position-relative {
+            position: relative;
+        }
+
+        .position-absolute {
+            position: absolute;
+        }
+
+        .bg-primary {
+            background-color: var(--primary-600) !important;
+        }
+
+        .bg-success {
+            background-color: var(--success-600) !important;
+        }
+
+        .text-white {
+            color: white !important;
+        }
+
         @media (min-width: 1024px) {
             .lg\:col-span-2 {
                 grid-column: span 2 / span 2;
@@ -714,15 +854,32 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Revenue Chart
+            // Dữ liệu doanh thu từ server
+            const revenueData = @json($revenueData);
+            const selectedMonth = @json($selectedMonth);
+            
+            // Chuẩn bị dữ liệu cho biểu đồ
+            let chartLabels, chartAmounts;
+            
+            if (selectedMonth) {
+                // Nếu có chọn tháng cụ thể: hiển thị theo ngày
+                chartLabels = revenueData.map(item => 'Ngày ' + item.day);
+                chartAmounts = revenueData.map(item => item.revenue / 1000000000); // Chuyển sang tỷ VNĐ
+            } else {
+                // Nếu không: hiển thị theo tháng trong năm
+                chartLabels = revenueData.map(item => item.monthName);
+                chartAmounts = revenueData.map(item => item.revenue / 1000000000); // Chuyển sang tỷ VNĐ
+            }
+            
+            // Revenue Chart - Biểu đồ theo tháng hoặc ngày
             const revenueCtx = document.getElementById('revenueChart').getContext('2d');
-            new Chart(revenueCtx, {
+            window.revenueChart = new Chart(revenueCtx, {
                 type: 'line',
                 data: {
-                    labels: ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6'],
+                    labels: chartLabels,
                     datasets: [{
-                        label: 'Doanh thu (triệu VNĐ)',
-                        data: [12, 19, 3, 5, 2, 3],
+                        label: selectedMonth ? 'Doanh thu theo ngày (tỷ VNĐ)' : 'Doanh thu theo tháng (tỷ VNĐ)',
+                        data: chartAmounts,
                         borderColor: '#6366F1',
                         backgroundColor: 'rgba(99, 102, 241, 0.1)',
                         tension: 0.4,
@@ -730,15 +887,45 @@
                         pointBackgroundColor: '#6366F1',
                         pointBorderColor: '#ffffff',
                         pointBorderWidth: 2,
-                        pointRadius: 6
+                        pointRadius: 6,
+                        pointHoverRadius: 8
                     }]
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false,
+                    maintainAspectRatio: true,
+                    aspectRatio: 2.5,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
                     plugins: {
                         legend: {
-                            display: false
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    // Hiển thị cả tỷ và đầy đủ
+                                    const value = context.parsed.y;
+                                    const fullValue = revenueData[context.dataIndex].revenue;
+                                    label += value.toFixed(3) + ' tỷ VNĐ';
+                                    label += ' (' + new Intl.NumberFormat('vi-VN').format(fullValue) + ' đ)';
+                                    return label;
+                                }
+                            }
                         }
                     },
                     scales: {
@@ -746,6 +933,11 @@
                             beginAtZero: true,
                             grid: {
                                 color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value + ' tỷ';
+                                }
                             }
                         },
                         x: {
@@ -757,15 +949,27 @@
                 }
             });
 
-            // Tours Chart
+            // Tours Chart - Tour phổ biến theo danh mục (loại bỏ nước ngoài)
+            const popularToursData = @json($popularToursByCategory);
             const toursCtx = document.getElementById('toursChart').getContext('2d');
+            
+            // Chuẩn bị dữ liệu cho biểu đồ
+            const tourLabels = popularToursData.map(item => item.name);
+            const tourCounts = popularToursData.map(item => item.count);
+            
+            // Màu sắc động cho các danh mục
+            const colors = [
+                '#6366F1', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
+                '#EC4899', '#06B6D4', '#84CC16', '#F97316', '#14B8A6'
+            ];
+            
             new Chart(toursCtx, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Trong nước', 'Nước ngoài', 'Du lịch sinh thái', 'Du lịch văn hóa'],
+                    labels: tourLabels,
                     datasets: [{
-                        data: [40, 30, 20, 10],
-                        backgroundColor: ['#6366F1', '#10B981', '#F59E0B', '#EF4444'],
+                        data: tourCounts,
+                        backgroundColor: colors.slice(0, tourLabels.length),
                         borderWidth: 0
                     }]
                 },
@@ -777,13 +981,48 @@
                             position: 'bottom',
                             labels: {
                                 padding: 20,
-                                usePointStyle: true
+                                usePointStyle: true,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    return label + ': ' + value + ' tour';
+                                }
                             }
                         }
                     }
                 }
             });
         });
+
+        // Hàm download biểu đồ
+        function downloadChart() {
+            if (window.revenueChart) {
+                const url = window.revenueChart.toBase64Image();
+                const link = document.createElement('a');
+                link.download = 'doanh-thu-' + new Date().getTime() + '.png';
+                link.href = url;
+                link.click();
+            }
+        }
+
+        // Hàm phóng to/thu nhỏ biểu đồ
+        function toggleFullscreen() {
+            const chartCard = document.querySelector('.chart-card');
+            if (!document.fullscreenElement) {
+                chartCard.requestFullscreen().catch(err => {
+                    alert('Không thể mở chế độ toàn màn hình: ' + err.message);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
     </script>
 
     <!-- Check-in/Check-out Statistics Widget -->

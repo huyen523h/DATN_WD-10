@@ -1223,7 +1223,6 @@ white-space: nowrap !important;
         </button>
     </div>
 
-
     {{-- ================== STYLES (PUT IN <head> ideally) ================== --}}
     <style>
         :root{
@@ -1478,10 +1477,8 @@ document.querySelectorAll('.navbar-nav .nav-link').forEach(link => {
 
     {{-- IMPORTANT: dùng stack để page push script không bị đè --}}
     @stack('scripts')
-    
+
     @yield('scripts')
 </body>
-
-
 
 </html>

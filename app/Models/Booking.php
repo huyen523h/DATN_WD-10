@@ -4,297 +4,262 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\{
+    BelongsTo,
+    HasMany,
+    HasOne
+};
 use Carbon\Carbon;
-use App\Models\BookingPassenger;
 
 class Booking extends Model
 {
     use HasFactory;
 
+    /* =====================================================
+     | FILLABLE
+     ===================================================== */
     protected $fillable = [
         'user_id',
         'tour_id',
         'departure_id',
+
+        // số lượng
         'adults',
         'children',
         'infants',
+
+        // dịch vụ & giá
         'additional_services',
         'additional_services_total',
         'total_amount',
         'paid_amount',
+
+        // thanh toán
         'payment_method',
+        'receipt_image',
+
+        // trạng thái & nguồn
         'status',
         'source',
-        'booking_source', // Nguồn booking: website, zalo, facebook, phone
-        'sale_staff_id', // Sale phụ trách booking
+        'booking_source',
         'promotion_code',
-        'note',
-        'passenger_manifest_file',
         'expires_at',
+
+        // quản trị
+        'sale_staff_id',
+        'note',
         'cancel_reason',
-        'receipt_image',
+
+        // hồ sơ đoàn
+        'passenger_manifest_file',
         'contract_file',
         'service_details',
     ];
 
-    /**
-     * Booking source constants
-     */
-    const SOURCE_WEBSITE = 'website';
-    const SOURCE_ZALO = 'zalo';
+    /* =====================================================
+     | CASTS
+     ===================================================== */
+    protected $casts = [
+        'expires_at'               => 'datetime',
+        'additional_services'      => 'array',
+        'additional_services_total'=> 'decimal:2',
+        'total_amount'             => 'decimal:2',
+        'paid_amount'              => 'decimal:2',
+    ];
+
+    /* =====================================================
+     | CONSTANTS
+     ===================================================== */
+    const SOURCE_WEBSITE  = 'website';
+    const SOURCE_ZALO     = 'zalo';
     const SOURCE_FACEBOOK = 'facebook';
-    const SOURCE_PHONE = 'phone';
+    const SOURCE_PHONE    = 'phone';
 
     const BOOKING_SOURCES = [
-        self::SOURCE_WEBSITE => 'Website',
-        self::SOURCE_ZALO => 'Zalo',
+        self::SOURCE_WEBSITE  => 'Website',
+        self::SOURCE_ZALO     => 'Zalo',
         self::SOURCE_FACEBOOK => 'Facebook',
-        self::SOURCE_PHONE => 'Điện thoại',
+        self::SOURCE_PHONE    => 'Điện thoại',
     ];
 
-    protected $casts = [
-        'total_amount' => 'decimal:2',
-        'expires_at' => 'datetime',
-        'additional_services' => 'array',
-        'additional_services_total' => 'decimal:2',
-    ];
+    /* =====================================================
+     | RELATIONSHIPS
+     ===================================================== */
 
-    /**
-     * Get the user that owns the booking.
-     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * Get the tour for the booking.
-     */
     public function tour(): BelongsTo
     {
         return $this->belongsTo(Tour::class);
     }
 
-    /**
-     * Get the departure for the booking.
-     */
     public function departure(): BelongsTo
     {
         return $this->belongsTo(TourDeparture::class, 'departure_id');
     }
 
-    /**
-     * Get the promotion for the booking.
-     */
     public function promotion(): BelongsTo
     {
         return $this->belongsTo(Promotion::class);
     }
 
-    /**
-     * Get the staff member who handled the booking.
-     */
-    public function staff(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'staff_id');
-    }
-
-    /**
-     * Get the sale staff member assigned to this booking.
-     */
     public function saleStaff(): BelongsTo
     {
         return $this->belongsTo(User::class, 'sale_staff_id');
     }
 
-    /**
-     * Get the payments for the booking.
-     */
-    public function payment()
+    /* =================== Payments =================== */
+
+    public function payments(): HasMany
     {
-        return $this->hasMany(Payment::class, 'booking_id', 'id')->orderBy('id', 'desc');
+        return $this->hasMany(Payment::class, 'booking_id')
+            ->orderByDesc('id');
     }
 
-    public function transactions(): HasMany
-    {
-        return $this->hasMany(Payment::class, 'booking_id')->orderBy('id', 'desc');
-    }
-
-    /**
-     * Get the invoice for the booking.
-     */
     public function invoice(): HasOne
     {
         return $this->hasOne(Invoice::class);
     }
 
-    /**
-     * Get the documents for the booking.
-     */
-    public function documents(): HasMany
+    /* =================== Passengers =================== */
+
+    public function passengers(): HasMany
     {
-        return $this->hasMany(Document::class);
+        return $this->hasMany(BookingPassenger::class, 'booking_id');
     }
 
-    /**
-     * Get the chat for the booking.
-     */
-    public function chat(): HasOne
-    {
-        return $this->hasOne(Chat::class);
-    }
+    /* =================== Check-in =================== */
 
-    /**
-     * Get check-ins for the booking.
-     */
     public function checkIns(): HasMany
     {
-        return $this->hasMany(CheckIn::class);
+        return $this->hasMany(CheckIn::class, 'booking_id');
     }
 
-    /**
-     * Get special requests for the booking.
-     */
-    public function specialRequests(): HasMany
-    {
-        return $this->hasMany(GuestSpecialRequest::class);
-    }
+    /* =====================================================
+     | ACCESSORS
+     ===================================================== */
 
-    /**
-     * Get total passengers.
-     */
     public function getTotalPassengersAttribute(): int
     {
-        return $this->adults + $this->children + $this->infants;
+        return (int) $this->adults
+             + (int) $this->children
+             + (int) $this->infants;
     }
 
+    /* =====================================================
+     | BUSINESS LOGIC
+     ===================================================== */
+
     /**
-     * Check if booking can be paid.
-     * 
-     * @return array{can_pay: bool, message: string}
+     * Kiểm tra booking có được thanh toán hay không
      */
     public function canPay(): array
     {
-        // Kiểm tra nếu booking đã EXPIRED
+        // đã hết hạn
         if ($this->status === 'expired') {
             return [
                 'can_pay' => false,
-                'message' => 'Đặt tour này đã hết hạn thanh toán. Vui lòng đặt lại tour mới.'
+                'message' => 'Đơn hàng đã hết hạn thanh toán.'
             ];
         }
 
-        // Kiểm tra nếu booking PENDING nhưng đã hết hạn
-        if ($this->status === 'pending' && $this->expires_at && $this->expires_at->isPast()) {
-            // Tự động chuyển sang EXPIRED
+        // pending nhưng quá hạn
+        if (
+            $this->status === 'pending'
+            && $this->expires_at
+            && $this->expires_at->isPast()
+        ) {
             $this->update(['status' => 'expired']);
+
             return [
                 'can_pay' => false,
-                'message' => 'Đặt tour này đã hết hạn thanh toán. Vui lòng đặt lại tour mới.'
+                'message' => 'Đơn hàng đã hết hạn thanh toán.'
             ];
         }
 
-        // Booking phải ở trạng thái 'confirmed' hoặc 'pending' để có thể thanh toán
-        if (!in_array($this->status, ['confirmed', 'pending'])) {
+        // chỉ confirmed mới được thanh toán
+        if ($this->status !== 'confirmed') {
             return [
                 'can_pay' => false,
-                'message' => 'Đặt tour này không thể thanh toán. Trạng thái: ' . $this->status
+                'message' => match ($this->status) {
+                    'pending' => 'Đơn hàng đang chờ Admin xác nhận.',
+                    default   => 'Đơn hàng không ở trạng thái cho phép thanh toán.',
+                }
             ];
         }
 
-        // Kiểm tra xem đã có payment completed chưa
-        $hasCompletedPayment = $this->payment()
-            ->where('status', 'completed')
-            ->exists();
-
-        if ($hasCompletedPayment) {
+        // đã thanh toán rồi
+        if ($this->payments()->where('status', 'completed')->exists()) {
             return [
                 'can_pay' => false,
-                'message' => 'Đặt tour này đã được thanh toán thành công.'
+                'message' => 'Đơn hàng đã được thanh toán.'
             ];
         }
 
-        // Kiểm tra departure có còn hợp lệ không
-        if ($this->departure) {
-            $departureDate = $this->departure->departure_date;
-            if ($departureDate && $departureDate->isPast()) {
-                return [
-                    'can_pay' => false,
-                    'message' => 'Không thể thanh toán vì ngày khởi hành đã qua.'
-                ];
-            }
+        // ngày khởi hành đã qua
+        if (
+            $this->departure
+            && $this->departure->departure_date
+            && $this->departure->departure_date->isPast()
+        ) {
+            return [
+                'can_pay' => false,
+                'message' => 'Ngày khởi hành đã qua, không thể thanh toán.'
+            ];
         }
 
-        // Trường hợp bình thường: có thể thanh toán
         return [
             'can_pay' => true,
-            'message' => 'Bạn có thể thanh toán cho đặt tour này.'
+            'message' => 'Có thể tiến hành thanh toán.'
         ];
     }
 
     /**
-     * Check if booking is completed.
+     * Booking đã hoàn tất hay chưa
      */
     public function isCompleted(): bool
     {
         return $this->status === 'completed';
     }
 
-  /**
-     * Get passengers of this booking
-     */
-    public function passengers(): HasMany
-    {
-        return $this->hasMany(BookingPassenger::class, 'booking_id');
-    }
-
-
-
     /**
-     * Tính toán thông tin hoàn tiền dựa trên ngày khởi hành
-     * Trả về mảng: % hoàn, số tiền hoàn, và lý do gợi ý.
+     * Tính chính sách hoàn tiền
      */
-    public function getRefundInfo()
+    public function getRefundInfo(): array
     {
-        // 1. Nếu chưa có lịch khởi hành hoặc chưa thanh toán -> Hoàn 100% (hoặc 0đ)
         if (!$this->departure || $this->status !== 'paid') {
             return [
                 'percent' => 100,
-                'amount' => $this->total_amount, // Hoàn toàn bộ
-                'policy' => 'Khách chưa chốt lịch hoặc chưa thanh toán. Hủy không mất phí.'
+                'amount'  => $this->total_amount,
+                'policy'  => 'Chưa khởi hành hoặc chưa thanh toán.'
             ];
         }
 
-        // 2. Tính khoảng cách ngày: (Ngày khởi hành) - (Hôm nay)
         $departureDate = Carbon::parse($this->departure->departure_date);
-        $now = Carbon::now();
-        $daysDiff = $now->diffInDays($departureDate, false); // false để lấy số âm nếu đã qua ngày
+        $daysDiff = now()->diffInDays($departureDate, false);
 
-        // 3. Áp dụng chính sách hủy tour
         if ($daysDiff >= 30) {
             $percent = 100;
-            $note = "Hủy trước 30 ngày. Hoàn 100%.";
+            $policy  = 'Hủy trước 30 ngày. Hoàn 100%.';
         } elseif ($daysDiff >= 7) {
             $percent = 70;
-            $note = "Hủy trước 7-29 ngày. Hoàn 70%.";
+            $policy  = 'Hủy trước 7–29 ngày. Hoàn 70%.';
         } elseif ($daysDiff >= 3) {
             $percent = 30;
-            $note = "Hủy trước 3-6 ngày. Hoàn 30%.";
+            $policy  = 'Hủy trước 3–6 ngày. Hoàn 30%.';
         } else {
             $percent = 0;
-            $note = "Hủy sát ngày (dưới 3 ngày) hoặc đã qua ngày đi. Không hoàn tiền.";
+            $policy  = 'Hủy sát ngày hoặc đã khởi hành. Không hoàn tiền.';
         }
-
-        // 4. Tính ra số tiền cụ thể
-        $refundAmount = ($this->total_amount * $percent) / 100;
 
         return [
             'days_diff' => $daysDiff,
-            'percent' => $percent,
-            'amount' => $refundAmount,
-            'policy' => $note
+            'percent'   => $percent,
+            'amount'    => ($this->total_amount * $percent) / 100,
+            'policy'    => $policy,
         ];
     }
 }
