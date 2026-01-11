@@ -52,7 +52,13 @@ class TourController extends Controller
      */
     public function show(Tour $tour): View
     {
-        $tour->load(['category', 'images', 'schedules', 'departures', 'reviews.user']);
+        $tour->load(['category', 'images', 'schedules', 'reviews.user']);
+        
+        // Chỉ lấy các ngày khởi hành trong tương lai cho user
+        $tour->load(['departures' => function($query) {
+            $query->whereDate('departure_date', '>=', now()->toDateString())
+                  ->orderBy('departure_date');
+        }]);
         
         return view('tours.show', compact('tour'));
 

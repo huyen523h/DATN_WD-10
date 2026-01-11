@@ -21,8 +21,21 @@
                         <div id="tourCarousel" class="carousel slide" data-bs-ride="carousel">
                             <div class="carousel-inner">
                                 @foreach ($tour->images as $index => $image)
+                                    @php
+                                        $imageUrl = $image->image_url;
+                                        // Nếu là path (không bắt đầu bằng http), xử lý storage path
+                                        if (!str_starts_with($imageUrl, 'http')) {
+                                            // Nếu path đã có /storage/, dùng trực tiếp
+                                            if (str_starts_with($imageUrl, '/storage/')) {
+                                                $imageUrl = asset($imageUrl);
+                                            } else {
+                                                // Nếu là path tương đối, thêm storage/
+                                                $imageUrl = asset('storage/' . $imageUrl);
+                                            }
+                                        }
+                                    @endphp
                                     <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
-                                        <img src="{{ $image->image_url }}" class="d-block w-100 rounded"
+                                        <img src="{{ $imageUrl }}" class="d-block w-100 rounded"
                                             alt="{{ $tour->title }}" loading="lazy" sizes="(min-width: 992px) 800px, 100vw"
                                             style="height: 400px; object-fit: cover;">
                                     </div>
@@ -78,8 +91,7 @@
                         <select id="departureSelect" class="form-select">
                             @foreach ($tour->departures as $departure)
                                 <option value="{{ $departure->id }}" data-price="{{ $departure->price }}"
-                                    data-child="{{ $departure->child_price }}"
-                                    data-infant="{{ $departure->infant_price }}">
+                                    data-child="{{ $departure->child_price }}">
                                     {{ \Carbon\Carbon::parse($departure->departure_date)->format('d/m/Y') }}
                                     ({{ $departure->seats_available }}/{{ $departure->seats_total }} chỗ)
                                 </option>
@@ -91,7 +103,6 @@
                         <h5 class="mb-2">Giá Tour</h5>
                         <div class="text-white fs-5" id="adultPrice"></div>
                         <div class="text-white-50" id="childPrice"></div>
-                        <div class="text-white-50" id="infantPrice"></div>
                     </div>
 
                     <div class="mb-4">
@@ -198,13 +209,6 @@
                                                             <p class="mb-1 text-muted">
                                                                 <small>Trẻ em:
                                                                     {{ number_format($departure->child_price, 0, ',', '.') }}đ</small>
-                                                            </p>
-                                                        @endif
-
-                                                        @if ($departure->infant_price)
-                                                            <p class="mb-1 text-muted">
-                                                                <small>Em bé:
-                                                                    {{ number_format($departure->infant_price, 0, ',', '.') }}đ</small>
                                                             </p>
                                                         @endif
 
@@ -317,7 +321,6 @@
             const departureSelect = document.getElementById('departureSelect');
             const adultPriceEl = document.getElementById('adultPrice');
             const childPriceEl = document.getElementById('childPrice');
-            const infantPriceEl = document.getElementById('infantPrice');
 
             function formatVND(n) {
                 return new Intl.NumberFormat('vi-VN').format(n) + 'đ';
@@ -327,11 +330,9 @@
                 const opt = departureSelect.options[departureSelect.selectedIndex];
                 const adult = parseInt(opt.dataset.price) || 0;
                 const child = parseInt(opt.dataset.child) || 0;
-                const infant = parseInt(opt.dataset.infant) || 0;
 
                 adultPriceEl.textContent = `Người lớn: ${formatVND(adult)}`;
                 childPriceEl.textContent = child ? `Trẻ em: ${formatVND(child)}` : '';
-                infantPriceEl.textContent = infant ? `Em bé: ${formatVND(infant)}` : '';
             }
 
             departureSelect.addEventListener('change', updatePrices);

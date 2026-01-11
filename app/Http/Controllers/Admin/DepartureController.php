@@ -112,7 +112,6 @@ class DepartureController extends Controller
 
         $adultCount = (int) $bookings->sum('adults');
         $childCount = (int) $bookings->sum('children');
-        $infantCount = (int) $bookings->sum('infants');
 
         return view('admin.tour_departures.show', compact(
             'departure',
@@ -121,8 +120,7 @@ class DepartureController extends Controller
             'bookedGuests',
             'bookings',
             'adultCount',
-            'childCount',
-            'infantCount'
+            'childCount'
         ));
     }
 

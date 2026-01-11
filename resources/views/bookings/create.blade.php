@@ -43,7 +43,6 @@
                             <option value="{{ $departure->id }}"
                                 data-price="{{ $departure->price }}"
                                 data-child-price="{{ $departure->child_price }}"
-                                data-infant-price="{{ $departure->infant_price }}"
                                 data-seats="{{ $departure->seats_available }}">
                                 {{ \Carbon\Carbon::parse($departure->departure_date)->format('d/m/Y') }}
                                 ({{ $departure->seats_available }}/{{ $departure->seats_total }} chỗ)
@@ -55,20 +54,15 @@
 
                 {{-- PASSENGER COUNT --}}
                 <div class="row mb-4">
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <label>Người lớn *</label>
                         <input type="number" class="form-control" id="adults" name="adults" value="1" min="1">
                         <small class="text-muted">Người lớn ≥ 12 tuổi</small>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <label>Trẻ em</label>
                         <input type="number" class="form-control" id="children" name="children" value="0" min="0">
                         <div class="invalid-feedback d-block" id="childrenError" style="display:none;"></div>
-                    </div>
-                    <div class="col-md-4">
-                        <label>Em bé</label>
-                        <input type="number" class="form-control" id="infants" name="infants" value="0" min="0">
-                        <div class="invalid-feedback d-block" id="infantsError" style="display:none;"></div>
                     </div>
                 </div>
 
@@ -183,14 +177,13 @@
 <script>
 const adultsInput = document.getElementById('adults');
 const childrenInput = document.getElementById('children');
-const infantsInput = document.getElementById('infants');
 const passengerForms = document.getElementById('passengerForms');
 const bookingForm = document.getElementById('bookingForm');
 
 /* ===== RENDER THÔNG TIN HÀNH KHÁCH ===== */
 function passengerForm(type, index) {
     const label = type === 'adult' ? 'Người lớn'
-        : type === 'child' ? 'Trẻ em' : 'Em bé';
+        : type === 'child' ? 'Trẻ em' : '';
 
     return `
     <div class="card mb-3">
@@ -237,11 +230,10 @@ function renderPassengers() {
     let html = '';
     for (let i = 1; i <= adultsInput.value; i++) html += passengerForm('adult', i);
     for (let i = 1; i <= childrenInput.value; i++) html += passengerForm('child', i);
-    for (let i = 1; i <= infantsInput.value; i++) html += passengerForm('infant', i);
     passengerForms.innerHTML = html || '<div class="text-muted">Chưa có hành khách</div>';
 }
 
-[adultsInput, childrenInput, infantsInput].forEach(el => {
+[adultsInput, childrenInput].forEach(el => {
     el.addEventListener('input', renderPassengers);
 });
 renderPassengers();
