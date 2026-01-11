@@ -242,10 +242,6 @@
                                             <th>Giá trẻ em</th>
                                             <td>{{ number_format($departure->child_price ?? 0, 0, ',', '.') }}₫</td>
                                         </tr>
-                                        <tr>
-                                            <th>Giá em bé</th>
-                                            <td>{{ number_format($departure->infant_price ?? 0, 0, ',', '.') }}₫</td>
-                                        </tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -798,7 +794,7 @@
 
                         <!-- Tổng quan phân loại -->
                         <div class="row g-3 mb-4">
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <div class="card border-0 shadow-sm h-100">
                                     <div class="card-body">
                                         <div class="d-flex align-items-center">
@@ -813,7 +809,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <div class="card border-0 shadow-sm h-100">
                                     <div class="card-body">
                                         <div class="d-flex align-items-center">
@@ -823,21 +819,6 @@
                                             <div>
                                                 <div class="text-muted small">Trẻ em (2–11)</div>
                                                 <div class="h5 mb-0">{{ $childCount }}</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="card border-0 shadow-sm h-100">
-                                    <div class="card-body">
-                                        <div class="d-flex align-items-center">
-                                            <div class="avatar-circle bg-warning text-white me-3" style="width:50px;height:50px;">
-                                                <i class="fas fa-baby"></i>
-                                            </div>
-                                            <div>
-                                                <div class="text-muted small">Em bé (&lt;2)</div>
-                                                <div class="h5 mb-0">{{ $infantCount }}</div>
                                             </div>
                                         </div>
                                     </div>
@@ -855,7 +836,6 @@
                                         <th>Liên hệ</th>
                                         <th class="text-center">Người lớn</th>
                                         <th class="text-center">Trẻ em</th>
-                                        <th class="text-center">Em bé</th>
                                         <th>Trạng thái</th>
                                         <th>Ngày đặt</th>
                                     </tr>
@@ -877,7 +857,6 @@
                                         </td>
                                         <td class="text-center fw-bold">{{ $booking->adults }}</td>
                                         <td class="text-center fw-bold text-info">{{ $booking->children }}</td>
-                                        <td class="text-center fw-bold text-warning">{{ $booking->infants }}</td>
                                         <td>
                                             @php
                                             $status = $booking->status;

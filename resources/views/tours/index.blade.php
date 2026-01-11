@@ -151,7 +151,20 @@
                             <div class="card tour-card h-100">
                                 <div class="position-relative">
                                     @if ($tour->images->count() > 0)
-                                        <img src="{{ $tour->images->first()->image_url }}" class="card-img-top"
+                                        @php
+                                            $imageUrl = $tour->images->first()->image_url;
+                                            // Nếu là path (không bắt đầu bằng http), xử lý storage path
+                                            if (!str_starts_with($imageUrl, 'http')) {
+                                                // Nếu path đã có /storage/, dùng trực tiếp
+                                                if (str_starts_with($imageUrl, '/storage/')) {
+                                                    $imageUrl = asset($imageUrl);
+                                                } else {
+                                                    // Nếu là path tương đối, thêm storage/
+                                                    $imageUrl = asset('storage/' . $imageUrl);
+                                                }
+                                            }
+                                        @endphp
+                                        <img src="{{ $imageUrl }}" class="card-img-top"
                                             alt="{{ $tour->title }}" loading="lazy"
                                             sizes="(min-width: 992px) 400px, 100vw"
                                             style="height: 250px; object-fit: cover;">

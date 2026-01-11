@@ -97,8 +97,7 @@
                         <p>
                             <strong>Số lượng:</strong>
                             {{ $booking->adults }} NL,
-                            {{ $booking->children }} TE,
-                            {{ $booking->infants }} EB
+                            {{ $booking->children }} TE
                         </p>
                         <p><strong>Ghi chú:</strong> {{ $booking->note ?? 'Không' }}</p>
                     </div>
