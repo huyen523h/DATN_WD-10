@@ -45,40 +45,35 @@
         white-space: nowrap;
     }
     
-    /* Column widths - Tối ưu theo thứ tự: ID | Ngày | Trạng thái | Ghế | Giá | Ngày tạo | Thao tác */
+    /* Column widths - Tối ưu theo thứ tự: ID | Ngày | Trạng thái | Ghế | Ngày tạo | Thao tác */
     .table th:nth-child(1),
     .table td:nth-child(1) {
-        width: 5%;
+        width: 7%;
     }
     
     .table th:nth-child(2),
     .table td:nth-child(2) {
-        width: 12%;
+        width: 16%;
     }
     
     .table th:nth-child(3),
     .table td:nth-child(3) {
-        width: 12%;
+        width: 16%;
     }
     
     .table th:nth-child(4),
     .table td:nth-child(4) {
-        width: 12%;
+        width: 20%;
     }
     
     .table th:nth-child(5),
     .table td:nth-child(5) {
-        width: 12%;
+        width: 14%;
     }
     
     .table th:nth-child(6),
     .table td:nth-child(6) {
-        width: 10%;
-    }
-    
-    .table th:nth-child(7),
-    .table td:nth-child(7) {
-        width: 12%;
+        width: 27%;
         text-align: center !important;
     }
     
@@ -178,7 +173,7 @@
         @endif
 
         <!-- Stats Cards -->
-        <div class="row mb-4">
+        <!-- <div class="row mb-4">
             <div class="col-md-3 col-sm-6 mb-3">
                 <div class="card stats-card shadow-sm border-left border-primary" style="border-left-width: 4px;">
                     <div class="card-body">
@@ -239,7 +234,7 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </div> -->
 
         <!-- Header with Actions -->
         <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
@@ -310,7 +305,6 @@
                                 <th class="border-0 py-3 px-3">NGÀY KHỞI HÀNH</th>
                                 <th class="border-0 py-3 px-3">TRẠNG THÁI</th>
                                 <th class="border-0 py-3 px-3">SỐ KHÁCH / GHẾ</th>
-                                <th class="border-0 py-3 px-3">GIÁ NGƯỜI LỚN</th>
                                 <th class="border-0 py-3 px-3">NGÀY TẠO</th>
                                 <th class="border-0 py-3 px-3 text-end">THAO TÁC</th>
                             </tr>
@@ -350,6 +344,10 @@
                                         $statusBadge = 'bg-secondary';
                                         $statusText = 'Đã kết thúc';
                                         $statusIcon = 'fa-archive';
+                                    } elseif ($status === 'running') {
+                                        $statusBadge = 'bg-primary';
+                                        $statusText = 'Đang chạy';
+                                        $statusIcon = 'fa-play-circle';
                                     } elseif ($status === 'sold_out') {
                                         $statusBadge = 'bg-warning text-dark';
                                         $statusText = 'Đã đủ khách';
@@ -399,9 +397,6 @@
                                                 </div>
                                             </div>
                                         </div>
-                                    </td>
-                                    <td class="px-3 price-cell">
-                                        <strong>{{ number_format($departure->price ?? 0, 0, ',', '.') }}₫</strong>
                                     </td>
                                     <td class="px-3">
                                         <small class="text-muted">
@@ -456,7 +451,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="text-center py-5">
+                                    <td colspan="6" class="text-center py-5">
                                         <div class="text-muted">
                                             <i class="fas fa-inbox fa-3x mb-3"></i>
                                             <p class="mb-0">Chưa có lịch khởi hành nào</p>

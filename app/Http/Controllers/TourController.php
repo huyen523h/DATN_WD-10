@@ -42,6 +42,18 @@ class TourController extends Controller
         }
 
         $tours = $query->paginate(12);
+        
+        // Tính toán xem tour nào có tất cả departure đã qua
+        $today = \Carbon\Carbon::today();
+        $tours->getCollection()->transform(function($tour) use ($today) {
+            $allDeparturesPast = $tour->departures->count() > 0 && 
+                                 $tour->departures->every(function($departure) use ($today) {
+                                     return \Carbon\Carbon::parse($departure->departure_date)->startOfDay()->lt($today);
+                                 });
+            $tour->all_departures_past = $allDeparturesPast;
+            return $tour;
+        });
+        
         $categories = Category::all();
 
         return view('tours.index', compact('tours', 'categories'));
@@ -54,26 +66,22 @@ class TourController extends Controller
     {
         $tour->load(['category', 'images', 'schedules', 'reviews.user']);
         
-        // Chỉ lấy các ngày khởi hành trong tương lai cho user
+        // Lấy tất cả departures để kiểm tra xem có tất cả đã qua chưa
+        $allDepartures = \App\Models\TourDeparture::where('tour_id', $tour->id)->get();
+        
+        // Kiểm tra xem tất cả departure đã qua chưa
+        $today = \Carbon\Carbon::today();
+        $allDeparturesPast = $allDepartures->count() > 0 && 
+                             $allDepartures->every(function($departure) use ($today) {
+                                 return \Carbon\Carbon::parse($departure->departure_date)->startOfDay()->lt($today);
+                             });
+        
+        // Chỉ lấy các ngày khởi hành trong tương lai cho user (nếu có)
         $tour->load(['departures' => function($query) {
             $query->whereDate('departure_date', '>=', now()->toDateString())
                   ->orderBy('departure_date');
         }]);
         
-        return view('tours.show', compact('tour'));
-
-        $tour = Tour::with(['category', 'images', 'schedules', 'departures', 'publicReviews.user'])->findOrFail($id);
-
-        // Đếm view
-        $tour->increment('views');
-
-        // Lấy các tour liên quan (chỉ lấy tour active)
-        $relatedTours = Tour::where('category_id', $tour->category_id)
-            ->where('id', '!=', $tour->id)
-            ->where('status', 'active') // Tour liên quan thì chỉ hiện tour công khai
-            ->limit(3)
-            ->get();
-
-        return view('tours.show', compact('tour', 'relatedTours'));
+        return view('tours.show', compact('tour', 'allDeparturesPast'));
     }
 }

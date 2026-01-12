@@ -22,22 +22,33 @@ class GuideWebController extends Controller
 
     public function index(Request $request): View
     {
-        $guides = Guide::with(['categories'])
-            ->when($request->filled('keyword'), function ($query) use ($request) {
-                $keyword = $request->string('keyword')->toString();
-                $query->where(function ($q) use ($keyword) {
-                    $q->where('full_name', 'like', "%{$keyword}%")
-                        ->orWhere('code', 'like', "%{$keyword}%")
-                        ->orWhere('phone', 'like', "%{$keyword}%");
-                });
-            })
-            ->when($request->filled('category_id'), function ($query) use ($request) {
-                $query->whereHas('categories', function ($catQuery) use ($request) {
-                    $catQuery->where('guide_category_id', $request->integer('category_id'));
-                });
-            })
-            ->when($request->filled('status'), fn ($q) => $q->where('status', request('status')))
-            ->orderBy('full_name')
+        $query = Guide::with(['categories']);
+        
+        // Filter by keyword
+        if ($request->filled('keyword')) {
+            $keyword = $request->string('keyword')->toString();
+            $query->where(function ($q) use ($keyword) {
+                $q->where('full_name', 'like', "%{$keyword}%")
+                    ->orWhere('code', 'like', "%{$keyword}%")
+                    ->orWhere('phone', 'like', "%{$keyword}%");
+            });
+        }
+        
+        // Filter by category
+        if ($request->filled('category_id')) {
+            $categoryId = $request->integer('category_id');
+            $query->whereHas('categories', function ($catQuery) use ($categoryId) {
+                $catQuery->where('guide_categories.id', $categoryId);
+            });
+        }
+        
+        // Filter by status
+        if ($request->filled('status')) {
+            $status = $request->string('status')->toString();
+            $query->where('status', $status);
+        }
+        
+        $guides = $query->orderBy('full_name')
             ->paginate(10)
             ->appends($request->only(['keyword', 'category_id', 'status']));
 

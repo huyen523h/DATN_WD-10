@@ -593,12 +593,14 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     //  Group management & helper APIs (đặt TRƯỚC route /bookings/{booking} để tránh bị nuốt bởi {booking})
     Route::get('/bookings/by-departure/{departureId}', [AdminController::class, 'getBookingsByDeparture'])->name('bookings.by-departure');
+    Route::get('/bookings/group-list', [AdminController::class, 'groupBookingList'])->name('bookings.group_list');
     Route::post('/bookings/confirm-group', [AdminController::class, 'confirmGroup'])->name('bookings.confirm-group');
     Route::get('/bookings/available-guides', [AdminController::class, 'getAvailableGuides'])->name('bookings.available-guides');
     Route::get('/bookings/available-vehicles', [AdminController::class, 'getAvailableVehicles'])->name('bookings.available-vehicles');
     Route::post('/bookings/assign-guide', [AdminController::class, 'assignGuide'])->name('bookings.assign-guide');
     Route::post('/bookings/assign-vehicle', [AdminController::class, 'assignVehicle'])->name('bookings.assign-vehicle');
     Route::post('/bookings/send-pre-tour-info', [AdminController::class, 'sendPreTourInfo'])->name('bookings.send-pre-tour-info');
+    Route::post('/bookings/end-tour', [AdminController::class, 'endTour'])->name('bookings.end-tour');
 
     // Các route theo id booking (đặt SAU cùng để không bắt nhầm available-guides, available-vehicles,...)
     Route::get('/bookings/{booking}', [AdminController::class, 'showBooking'])->name('bookings.show');

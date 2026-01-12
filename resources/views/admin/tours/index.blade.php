@@ -9,7 +9,7 @@
 
 @section('content')
     <!-- Stats Cards -->
-    <div class="row mb-4">
+    {{-- <div class="row mb-4">
         <div class="col-md-3 col-sm-6 mb-3">
             <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                 <div class="card-body text-white">
@@ -70,7 +70,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> --}}
 
     <!-- Header -->
     <div class="card shadow-sm border-0 mb-4">

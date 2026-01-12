@@ -20,6 +20,8 @@ use Illuminate\Support\Facades\Storage;
 use App\Http\Requests\BannerRequest;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Payment;
+use App\Models\CheckIn;
+use App\Models\BookingPassenger;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 
@@ -997,6 +999,141 @@ class AdminController extends Controller
         if ($request->has('tour_id') && $request->tour_id) {
             $query->where('tour_id', $request->tour_id);
         }
+
+        // Search (search in tour code, tour title, user name)
+        if ($request->filled('search')) {
+            $search = trim($request->get('search'));
+            $query->where(function($q) use ($search) {
+                $q->where('code', 'like', "%{$search}%")
+                  ->orWhereHas('user', function($uq) use ($search) {
+                      $uq->where('name', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('tour', function($tq) use ($search) {
+                      $tq->where('title', 'like', "%{$search}%")
+                         ->orWhere('code', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        // Date range filter (expects format: YYYY-MM-DD - YYYY-MM-DD)
+        if ($request->filled('date_range')) {
+            $dr = $request->get('date_range');
+            $parts = preg_split('/\s*-\s*/', $dr);
+            if (count($parts) === 2) {
+                try {
+                    $start = \Carbon\Carbon::parse(trim($parts[0]))->startOfDay();
+                    $end = \Carbon\Carbon::parse(trim($parts[1]))->endOfDay();
+                    $query->whereHas('departure', function($dq) use ($start, $end) {
+                        $dq->whereBetween('departure_date', [$start, $end]);
+                    });
+                } catch (\Exception $e) {
+                    // Ignore parse errors and don't filter
+                }
+            }
+        }
+
+        // Filter theo trạng thái tour (tour_status) - Logic mới
+        if ($request->filled('tour_status')) {
+            $tourStatus = $request->tour_status;
+            $today = \Carbon\Carbon::today();
+            
+            $query->whereHas('departure', function($dq) use ($tourStatus, $today) {
+                if ($tourStatus === 'open') {
+                    // Đang mở bán: chưa chốt, ngày khởi hành > hôm nay (bao gồm cả "Sắp khởi hành" <= 3 ngày)
+                    $dq->where('group_confirmed', false)
+                       ->where('departure_date', '>', $today);
+                } elseif ($tourStatus === 'confirmed') {
+                    // Đã chốt (Full): đã chốt đoàn
+                    $dq->where('group_confirmed', true);
+                } elseif ($tourStatus === 'running') {
+                    // Đang chạy: ngày hiện tại >= ngày khởi hành và đang trong thời gian tour
+                    $dq->where('departure_date', '<=', $today)
+                       ->whereHas('tour', function($tq) use ($today) {
+                           $tq->whereRaw('DATE_ADD(tour_departures.departure_date, INTERVAL COALESCE(tours.duration, 1) DAY) >= ?', [$today]);
+                       });
+                } elseif ($tourStatus === 'completed') {
+                    // Đã kết thúc: tour đã kết thúc
+                    $dq->whereHas('tour', function($tq) use ($today) {
+                        $tq->whereRaw('DATE_ADD(tour_departures.departure_date, INTERVAL COALESCE(tours.duration, 1) DAY) < ?', [$today]);
+                    });
+                }
+            });
+        }
+
+        // Quick Filters
+        if ($request->filled('quick_filter')) {
+            $quickFilter = $request->quick_filter;
+            $today = \Carbon\Carbon::today();
+            $threeDaysLater = $today->copy()->addDays(3);
+            
+            if ($quickFilter === 'upcoming_no_assigned') {
+                // Tour sắp khởi hành trong 3 ngày tới
+                $query->whereHas('departure', function($dq) use ($today, $threeDaysLater) {
+                    $dq->whereBetween('departure_date', [$today, $threeDaysLater]);
+                });
+            } elseif ($quickFilter === 'low_capacity') {
+                // Tour chưa đủ khách (< 50% số chỗ) - lọc theo departure
+                $departureIds = \App\Models\TourDeparture::whereHas('bookings', function($bq) {
+                    $bq->whereNotIn('status', ['cancelled', 'expired']);
+                })->get()->filter(function($departure) {
+                    $totalGuests = $departure->bookings()
+                        ->whereNotIn('status', ['cancelled', 'expired'])
+                        ->get()
+                        ->sum(function($b) { return ($b->adults ?? 0) + ($b->children ?? 0); });
+                    $capacity = $departure->seats_total ?? ($departure->vehicle->capacity ?? 0);
+                    return $capacity > 0 && ($totalGuests / $capacity) < 0.5;
+                })->pluck('id');
+                
+                $query->whereIn('departure_id', $departureIds);
+            } elseif ($quickFilter === 'overdue') {
+                // Cảnh báo quá hạn: tour có booking ở trạng thái "Quá hạn chốt"
+                $query->whereHas('departure', function($dq) use ($today) {
+                    $cutoffDays = 3; // Default cutoff days
+                    $cutoffDate = $today->copy()->subDays($cutoffDays);
+                    $dq->where('departure_date', '>', $cutoffDate)
+                       ->where('departure_date', '<=', $today)
+                       ->where('group_confirmed', false);
+                });
+            }
+        }
+
+        // Filter nâng cao: Nguồn khách
+        if ($request->filled('source')) {
+            $query->where('booking_source', $request->source);
+        }
+
+        // Filter nâng cao: Sale phụ trách
+        if ($request->filled('sale')) {
+            $saleName = trim($request->sale);
+            $query->whereHas('user', function($uq) use ($saleName) {
+                $uq->where('name', 'like', "%{$saleName}%");
+            });
+        }
+
+        // Filter nâng cao: Loại tour (cần thêm field tour_type vào tours table hoặc dùng logic khác)
+        // Tạm thời bỏ qua vì cần thêm field vào database
+
+        // Filter nâng cao: Trạng thái thanh toán
+        if ($request->filled('payment_status')) {
+            $paymentStatus = $request->payment_status;
+            if ($paymentStatus === 'paid') {
+                $query->where(function($q) {
+                    $q->whereIn('status', ['paid', 'completed'])
+                      ->orWhereHas('payments', function($pq) {
+                          $pq->where('status', 'paid');
+                      });
+                });
+            } elseif ($paymentStatus === 'unpaid') {
+                $query->whereNotIn('status', ['paid', 'completed'])
+                      ->whereDoesntHave('payments', function($pq) {
+                          $pq->where('status', 'paid');
+                      });
+            } elseif ($paymentStatus === 'partial') {
+                $query->whereHas('payments', function($pq) {
+                    $pq->where('status', 'paid');
+                })->whereNotIn('status', ['paid', 'completed']);
+            }
+        }
         
         $bookings = $query->orderBy('created_at', 'desc')->get();
 
@@ -1111,37 +1248,83 @@ class AdminController extends Controller
             // Lấy departure_id trực tiếp từ booking (đáng tin cậy hơn)
             $bookingDepartureId = $firstBooking->departure_id ?? $departure?->id;
             
-            // TRẠNG THÁI LỊCH KHỞI HÀNH (cho filter/dashboard)
-            // - upcoming: Sắp khởi hành (ngày khởi hành trong tương lai)
-            // - in_progress: Đang đi (đang trong thời gian tour)
-            // - completed: Hoàn thành (tour đã kết thúc)
-            $departureDate = $datePart !== 'no-date' ? \Carbon\Carbon::parse($datePart) : null;
-            $today = \Carbon\Carbon::today();
+            // TRẠNG THÁI LỊCH KHỞI HÀNH (Real-time - tính theo ngày hiện tại)
+            // Sử dụng startOfDay() cho cả hai biến để so sánh chính xác
+            $today = \Carbon\Carbon::today()->startOfDay();
+            $departureDate = $datePart !== 'no-date' ? \Carbon\Carbon::parse($datePart)->startOfDay() : null;
+            $now = \Carbon\Carbon::now();
             $tourDuration = $tour ? ($tour->duration ?? 1) : 1;
             $endDate = $departureDate ? $departureDate->copy()->addDays($tourDuration) : null;
             
-            if ($endDate && $today->gt($endDate)) {
-                $scheduleStatus = 'completed'; // Hoàn thành
-            } elseif ($departureDate && $today->gte($departureDate) && $endDate && $today->lte($endDate)) {
-                $scheduleStatus = 'in_progress'; // Đang đi
-            } else {
-                $scheduleStatus = 'upcoming'; // Sắp khởi hành
+            // Tính khoảng cách đến ngày khởi hành (false để lấy giá trị âm nếu đã qua ngày)
+            $diffInDays = $departureDate ? $today->diffInDays($departureDate, false) : null;
+            
+            // Logic trạng thái mới theo quy định:
+            // - Đang chạy: Nếu Ngày hiện tại == Ngày khởi hành ($diffInDays == 0)
+            // - Sắp khởi hành: Nếu Ngày hiện tại < Ngày khởi hành VÀ Khoảng cách <= 3 ngày ($diffInDays > 0 && $diffInDays <= 3)
+            // - Đang bán: Nếu Khoảng cách > 3 ngày ($diffInDays > 3)
+            // - Đã kết thúc: Nếu đã qua ngày khởi hành và tour đã kết thúc ($diffInDays < 0)
+            
+            $scheduleStatus = 'open'; // Mặc định
+            $groupStatusLabel = 'Đang bán';
+            $statusClass = 'bg-success text-success';
+            
+            if ($departureDate && $diffInDays !== null) {
+                if ($diffInDays == 0) {
+                    // Ngày hiện tại == Ngày khởi hành → Đang chạy
+                    $scheduleStatus = 'running';
+                    $groupStatusLabel = 'Đang chạy';
+                    $statusClass = 'bg-info text-info';
+                } elseif ($diffInDays > 0 && $diffInDays <= 3) {
+                    // Ngày hiện tại < Ngày khởi hành và khoảng cách <= 3 ngày → Sắp khởi hành
+                    $scheduleStatus = 'upcoming';
+                    $groupStatusLabel = 'Sắp khởi hành';
+                    $statusClass = 'bg-warning text-warning';
+                } elseif ($diffInDays > 3) {
+                    // Khoảng cách > 3 ngày → Đang bán
+                    $scheduleStatus = 'open';
+                    $groupStatusLabel = 'Đang bán';
+                    $statusClass = 'bg-success text-success';
+                } else {
+                    // $diffInDays < 0: Ngày hiện tại > Ngày khởi hành (đã qua)
+                    if ($endDate && $now->lte($endDate)) {
+                        $scheduleStatus = 'running'; // Vẫn đang trong thời gian tour
+                        $groupStatusLabel = 'Đang chạy';
+                        $statusClass = 'bg-info text-info';
+                    } else {
+                        $scheduleStatus = 'completed'; // Đã kết thúc
+                        $groupStatusLabel = 'Đã kết thúc';
+                        $statusClass = 'bg-secondary text-secondary';
+                    }
+                }
             }
             
             // TRẠNG THÁI ĐOÀN (cho hiển thị)
-            // - pending: Chưa chốt
-            // - confirmed: Đã chốt
-            // - departed: Đã khởi hành
-            // - finished: Đã kết thúc
+            // Chỉ hiển thị "Đã chốt" nếu tour đã chốt VÀ đã đến/qua ngày khởi hành
+            // Nếu tour đã chốt nhưng chưa đến ngày khởi hành → vẫn hiển thị trạng thái theo ngày (Sắp khởi hành/Đang bán)
             $groupConfirmed = $departure ? $departure->group_confirmed : false;
-            if ($scheduleStatus === 'completed') {
-                $groupStatus = 'finished';
-            } elseif ($scheduleStatus === 'in_progress') {
-                $groupStatus = 'departed';
-            } elseif ($groupConfirmed) {
-                $groupStatus = 'confirmed';
-            } else {
-                $groupStatus = 'pending';
+            if ($groupConfirmed && $scheduleStatus !== 'completed' && $diffInDays !== null && $diffInDays <= 0) {
+                // Chỉ hiển thị "Đã chốt" khi đã đến hoặc qua ngày khởi hành
+                $groupStatusLabel = 'Đã chốt';
+                $statusClass = 'bg-primary text-primary';
+            }
+            // Nếu tour đã chốt nhưng chưa đến ngày khởi hành ($diffInDays > 0), giữ nguyên trạng thái "Sắp khởi hành" hoặc "Đang bán"
+            
+            // Tính toán gợi ý chốt đoàn (3 ngày & 10 khách)
+            $canSuggestConfirm = false;
+            $suggestConfirmLabel = '';
+            $suggestConfirmClass = '';
+            if ($diffInDays !== null && $diffInDays > 0 && $diffInDays <= 3) {
+                // Trong vòng 3 ngày trước ngày khởi hành (chưa đến ngày khởi hành)
+                if ($totalGuests >= 10) {
+                    $canSuggestConfirm = true;
+                    $suggestConfirmLabel = 'Đủ điều kiện chạy';
+                    $suggestConfirmClass = 'bg-success bg-opacity-10 text-success';
+                } else {
+                    $canSuggestConfirm = true;
+                    $suggestConfirmLabel = 'Thiếu khách - Cần đàm phán';
+                    $suggestConfirmClass = 'bg-danger bg-opacity-10 text-danger';
+                }
             }
             
             return [
@@ -1168,10 +1351,29 @@ class AdminController extends Controller
                 'unconfirmed_bookings' => $unconfirmedBookings,
                 'unpaid_bookings' => $unpaidBookings,
                 'total_bookings' => $totalBookings,
-                'group_status' => $groupStatus,
+                'group_status' => $groupStatusLabel,
                 'schedule_status' => $scheduleStatus, // Cho filter/dashboard
+                'status_class' => $statusClass,
+                'can_suggest_confirm' => $canSuggestConfirm,
+                'suggest_confirm_label' => $suggestConfirmLabel,
+                'suggest_confirm_class' => $suggestConfirmClass,
+                'days_until_departure' => $diffInDays,
             ];
         });
+
+        // Paginate grouped results (client-side pagination of groups)
+        $perPage = 15;
+        $currentPage = \Illuminate\Pagination\LengthAwarePaginator::resolveCurrentPage();
+        $items = $groupedBookings->values();
+        $total = $items->count();
+        $pagedItems = $items->forPage($currentPage, $perPage);
+        $groupedBookings = new \Illuminate\Pagination\LengthAwarePaginator(
+            $pagedItems,
+            $total,
+            $perPage,
+            $currentPage,
+            ['path' => url()->current(), 'query' => $request->query()]
+        );
 
         // Lấy danh sách guides
         $guides = User::whereHas('roles', function($q) {
@@ -1196,6 +1398,149 @@ class AdminController extends Controller
             'vehicles',
             'tour'
         ));
+    }
+
+    /**
+     * Hiển thị danh sách tổng hợp tất cả khách hàng của các booking có cùng Tour và cùng Ngày khởi hành
+     */
+    public function groupBookingList(Request $request)
+    {
+        $request->validate([
+            'tour_id' => 'required|integer|exists:tours,id',
+            'date' => 'required|date',
+        ]);
+
+        $tourId = $request->tour_id;
+        $departureDate = Carbon::parse($request->date)->format('Y-m-d');
+
+        // Lấy tour
+        $tour = Tour::findOrFail($tourId);
+
+        // Lấy tất cả departures có cùng tour_id và departure_date
+        $departures = TourDeparture::where('tour_id', $tourId)
+            ->whereDate('departure_date', $departureDate)
+            ->with(['guide', 'vehicle'])
+            ->get();
+
+        // Lấy tất cả bookings của các departures này (không tính cancelled/expired)
+        $departureIds = $departures->pluck('id');
+        $bookings = Booking::with([
+            'user', 
+            'tour', 
+            'departure', 
+            'passengers.checkIns' => function($query) use ($departureIds) {
+                $query->whereIn('departure_id', $departureIds)
+                      ->with('checkedBy');
+            }
+        ])
+            ->whereIn('departure_id', $departureIds)
+            ->whereNotIn('status', ['cancelled', 'expired'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Lấy thông tin departure (lấy departure đầu tiên nếu có nhiều)
+        $departure = $departures->first();
+
+        // Lấy tất cả passengers từ bookings (giống như bên hướng dẫn viên)
+        $passengers = $bookings->flatMap->passengers;
+
+        // Thu thập danh sách khách hàng từ passengers
+        $customerList = [];
+        $stt = 1;
+        $totalAdults = 0;
+        $totalChildren = 0;
+        $totalInfants = 0;
+        $totalGuests = 0;
+        $totalCheckedIn = 0;
+
+        foreach ($passengers as $passenger) {
+            $booking = $passenger->booking;
+            $user = $booking->user;
+            
+            // Xác định loại khách
+            $type = 'L'; // Mặc định người lớn
+            if ($passenger->passenger_type === 'child') {
+                $type = 'T';
+                $totalChildren++;
+            } elseif ($passenger->passenger_type === 'infant') {
+                $type = 'E';
+                $totalInfants++;
+            } else {
+                $totalAdults++;
+            }
+            
+            // Lấy check-in của passenger cho departure này
+            $checkIn = null;
+            if ($departure && $passenger->checkIns) {
+                $checkIn = $passenger->checkIns->firstWhere('departure_id', $departure->id);
+            }
+            
+            $customerList[] = [
+                'stt' => $stt++,
+                'name' => $passenger->full_name ?? 'N/A',
+                'id_number' => $passenger->id_number ?? '—',
+                'birth_year' => $passenger->birth_year ?? '—',
+                'type' => $type,
+                'passenger_type' => $passenger->passenger_type ?? 'adult',
+                'phone' => $user->phone ?? '—',
+                'email' => $passenger->email ?? $user->email ?? '—',
+                'booking_code' => $booking->code ?? 'N/A',
+                'booking_id' => $booking->id,
+                'booking_user_name' => $user->name ?? '—',
+                'passenger_id' => $passenger->id,
+                'notes' => $passenger->notes ?? $booking->notes ?? '—',
+                'check_in' => $checkIn,
+                'checked_in' => $checkIn ? true : ($passenger->checked_in ?? false),
+                'checked_in_at' => $checkIn ? $checkIn->check_in_time : ($passenger->checked_in_at ?? null),
+            ];
+            if ($checkIn || ($passenger->checked_in ?? false)) {
+                $totalCheckedIn++;
+            }
+            $totalGuests++;
+        }
+
+        return view('admin.bookings.group_list', compact(
+            'tour',
+            'departureDate',
+            'departure',
+            'customerList',
+            'totalAdults',
+            'totalChildren',
+            'totalInfants',
+            'totalGuests',
+            'totalCheckedIn',
+            'bookings'
+        ));
+    }
+
+    /**
+     * Kết thúc tour - Cập nhật trạng thái departure thành finished
+     */
+    public function endTour(Request $request)
+    {
+        $request->validate([
+            'departure_id' => 'required|integer|exists:tour_departures,id',
+        ]);
+
+        try {
+            $departure = TourDeparture::findOrFail($request->departure_id);
+            
+            // Cập nhật trạng thái departure
+            $departure->update([
+                'status' => 'finished',
+                'tour_status' => 'completed',
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Tour đã được kết thúc thành công!'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Có lỗi xảy ra: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

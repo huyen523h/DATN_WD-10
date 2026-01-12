@@ -57,83 +57,6 @@
             </a>
         </div>
 
-        <!-- Header (Master) + Small KPI Cards -->
-        <div class="mb-4">
-            <div class="card shadow-sm mb-3">
-                <div class="card-body py-3 d-flex justify-content-between align-items-center">
-                    <div>
-                        <h5 class="mb-0 fw-bold text-primary">{{ $departure->tour->title ?? 'Tour' }}</h5>
-                        <small class="text-muted">Ngày khởi hành: {{ \Carbon\Carbon::parse($departure->departure_date)->format('d/m/Y') }} • Trạng thái: {{ ucfirst($departure->status) }}</small>
-                    </div>
-                    <div class="text-end">
-                        <a href="{{ route('admin.departures.index') }}?tour_id={{ $departure->tour_id }}" class="btn btn-outline-secondary btn-sm">
-                            <i class="fas fa-arrow-left"></i> Quay lại
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <div class="row g-3">
-                @php
-                    $totalBookings = $bookings->count();
-                    $totalPassengers = $bookings->sum('adults') + $bookings->sum('children');
-                    $revenue = $bookings->sum('total_amount');
-                    $occupancyPercent = $departure->seats_total ? round(($totalPassengers / $departure->seats_total) * 100) : 0;
-                @endphp
-
-                <div class="col-sm-6 col-md-3">
-                    <div class="card shadow-sm h-100">
-                        <div class="card-body">
-                            <div class="small text-muted">Tổng booking</div>
-                            <div class="h4 fw-bold">{{ $totalBookings }}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-sm-6 col-md-3">
-                    <div class="card shadow-sm h-100">
-                        <div class="card-body">
-                            <div class="small text-muted">Tổng khách</div>
-                            <div class="h4 fw-bold">{{ $totalPassengers }} / {{ $departure->seats_total }}</div>
-                            <div class="progress mt-2" style="height:8px;">
-                                <div class="progress-bar bg-success" role="progressbar" style="width: {{ $occupancyPercent }}%;" aria-valuenow="{{ $occupancyPercent }}" aria-valuemin="0" aria-valuemax="100"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-sm-6 col-md-3">
-                    <div class="card shadow-sm h-100">
-                        <div class="card-body">
-                            <div class="small text-muted">Doanh thu (ước tính)</div>
-                            <div class="h4 fw-bold">{{ number_format($revenue) }}₫</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-sm-6 col-md-3">
-                    <div class="card shadow-sm h-100">
-                        <div class="card-body d-flex flex-column justify-content-between">
-                            <div class="small text-muted">Hành động nhanh</div>
-                            <div class="mt-2 d-flex gap-2 justify-content-end">
-                                <form method="POST" action="{{ route('admin.departures.update_operating', $departure->id) }}">
-                                    @csrf
-                                    @method('PUT')
-                                    <input type="hidden" name="lock_departure" value="1">
-                                    <button class="btn btn-sm btn-danger" title="Chốt đoàn" @if(!$canEditAll) disabled @endif>
-                                        <i class="fas fa-lock"></i> Chốt đoàn
-                                    </button>
-                                </form>
-
-                                <a href="{{ route('admin.departures.customers.export', $departure->id) }}" class="btn btn-sm btn-outline-primary" title="Xuất danh sách">
-                                    <i class="fas fa-file-export"></i> Xuất
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         <!-- Status Alert -->
         @if($isPast)
@@ -175,11 +98,6 @@
                     <i class="fas fa-user-tie"></i> Hướng dẫn viên
                 </button>
             </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="customers-tab" data-bs-toggle="tab" data-bs-target="#customers" type="button" role="tab">
-                    <i class="fas fa-users"></i> Khách
-                </button>
-            </li>
         </ul>
 
         <!-- Tabs Content -->
@@ -207,6 +125,9 @@
                         } elseif ($status === 'finished') {
                         $statusBadge = 'bg-secondary';
                         $statusText = 'Đã kết thúc';
+                        } elseif ($status === 'running') {
+                        $statusBadge = 'bg-primary';
+                        $statusText = 'Đang chạy';
                         } elseif ($status === 'sold_out') {
                         $statusBadge = 'bg-warning text-dark';
                         $statusText = 'Đã đủ khách';
@@ -448,8 +369,8 @@
                                                                 <i class="fas fa-map-pin text-danger"></i> {{ $schedule->title }}
                                                             </h6>
                                                             @if($schedule->description)
-                                                            <p class="text-muted mb-2" style="font-size: 0.9rem; line-height: 1.6;">
-                                                                {{ Str::limit($schedule->description, 200) }}
+                                                            <p class="text-muted mb-2" style="font-size: 0.9rem; line-height: 1.6; white-space: pre-wrap;">
+                                                                {{ $schedule->description }}
                                                             </p>
                                                             @endif
                                                         </div>
@@ -795,170 +716,6 @@
                 </div>
             </div>
 
-            <!-- Tab 5: Khách -->
-            <div class="tab-pane fade" id="customers" role="tabpanel">
-                <div class="card shadow-sm border-0">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="fas fa-users"></i> Danh sách khách</h5>
-                    </div>
-                    <div class="card-body">
-                        <!-- Hành động nhanh + Bộ lọc & Tìm kiếm -->
-                        <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
-                            <form action="{{ route('admin.departures.customers', $departure->id) }}" method="GET" class="d-flex gap-2 align-items-center">
-                                <input type="text" name="q" class="form-control form-control-sm" placeholder="Tìm theo mã booking hoặc tên khách" value="{{ request('q') }}" style="min-width:240px;">
-                                <select name="status" class="form-select form-select-sm">
-                                    <option value="">Tất cả trạng thái</option>
-                                    <option value="pending" {{ request('status')=='pending' ? 'selected' : '' }}>Chờ</option>
-                                    <option value="confirmed" {{ request('status')=='confirmed' ? 'selected' : '' }}>Đã xác nhận</option>
-                                    <option value="paid" {{ request('status')=='paid' ? 'selected' : '' }}>Đã thanh toán</option>
-                                    <option value="cancelled" {{ request('status')=='cancelled' ? 'selected' : '' }}>Đã hủy</option>
-                                </select>
-                                <select name="guide_id" class="form-select form-select-sm">
-                                    <option value="">Tất cả HDV</option>
-                                    @foreach($guides as $g)
-                                    <option value="{{ $g->id }}" {{ request('guide_id') == $g->id ? 'selected' : '' }}>{{ $g->name }}</option>
-                                    @endforeach
-                                </select>
-                                <button class="btn btn-sm btn-outline-primary" type="submit">Lọc</button>
-                                <a href="{{ route('admin.departures.customers', $departure->id) }}" class="btn btn-sm btn-light">Reset</a>
-                            </form>
-
-                            <div class="ms-auto d-flex gap-2">
-                                <a href="{{ route('admin.departures.customers.export', $departure->id) }}" class="btn btn-outline-success btn-sm">
-                                    <i class="fas fa-file-export"></i> Xuất (CSV)
-                                </a>
-                                <a href="{{ route('admin.departures.customers', $departure->id) }}" class="btn btn-primary btn-sm">
-                                    <i class="fas fa-plus"></i> Thêm khách
-                                </a>
-                            </div>
-                        </div>
-
-                        @php
-                            $filteredBookings = $bookings;
-                            if(request('q')) {
-                                $q = strtolower(request('q'));
-                                $filteredBookings = $filteredBookings->filter(function($b) use($q) {
-                                    return str_contains(strtolower('#'.$b->id), $q) || str_contains(strtolower($b->user->name ?? ''), $q);
-                                });
-                            }
-                            if(request('status')) { $filteredBookings = $filteredBookings->where('status', request('status')); }
-                            if(request('guide_id')) {
-                                $gid = request('guide_id');
-                                $filteredBookings = $filteredBookings->filter(function($b) use($gid) {
-                                    return ($b->departure && ($b->departure->guide_id == $gid || $b->departure->backup_guide_id == $gid));
-                                });
-                            }
-                        @endphp
-
-                        <!-- Tổng quan phân loại -->
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-6">
-                                <div class="card border-0 shadow-sm h-100">
-                                    <div class="card-body">
-                                        <div class="d-flex align-items-center">
-                                            <div class="avatar-circle bg-primary text-white me-3" style="width:50px;height:50px;">
-                                                <i class="fas fa-user"></i>
-                                            </div>
-                                            <div>
-                                                <div class="text-muted small">Người lớn (>11)</div>
-                                                <div class="h5 mb-0">{{ $adultCount }}</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="card border-0 shadow-sm h-100">
-                                    <div class="card-body">
-                                        <div class="d-flex align-items-center">
-                                            <div class="avatar-circle bg-info text-white me-3" style="width:50px;height:50px;">
-                                                <i class="fas fa-child"></i>
-                                            </div>
-                                            <div>
-                                                <div class="text-muted small">Trẻ em (2–11)</div>
-                                                <div class="h5 mb-0">{{ $childCount }}</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Bảng danh sách khách -->
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Khách hàng</th>
-                                        <th>Liên hệ</th>
-                                        <th class="text-center">Người lớn</th>
-                                        <th class="text-center">Trẻ em</th>
-                                        <th>Trạng thái</th>
-                                        <th>Ngày đặt</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @forelse($bookings as $booking)
-                                    <tr>
-                                        <td><strong>#{{ $booking->id }}</strong></td>
-                                        <td>{{ $booking->user->name ?? 'Khách lẻ' }}</td>
-                                        <td>
-                                            <div class="small text-muted">
-                                                @if($booking->user && $booking->user->phone)
-                                                <div><i class="fas fa-phone"></i> {{ $booking->user->phone }}</div>
-                                                @endif
-                                                @if($booking->user && $booking->user->email)
-                                                <div><i class="fas fa-envelope"></i> {{ $booking->user->email }}</div>
-                                                @endif
-                                            </div>
-                                        </td>
-                                        <td class="text-center fw-bold">{{ $booking->adults }}</td>
-                                        <td class="text-center fw-bold text-info">{{ $booking->children }}</td>
-                                        <td>
-                                                @php
-                                                $status = $booking->status;
-                                                $badge = 'bg-secondary';
-                                                $text = ucfirst($status);
-                                                if ($status === 'pending') { $badge = 'bg-warning text-dark'; $text = 'Chờ'; }
-                                                elseif ($status === 'confirmed') { $badge = 'bg-info text-dark'; $text = 'Đã xác nhận'; }
-                                                elseif ($status === 'paid') { $badge = 'bg-success'; $text = 'Đã thanh toán'; }
-                                                elseif ($status === 'completed') { $badge = 'bg-primary'; $text = 'Hoàn thành'; }
-                                                elseif ($status === 'cancelled') { $badge = 'bg-danger'; $text = 'Hủy'; }
-                                                @endphp
-                                                <span class="badge {{ $badge }}">{{ $text }}</span>
-                                        </td>
-                                        <td>
-                                            <small class="text-muted">{{ $booking->created_at ? $booking->created_at->format('d/m/Y') : '---' }}</small>
-                                        </td>
-                                        <td class="text-center">
-                                            <div class="d-flex gap-1 justify-content-center">
-                                                @if($booking->user && $booking->user->email)
-                                                <a href="mailto:{{ $booking->user->email }}?subject=Nhắc thanh toán - Booking #{{ $booking->id }}" class="btn btn-sm btn-outline-danger" title="Gửi email nhắc nợ">
-                                                    <i class="fas fa-envelope"></i>
-                                                </a>
-                                                @endif
-
-                                                <button class="btn btn-sm btn-outline-success" title="Xác nhận thanh toán (tương tác)" onclick="alert('Xác nhận thanh toán cho booking #'+{{ $booking->id }});">
-                                                    <i class="fas fa-credit-card"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    @empty
-                                    <tr>
-                                        <td colspan="8" class="text-center text-muted py-4">
-                                            <i class="fas fa-users-slash fa-2x mb-2"></i>
-                                            <div>Chưa có khách cho lịch khởi hành này.</div>
-                                        </td>
-                                    </tr>
-                                    @endforelse
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <!-- Tab 2: Thông tin vận hành (Cũ - Ẩn) -->

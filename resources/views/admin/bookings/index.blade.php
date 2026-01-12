@@ -22,14 +22,6 @@
                     <a href="{{ route('admin.bookings.manual.create') }}" class="btn btn-primary">
                         <i class="fas fa-plus-circle me-1"></i> Thêm booking thủ công
                     </a>
-                    <button class="btn btn-outline-primary">
-                        <i class="fas fa-download me-1"></i>
-                        Xuất Excel
-                    </button>
-                    <button class="btn btn-outline-secondary">
-                        <i class="fas fa-filter me-1"></i>
-                        Lọc nâng cao
-                    </button>
                 </div>
             </div>
         </div>
@@ -50,560 +42,360 @@
     @php
         // Tính toán thống kê theo nguồn (case-insensitive)
         $totalBookings = $bookings->count();
-        $websiteBookings = $bookings->filter(function($b) {
-            return strtolower($b->booking_source ?? 'website') === 'website';
-        })->count();
-        $saleBookings = $bookings->filter(function($b) {
-            $source = strtolower($b->booking_source ?? '');
-            return in_array($source, ['zalo', 'facebook', 'phone']);
-        })->count();
+        $websiteBookings = $bookings
+            ->filter(function ($b) {
+                return strtolower($b->booking_source ?? 'website') === 'website';
+            })
+            ->count();
+        $saleBookings = $bookings
+            ->filter(function ($b) {
+                $source = strtolower($b->booking_source ?? '');
+                return in_array($source, ['zalo', 'facebook', 'phone']);
+            })
+            ->count();
         // Doanh thu: không tính booking đã hủy, tính theo ngày khởi hành trong filter
         $totalRevenue = $bookings->where('status', '!=', 'cancelled')->sum('total_amount');
     @endphp
-    <div class="row mb-4">
-        <!-- Tổng số booking -->
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm h-100 border-start border-primary border-4">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <div class="bg-primary bg-opacity-10 rounded-circle p-3">
-                                <i class="fas fa-calendar-check text-primary fa-lg"></i>
-                            </div>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Tổng số booking</h6>
-                            <h4 class="mb-0 fw-bold text-primary">{{ $totalBookings }}</h4>
-                        </div>
+    <div class="row mb-3 g-3">
+        <div class="col-lg-3 col-6">
+            <div class="card shadow-sm border" style="border-radius:10px;">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="flex-shrink-0" style="width:6px; height:48px; background:#0EA5E9; border-radius:4px"></div>
+                    <div class="w-100">
+                        <div class="small text-muted">Tổng booking</div>
+                        <div class="fw-bold fs-4">{{ $totalBookings }}</div>
                     </div>
+                    <div class="text-muted"><i class="fas fa-calendar-check fa-lg"></i></div>
                 </div>
             </div>
         </div>
-        
-        <!-- Booking từ Website -->
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm h-100 border-start border-info border-4">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <div class="bg-info bg-opacity-10 rounded-circle p-3">
-                                <i class="fas fa-globe text-info fa-lg"></i>
-                            </div>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Từ Website</h6>
-                            <h4 class="mb-0 fw-bold text-info">{{ $websiteBookings }}</h4>
-                            <small class="text-muted">{{ $totalBookings > 0 ? round($websiteBookings / $totalBookings * 100, 1) : 0 }}% tổng</small>
-                        </div>
+
+        <div class="col-lg-3 col-6">
+            <div class="card shadow-sm border" style="border-radius:10px;">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="flex-shrink-0" style="width:6px; height:48px; background:#38BDF8; border-radius:4px"></div>
+                    <div class="w-100">
+                        <div class="small text-muted">Từ Website</div>
+                        <div class="fw-bold fs-4">{{ $websiteBookings }}</div>
+                        <div class="small text-muted">{{ $totalBookings > 0 ? round(($websiteBookings / $totalBookings) * 100, 1) : 0 }}% tổng</div>
                     </div>
+                    <div class="text-muted"><i class="fas fa-globe fa-lg"></i></div>
                 </div>
             </div>
         </div>
-        
-        <!-- Booking từ Sale (Zalo + Facebook + Phone) -->
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm h-100 border-start border-success border-4">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <div class="bg-success bg-opacity-10 rounded-circle p-3">
-                                <i class="fas fa-headset text-success fa-lg"></i>
-                            </div>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Từ Sale</h6>
-                            <h4 class="mb-0 fw-bold text-success">{{ $saleBookings }}</h4>
-                            <small class="text-muted">Zalo, Facebook, ĐT</small>
-                        </div>
+
+        <div class="col-lg-3 col-6">
+            <div class="card shadow-sm border" style="border-radius:10px;">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="flex-shrink-0" style="width:6px; height:48px; background:#34D399; border-radius:4px"></div>
+                    <div class="w-100">
+                        <div class="small text-muted">Từ Sale</div>
+                        <div class="fw-bold fs-4">{{ $saleBookings }}</div>
+                        <div class="small text-muted">Zalo · Facebook · ĐT</div>
                     </div>
+                    <div class="text-muted"><i class="fas fa-headset fa-lg"></i></div>
                 </div>
             </div>
         </div>
-        
-        <!-- Doanh thu (không tính cancelled) -->
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm h-100 border-start border-warning border-4">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <div class="bg-warning bg-opacity-10 rounded-circle p-3">
-                                <i class="fas fa-money-bill-wave text-warning fa-lg"></i>
-                            </div>
+
+        <div class="col-lg-3 col-6">
+            <div class="card shadow-sm border" style="border-radius:10px;">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="flex-shrink-0" style="width:6px; height:48px; background:#F59E0B; border-radius:4px"></div>
+                    <div class="w-100">
+                        <div class="small text-muted">Doanh thu</div>
+                        <div class="fw-bold fs-4">{{ number_format($totalRevenue, 0, ',', '.') }}đ</div>
+                        <div class="small text-muted">Không tính huỷ</div>
+                    </div>
+                    <div class="text-muted"><i class="fas fa-money-bill-wave fa-lg"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Search and Filter (Tái cấu trúc) -->
+    <div class="card mb-2">
+        <div class="card-body">
+            <form method="GET" action="{{ route('admin.bookings') }}" id="filterForm">
+                <!-- Dòng chính: 3 thành phần -->
+                <div class="row gy-2 gx-3 align-items-end">
+                    <!-- Ô Tìm kiếm -->
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Tìm kiếm</label>
+                        <input type="text" name="search" class="form-control" placeholder="Mã Tour, Tên Tour hoặc Tên Khách" value="{{ request('search') }}">
+                    </div>
+
+                    <!-- Lọc Trạng thái Tour -->
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Trạng thái Tour</label>
+                        <select name="tour_status" class="form-select" id="tourStatusSelect">
+                            <option value="">Tất cả</option>
+                            <option value="open" {{ request('tour_status') == 'open' ? 'selected' : '' }}>Đang mở bán / Sắp khởi hành</option>
+                            <option value="confirmed" {{ request('tour_status') == 'confirmed' ? 'selected' : '' }}>Đã chốt (Full)</option>
+                            <option value="running" {{ request('tour_status') == 'running' ? 'selected' : '' }}>Đang chạy</option>
+                            <option value="completed" {{ request('tour_status') == 'completed' ? 'selected' : '' }}>Đã kết thúc</option>
+                        </select>
+                    </div>
+
+                    <!-- Khoảng ngày khởi hành -->
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Khoảng ngày khởi hành</label>
+                        <input type="text" name="date_range" class="form-control" placeholder="YYYY-MM-DD - YYYY-MM-DD" value="{{ request('date_range') }}">
+                    </div>
+
+                    <!-- Nút Lọc nâng cao -->
+                    <div class="col-md-2">
+                        <div class="btn-group w-100">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search me-1"></i> Tìm
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-filter me-1"></i> Nâng cao
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" style="min-width: 250px;">
+                                <li class="px-3 py-2">
+                                    <label class="form-label small fw-semibold">Nguồn khách</label>
+                                    <select name="source" class="form-select form-select-sm">
+                                        <option value="">Tất cả</option>
+                                        <option value="website" {{ request('source') == 'website' ? 'selected' : '' }}>Website</option>
+                                        <option value="zalo" {{ request('source') == 'zalo' ? 'selected' : '' }}>Zalo</option>
+                                        <option value="facebook" {{ request('source') == 'facebook' ? 'selected' : '' }}>Facebook</option>
+                                        <option value="phone" {{ request('source') == 'phone' ? 'selected' : '' }}>Điện thoại</option>
+                                    </select>
+                                </li>
+                                <li class="px-3 py-2">
+                                    <label class="form-label small fw-semibold">Sale phụ trách</label>
+                                    <input type="text" name="sale" class="form-control form-control-sm" placeholder="Tên sale" value="{{ request('sale') }}">
+                                </li>
+                                <li class="px-3 py-2">
+                                    <label class="form-label small fw-semibold">Loại tour</label>
+                                    <select name="tour_type" class="form-select form-select-sm">
+                                        <option value="">Tất cả</option>
+                                        <option value="group" {{ request('tour_type') == 'group' ? 'selected' : '' }}>Đoàn</option>
+                                        <option value="join" {{ request('tour_type') == 'join' ? 'selected' : '' }}>Ghép</option>
+                                    </select>
+                                </li>
+                                <li class="px-3 py-2">
+                                    <label class="form-label small fw-semibold">Trạng thái thanh toán</label>
+                                    <select name="payment_status" class="form-select form-select-sm">
+                                        <option value="">Tất cả</option>
+                                        <option value="paid" {{ request('payment_status') == 'paid' ? 'selected' : '' }}>Đã thanh toán</option>
+                                        <option value="unpaid" {{ request('payment_status') == 'unpaid' ? 'selected' : '' }}>Chưa thanh toán</option>
+                                        <option value="partial" {{ request('payment_status') == 'partial' ? 'selected' : '' }}>Thanh toán một phần</option>
+                                    </select>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li class="px-3 py-2">
+                                    <button type="submit" class="btn btn-sm btn-primary w-100">
+                                        <i class="fas fa-check me-1"></i> Áp dụng
+                                    </button>
+                                </li>
+                            </ul>
                         </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Doanh thu</h6>
-                            <h4 class="mb-0 fw-bold text-warning">{{ number_format($totalRevenue, 0, ',', '.') }}đ</h4>
-                            <small class="text-muted">Không tính đã hủy</small>
-                        </div>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Quick Filter Buttons -->
+            <div class="row mt-3">
+                <div class="col-12">
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="text-muted small align-self-center me-2">Lọc nhanh:</span>
+                        <a href="{{ route('admin.bookings', array_merge(request()->all(), ['quick_filter' => 'upcoming_no_assigned'])) }}" 
+                           class="btn btn-sm btn-outline-warning {{ request('quick_filter') == 'upcoming_no_assigned' ? 'active' : '' }}">
+                            <i class="fas fa-calendar-alt me-1"></i> Tour sắp khởi hành
+                        </a>
+                        <a href="{{ route('admin.bookings', array_merge(request()->all(), ['quick_filter' => 'low_capacity'])) }}" 
+                           class="btn btn-sm btn-outline-info {{ request('quick_filter') == 'low_capacity' ? 'active' : '' }}">
+                            <i class="fas fa-users-slash me-1"></i> Tour chưa đủ khách
+                        </a>
+                        <a href="{{ route('admin.bookings', array_merge(request()->all(), ['quick_filter' => 'overdue'])) }}" 
+                           class="btn btn-sm btn-outline-danger {{ request('quick_filter') == 'overdue' ? 'active' : '' }}">
+                            <i class="fas fa-clock me-1"></i> Cảnh báo quá hạn
+                        </a>
+                        @if(request()->has('quick_filter'))
+                            <a href="{{ route('admin.bookings', request()->except('quick_filter')) }}" class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i> Xóa lọc nhanh
+                            </a>
+                        @endif
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Search and Filter -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white border-0 py-3">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <h5 class="mb-0 fw-bold text-dark">
-                            <i class="fas fa-search text-primary me-2"></i>
-                            Tìm kiếm và lọc
-                        </h5>
-                        <!-- Quick Filters -->
-                        <div class="d-flex gap-2 flex-wrap">
-                            <a href="{{ route('admin.bookings', ['group_status' => 'pending']) }}" 
-                               class="btn btn-sm {{ request('group_status') == 'pending' ? 'btn-secondary' : 'btn-outline-secondary' }}">
-                                <i class="fas fa-hourglass-half me-1"></i> Chưa chốt
-                            </a>
-                            <a href="{{ route('admin.bookings', ['cutoff_status' => 'near']) }}" 
-                               class="btn btn-sm {{ request('cutoff_status') == 'near' ? 'btn-warning' : 'btn-outline-warning' }}">
-                                <i class="fas fa-clock me-1"></i> Sắp chốt
-                            </a>
-                            <a href="{{ route('admin.bookings', ['cutoff_status' => 'passed']) }}" 
-                               class="btn btn-sm {{ request('cutoff_status') == 'passed' ? 'btn-danger' : 'btn-outline-danger' }}">
-                                <i class="fas fa-exclamation-circle me-1"></i> Quá hạn chốt
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <form method="GET" action="{{ route('admin.bookings') }}" class="row g-3">
-                        <!-- Row 1: Search, Status, Booking Source -->
-                        <div class="col-md-3">
-                            <label for="search" class="form-label fw-semibold">Tìm kiếm</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0">
-                                    <i class="fas fa-search text-muted"></i>
-                                </span>
-                                <input type="text" class="form-control border-start-0" id="search" name="search"
-                                    value="{{ request('search') }}" placeholder="Mã đặt tour, tên khách hàng...">
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="status" class="form-label fw-semibold">Trạng thái booking</label>
-                            <select class="form-select" id="status" name="status">
-                                <option value="">Tất cả trạng thái</option>
-                                <option value="hold" {{ request('status') == 'hold' ? 'selected' : '' }}>Giữ chỗ (HOLD)</option>
-                                <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Chờ xác nhận (PENDING)</option>
-                                <option value="confirmed" {{ request('status') == 'confirmed' ? 'selected' : '' }}>Đã xác nhận (CONFIRMED)</option>
-                                <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Đã hủy (CANCELLED)</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="booking_source" class="form-label fw-semibold">Nguồn booking</label>
-                            <select class="form-select" id="booking_source" name="booking_source">
-                                <option value="">Tất cả nguồn</option>
-                                <option value="website" {{ request('booking_source') == 'website' ? 'selected' : '' }}>🌐 Website</option>
-                                <option value="zalo" {{ request('booking_source') == 'zalo' ? 'selected' : '' }}>💬 Zalo</option>
-                                <option value="facebook" {{ request('booking_source') == 'facebook' ? 'selected' : '' }}>📘 Facebook</option>
-                                <option value="phone" {{ request('booking_source') == 'phone' ? 'selected' : '' }}>📞 Điện thoại</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="sale_staff" class="form-label fw-semibold">Sale phụ trách</label>
-                            <select class="form-select" id="sale_staff" name="sale_staff">
-                                <option value="">Tất cả Sale</option>
+
+    @if (isset($groupedBookings) && $groupedBookings->count() > 0)
+        <div class="card mb-3">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:120px">Ngày khởi hành</th>
+                                <th>Tour & Khách</th>
+                                <th style="width: min-content;" class="text-center">Số lượng (L/T/E)</th>
+                                <th style="width:160px" class="text-end">Doanh thu</th>
+                                <th style="width:160px">Phụ trách / HDV</th>
+                                <th style="width:120px">Trạng thái</th>
+                                <th style="width:140px" class="text-end">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($groupedBookings as $group)
                                 @php
-                                    $saleStaffs = \App\Models\User::whereHas('roles', function($q) {
-                                        $q->whereIn('name', ['admin', 'staff', 'sale']);
-                                    })->orderBy('name')->get();
+                                    $departureKey = $group['departure_id'] ?? ($group['date'] ? $group['date']->format('Ymd') : 'no-date');
+                                    $totalBookings = $group['count'] ?? collect($group['bookings'] ?? [])->count();
+                                    $totalGuests = $group['total_guests'] ?? collect($group['bookings'] ?? [])->sum(function ($item) {
+                                        return $item->adults + $item->children + $item->infants;
+                                    });
+                                    $totalAdults = $group['total_adults'] ?? collect($group['bookings'] ?? [])->sum('adults');
+                                    $totalChildren = $group['total_children'] ?? collect($group['bookings'] ?? [])->sum('children');
+                                    $totalInfants = $group['total_infants'] ?? collect($group['bookings'] ?? [])->sum('infants');
+                                    $totalRevenue = $group['total_amount'] ?? collect($group['bookings'] ?? [])->where('status', '!=', 'cancelled')->sum('total_amount');
+                                    $isConfirmed = $group['group_confirmed'] ?? false;
+                                    $departureDate = $group['date'] ?? null;
+                                    $today = \Carbon\Carbon::today();
+                                    $now = \Carbon\Carbon::now();
+                                    // cutoff simplified
+                                    $cutoffDays = $group['departure']->cutoff_days ?? 3;
+                                    $cutoffDate = $departureDate ? $departureDate->copy()->subDays($cutoffDays) : null;
+                                    $isAfterCutoff = $cutoffDate ? $now->gt($cutoffDate) : false;
+                                    $daysUntilCutoff = $cutoffDate ? $now->diffInDays($cutoffDate, false) : null;
+                                    if ($isAfterCutoff) {
+                                        $cutoffLabel = 'Quá hạn chốt';
+                                        $cutoffClass = 'bg-danger bg-opacity-10 text-danger';
+                                    } elseif ($daysUntilCutoff !== null && $daysUntilCutoff <= 2) {
+                                        $cutoffLabel = 'Sắp hết hạn';
+                                        $cutoffClass = 'bg-warning bg-opacity-10 text-warning';
+                                    } else {
+                                        $cutoffLabel = 'Chưa chốt';
+                                        $cutoffClass = 'bg-secondary bg-opacity-10 text-secondary';
+                                    }
+                                    // Sử dụng trạng thái từ Controller (đã tính toán real-time)
+                                    $groupStatus = $group['group_status'] ?? 'Đang bán';
+                                    $statusClass = $group['status_class'] ?? 'bg-success text-success';
+                                    $canSuggestConfirm = $group['can_suggest_confirm'] ?? false;
+                                    $suggestConfirmLabel = $group['suggest_confirm_label'] ?? '';
+                                    $suggestConfirmClass = $group['suggest_confirm_class'] ?? '';
+                                    $daysUntilDeparture = $group['days_until_departure'] ?? null;
+                                    $diffInDays = $daysUntilDeparture; // Dùng $diffInDays để kiểm tra điều kiện chốt đoàn
                                 @endphp
-                                @foreach($saleStaffs as $staff)
-                                    <option value="{{ $staff->id }}" {{ request('sale_staff') == $staff->id ? 'selected' : '' }}>
-                                        {{ $staff->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        
-                        <!-- Row 2: Date filters -->
-                        <div class="col-md-3">
-                            <label for="departure_from" class="form-label fw-semibold">Ngày khởi hành từ</label>
-                            <input type="date" class="form-control" id="departure_from" name="departure_from"
-                                value="{{ request('departure_from') }}">
-                        </div>
-                        <div class="col-md-3">
-                            <label for="departure_to" class="form-label fw-semibold">Ngày khởi hành đến</label>
-                            <input type="date" class="form-control" id="departure_to" name="departure_to"
-                                value="{{ request('departure_to') }}">
-                        </div>
-                        <div class="col-md-3">
-                            <label for="date_from" class="form-label fw-semibold">Ngày đặt từ</label>
-                            <input type="date" class="form-control" id="date_from" name="date_from"
-                                value="{{ request('date_from') }}">
-                        </div>
-                        <div class="col-md-3">
-                            <label for="date_to" class="form-label fw-semibold">Ngày đặt đến</label>
-                            <input type="date" class="form-control" id="date_to" name="date_to"
-                                value="{{ request('date_to') }}">
-                        </div>
-                        
-                        <!-- Action buttons -->
-                        <div class="col-12">
-                            <div class="d-flex gap-2">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-search me-1"></i>
-                                    Tìm kiếm
-                                </button>
-                                <a href="{{ route('admin.bookings') }}" class="btn btn-outline-secondary">
-                                    <i class="fas fa-times me-1"></i>
-                                    Xóa bộ lọc
-                                </a>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    @if(isset($groupedBookings) && $groupedBookings->count() > 0)
-        <div class="accordion" id="departureAccordion">
-            @foreach($groupedBookings as $group)
-                @php
-                    $departureKey = $group['departure_id'] ?? ($group['date'] ? $group['date']->format('Ymd') : 'no-date');
-                    $totalBookings = $group['count'] ?? collect($group['bookings'] ?? [])->count();
-                    $totalGuests = $group['total_guests'] ?? collect($group['bookings'] ?? [])->sum(function($item){ return $item->adults + $item->children + $item->infants; });
-                    $totalAdults = $group['total_adults'] ?? collect($group['bookings'] ?? [])->sum('adults');
-                    $totalChildren = $group['total_children'] ?? collect($group['bookings'] ?? [])->sum('children');
-                    $totalInfants = $group['total_infants'] ?? collect($group['bookings'] ?? [])->sum('infants');
-                    $totalRevenue = $group['total_amount'] ?? collect($group['bookings'] ?? [])->where('status', '!=', 'cancelled')->sum('total_amount');
-                    
-                    // TRẠNG THÁI ĐOÀN (Header) - Độc lập với trạng thái booking
-                    $isConfirmed = $group['group_confirmed'] ?? false;
-                    $departureDate = $group['date'] ?? null;
-                    $today = \Carbon\Carbon::today();
-                    $now = \Carbon\Carbon::now();
-                    
-                    // CUTOFF LOGIC: Mặc định cutoff trước 3 ngày trước ngày khởi hành
-                    $cutoffDays = $group['departure']->cutoff_days ?? 3;
-                    $cutoffDate = $departureDate ? $departureDate->copy()->subDays($cutoffDays) : null;
-                    $isBeforeCutoff = $cutoffDate ? $now->lt($cutoffDate) : true;
-                    $isAtCutoff = $cutoffDate ? $now->isSameDay($cutoffDate) : false;
-                    $isAfterCutoff = $cutoffDate ? $now->gt($cutoffDate) : false;
-                    $daysUntilCutoff = $cutoffDate ? $now->diffInDays($cutoffDate, false) : null;
-                    
-                    // Cutoff status
-                    if ($isAfterCutoff) {
-                        $cutoffStatus = 'passed';
-                        $cutoffBadge = 'bg-danger';
-                        $cutoffLabel = 'Quá hạn chốt';
-                    } elseif ($isAtCutoff) {
-                        $cutoffStatus = 'today';
-                        $cutoffBadge = 'bg-warning text-dark';
-                        $cutoffLabel = 'Hạn chốt hôm nay!';
-                    } elseif ($daysUntilCutoff !== null && $daysUntilCutoff <= 2) {
-                        $cutoffStatus = 'near';
-                        $cutoffBadge = 'bg-warning text-dark';
-                        $cutoffLabel = 'Còn ' . $daysUntilCutoff . ' ngày';
-                    } else {
-                        $cutoffStatus = 'ok';
-                        $cutoffBadge = 'bg-light text-muted';
-                        $cutoffLabel = $cutoffDate ? 'Hạn chốt: ' . $cutoffDate->format('d/m') : '';
-                    }
-                    
-                    // TRẠNG THÁI SẴN SÀNG VẬN HÀNH
-                    $hasGuide = !empty($group['guide']);
-                    $hasVehicle = !empty($group['vehicle_type']);
-                    $hasAllBookingsConfirmed = ($group['can_confirm_group'] ?? true);
-                    $isOperationReady = $hasGuide && $hasVehicle && $isConfirmed;
-                    
-                    // Logic trạng thái đoàn:
-                    $tourDuration = $group['tour']->duration ?? 1;
-                    $endDate = $departureDate ? $departureDate->copy()->addDays($tourDuration) : null;
-                    
-                    if ($endDate && $today->gt($endDate)) {
-                        $groupStatus = 'finished';
-                        $badgeLabel = 'Đã kết thúc';
-                        $badgeClass = 'bg-dark';
-                        $badgeIcon = 'fa-flag-checkered';
-                    } elseif ($departureDate && $today->gte($departureDate) && $endDate && $today->lte($endDate)) {
-                        $groupStatus = 'departed';
-                        $badgeLabel = 'Đang khởi hành';
-                        $badgeClass = 'bg-primary';
-                        $badgeIcon = 'fa-plane-departure';
-                    } elseif ($isConfirmed) {
-                        $groupStatus = 'confirmed';
-                        $badgeLabel = 'Đã chốt';
-                        $badgeClass = 'bg-success';
-                        $badgeIcon = 'fa-check-double';
-                    } else {
-                        $groupStatus = 'pending';
-                        $badgeLabel = 'Chưa chốt';
-                        $badgeClass = 'bg-secondary';
-                        $badgeIcon = 'fa-hourglass-half';
-                    }
-                @endphp
-                <div class="card border-0 shadow-sm mb-4 departure-card {{ $isAfterCutoff ? 'border-start border-danger border-4' : '' }}">
-                    <!-- Group Header -->
-                    <div class="card-header bg-primary text-white py-3">
-                        <div class="d-flex flex-wrap justify-content-between align-items-center">
-                            <div class="d-flex flex-column">
-                                <div class="d-flex align-items-center gap-2">
-                                    <i class="fas fa-calendar-alt"></i>
-                                    <span class="fw-bold">{{ $group['date'] ? $group['date']->format('d/m/Y') : 'Chưa có ngày' }}</span>
-                                    <!-- Cutoff Badge with Business Logic Tooltip -->
-                                    @if($cutoffDate)
+                                <tr>
+                                    <td class="text-nowrap">
+                                        <div class="fw-semibold">{{ $group['date'] ? $group['date']->format('d/m/Y') : '—' }}</div>
+                                    </td>
+                                    <td>
+                                        <div class="fw-semibold">{{ $group['tour']->title ?? '—' }}</div>
+                                        <div class="small text-muted">{{ $totalBookings }} booking · {{ $totalGuests }} khách</div>
+                                    </td>
+                                    <td class="text-center" style="width: min-content;">
+                                        <div class="text-nowrap">{{ $totalAdults }} / {{ $totalChildren }} / {{ $totalInfants }}</div>
+                                    </td>
+                                    <td class="text-end fw-bold">{{ number_format($totalRevenue, 0, ',', '.') }}đ</td>
+                                    <td>
+                                        <div class="fw-semibold">{{ $group['guide']->name ?? ($group['responsible'] ?? '—') }}</div>
                                         @php
-                                            $cutoffTooltip = "Ngày cutoff: " . $cutoffDate->format('d/m/Y');
-                                            if ($isAfterCutoff) {
-                                                $cutoffTooltip = "⚠️ Đã quá hạn chốt khách!\n❌ Không thể nhận thêm booking\n❌ Không thể tăng số khách\n✅ Chỉ xem và ghi chú nội bộ";
-                                            } elseif ($daysUntilCutoff !== null && $daysUntilCutoff <= 2) {
-                                                $cutoffTooltip = "⏰ Còn {$daysUntilCutoff} ngày đến hạn chốt!\nSau hạn chốt sẽ không thể nhận booking mới";
+                                            // Lấy số chỗ của xe
+                                            $vehicleCapacity = null;
+                                            if (isset($group['departure']) && $group['departure']->vehicle) {
+                                                $vehicleCapacity = $group['departure']->vehicle->capacity ?? null;
+                                            }
+                                            if (!$vehicleCapacity && isset($group['departure']) && $group['departure']->vehicle_type) {
+                                                // Nếu vehicle_type là "29 chỗ", extract số
+                                                $vehicleType = $group['departure']->vehicle_type;
+                                                if (preg_match('/(\d+)/', $vehicleType, $matches)) {
+                                                    $vehicleCapacity = (int)$matches[1];
+                                                }
+                                            }
+                                            if (!$vehicleCapacity && isset($group['vehicle_type'])) {
+                                                $vehicleType = $group['vehicle_type'];
+                                                if (preg_match('/(\d+)/', $vehicleType, $matches)) {
+                                                    $vehicleCapacity = (int)$matches[1];
+                                                }
                                             }
                                         @endphp
-                                        <span class="badge {{ $cutoffBadge }} ms-2" 
-                                              title="{{ $cutoffTooltip }}"
-                                              data-bs-toggle="tooltip"
-                                              data-bs-html="true"
-                                              style="cursor: help;">
-                                            <i class="fas {{ $isAfterCutoff ? 'fa-lock' : 'fa-stopwatch' }} me-1"></i>{{ $cutoffLabel }}
-                                        </span>
-                                    @endif
-                                </div>
-                                @if(!empty($group['tour']))
-                                    <div class="mt-1">
-                                        <small class="text-white-50">Tour</small>
-                                        <div class="fw-semibold">{{ $group['tour']->title }}</div>
-                                    </div>
-                                @endif
-                            </div>
-                            <div class="d-flex align-items-center flex-wrap gap-3">
-                                <div class="text-white">
-                                    <small class="d-block text-white-50">Tổng booking</small>
-                                    <span class="fw-bold">{{ $totalBookings }}</span>
-                                </div>
-                                <div class="text-white">
-                                    <small class="d-block text-white-50">Tổng khách</small>
-                                    <span class="fw-bold">{{ $totalGuests }}</span>
-                                </div>
-                                <div class="text-white">
-                                    <small class="d-block text-white-50">Doanh thu</small>
-                                    <span class="fw-bold">{{ number_format($totalRevenue, 0, ',', '.') }}đ</span>
-                                </div>
-                                
-                                <!-- Trạng thái đoàn -->
-                                <span class="badge {{ $badgeClass }} rounded-pill px-3 py-2">
-                                    <i class="fas {{ $badgeIcon }} me-1"></i>{{ $badgeLabel }}
-                                </span>
-                                
-                                <!-- Trạng thái sẵn sàng vận hành -->
-                                @if($groupStatus !== 'finished')
-                                    <span class="badge {{ $isOperationReady ? 'bg-success' : 'bg-warning text-dark' }} rounded-pill px-2 py-1"
-                                          title="{{ $isOperationReady ? 'Sẵn sàng vận hành' : 'Chưa đủ điều kiện: ' . (!$hasGuide ? 'Thiếu HDV. ' : '') . (!$hasVehicle ? 'Thiếu xe. ' : '') . (!$isConfirmed ? 'Chưa chốt đoàn.' : '') }}"
-                                          data-bs-toggle="tooltip">
-                                        <i class="fas {{ $isOperationReady ? 'fa-check-circle' : 'fa-exclamation-triangle' }}"></i>
-                                    </span>
-                                @endif
-                                
-                                <!-- Nút Xem booking -->
-                                <button class="btn btn-sm btn-light text-primary fw-semibold d-flex align-items-center gap-2"
-                                        type="button"
-                                        data-bs-toggle="collapse"
-                                        data-bs-target="#booking-panel-{{ $departureKey }}"
-                                        aria-expanded="false"
-                                        aria-controls="booking-panel-{{ $departureKey }}"
-                                        data-toggle-bookings
-                                        data-target="booking-panel-{{ $departureKey }}"
-                                        data-departure-id="{{ $group['departure_id'] ?? $departureKey }}">
-                                    <i class="fas fa-list"></i> Xem booking
-                                </button>
-                                
-                                <!-- DROPDOWN ĐIỀU HÀNH - Đặt trong HEADER -->
-                                <div class="dropdown">
-                                    <button class="btn btn-sm btn-light text-dark fw-semibold dropdown-toggle" type="button" 
-                                            data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="fas fa-cogs me-1"></i> Điều hành
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-end shadow">
-                                        <li class="dropdown-header text-muted">
-                                            <small>Quản lý đoàn {{ $group['date'] ? $group['date']->format('d/m/Y') : '' }}</small>
-                                        </li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li>
-                                            <a class="dropdown-item" href="javascript:void(0)" 
-                                               onclick="openAssignGuideModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}', {{ $group['tour_id'] ?? 'null' }}, {{ $group['departure_id'] ?? 'null' }})">
-                                                <i class="fas fa-user-tie me-2 text-info"></i> 
-                                                {{ $group['guide'] ? 'Đổi HDV' : 'Gán HDV' }}
-                                                @if($group['guide'])
-                                                    <small class="text-muted ms-2">({{ $group['guide']->name }})</small>
-                                                @endif
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item" href="javascript:void(0)" 
-                                               onclick="openAssignVehicleModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}', {{ $group['tour_id'] ?? 'null' }}, {{ $group['departure_id'] ?? ($group['departure']->id ?? 'null') }}, {{ $totalGuests }})">
-                                                <i class="fas fa-bus me-2 text-warning"></i> 
-                                                {{ $group['vehicle_type'] ? 'Đổi xe' : 'Gán xe' }}
-                                                @if($group['vehicle_type'])
-                                                    <small class="text-muted ms-2">({{ $group['vehicle_type'] }} chỗ)</small>
-                                                @endif
-                                            </a>
-                                        </li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li>
-                                            <a class="dropdown-item" href="javascript:void(0)" 
-                                               onclick="openOperationNoteModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}', {{ $group['departure_id'] ?? 'null' }})">
-                                                <i class="fas fa-sticky-note me-2 text-secondary"></i> Ghi chú điều hành
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item" href="javascript:void(0)" 
-                                               onclick="openSendPreTourInfoModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}')">
-                                                <i class="fas fa-paper-plane me-2 text-primary"></i> Gửi thông tin tour
-                                            </a>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Group Summary - Thông tin tổng hợp + Actions theo cutoff -->
-                    <div class="card-body bg-light py-3">
-                        <div class="row align-items-center">
-                            <!-- Thống kê khách -->
-                            <div class="col-md-2 text-center">
-                                <small class="text-muted d-block">Người lớn</small>
-                                <strong class="text-primary">{{ $totalAdults }}</strong>
-                            </div>
-                            <div class="col-md-2 text-center">
-                                <small class="text-muted d-block">Trẻ em</small>
-                                <strong class="text-info">{{ $totalChildren }}</strong>
-                            </div>
-                            <div class="col-md-2 text-center">
-                                <small class="text-muted d-block">Em bé</small>
-                                <strong class="text-secondary">{{ $totalInfants }}</strong>
-                            </div>
-                            
-                            <!-- Thông tin điều hành + Actions theo cutoff -->
-                            <div class="col-md-6">
-                                <div class="d-flex gap-2 flex-wrap align-items-center">
-                                    <!-- Badges thông tin đã gán -->
-                                    @if($group['guide'])
-                                        <span class="badge bg-info">
-                                            <i class="fas fa-user-tie me-1"></i>HDV: {{ $group['guide']->name }}
-                                        </span>
-                                    @else
-                                        <span class="badge bg-light text-muted border {{ $isAfterCutoff ? 'border-danger' : '' }}">
-                                            <i class="fas fa-user-tie me-1"></i>Chưa gán HDV
-                                            @if($isAfterCutoff)
-                                                <i class="fas fa-exclamation text-danger ms-1"></i>
+                                        <div class="small text-muted">
+                                            @if($vehicleCapacity)
+                                                {{ $totalGuests }} / {{ $vehicleCapacity }} chỗ
+                                            @else
+                                                {{ $totalGuests }} khách
                                             @endif
-                                        </span>
-                                    @endif
-                                    
-                                    @if($group['vehicle_type'])
-                                        <span class="badge bg-warning text-dark">
-                                            <i class="fas fa-bus me-1"></i>Xe {{ $group['vehicle_type'] }} chỗ
-                                            @if($group['vehicle'] && $group['vehicle']->license_plate)
-                                                - {{ $group['vehicle']->license_plate }}
-                                            @elseif($group['vehicle_details'])
-                                                - {{ $group['vehicle_details'] }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge rounded-pill px-3 py-2 fw-bold {{ $statusClass }}" style="display: inline-block; z-index: 1; position: relative;">{{ $groupStatus }}</span>
+                                        <div class="mt-1">
+                                            <span class="badge rounded-pill px-2 py-1 fw-bold {{ $cutoffClass }}" style="display: inline-block; z-index: 1; position: relative;">{{ $cutoffLabel }}</span>
+                                            @if($canSuggestConfirm)
+                                                <span class="badge rounded-pill px-2 py-1 fw-bold {{ $suggestConfirmClass }}" style="display: inline-block; z-index: 1; position: relative; margin-left: 4px;">
+                                                    <i class="fas fa-info-circle me-1"></i>{{ $suggestConfirmLabel }}
+                                                </span>
                                             @endif
-                                        </span>
-                                    @else
-                                        <span class="badge bg-light text-muted border {{ $isAfterCutoff ? 'border-danger' : '' }}">
-                                            <i class="fas fa-bus me-1"></i>Chưa gán xe
-                                            @if($isAfterCutoff)
-                                                <i class="fas fa-exclamation text-danger ms-1"></i>
+                                        </div>
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="d-flex align-items-center justify-content-end gap-2">
+                                            @php
+                                                $tourId = $group['tour_id'] ?? null;
+                                                $departureDateForRoute = $group['date'] ? $group['date']->format('Y-m-d') : null;
+                                            @endphp
+                                            @if($tourId && $departureDateForRoute)
+                                                <a href="{{ route('admin.bookings.group_list', ['tour_id' => $tourId, 'date' => $departureDateForRoute]) }}" class="btn btn-sm btn-outline-info d-inline-flex align-items-center" title="Xem danh sách khách hàng tổng hợp (cho HDV)">
+                                                    <i class="fas fa-users me-1"></i> Danh sách
+                                                </a>
                                             @endif
-                                        </span>
-                                    @endif
-                                    
-                                    <!-- ACTIONS THEO CUTOFF -->
-                                    @if($groupStatus !== 'finished' && $groupStatus !== 'departed')
-                                        @if($isBeforeCutoff)
-                                            <!-- TRƯỚC CUTOFF: Các nút điều hành tạm -->
-                                            @if(!$isConfirmed)
-                                                <button class="btn btn-sm btn-outline-primary"
-                                                    onclick="openConfirmGroupModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}', {{ $totalGuests }}, false, '')"
-                                                    @if(!($group['can_confirm_group'] ?? true)) 
-                                                        disabled 
-                                                        title="Chưa đủ điều kiện chốt đoàn"
-                                                    @endif>
-                                                    <i class="fas fa-clipboard-check me-1"></i> Cập nhật chốt đoàn
+                                            <div class="btn-group">
+                                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                    Điều hành
                                                 </button>
-                                            @else
-                                                <span class="badge bg-success px-3 py-2">
-                                                    <i class="fas fa-check-double me-1"></i>Đã chốt: {{ $group['confirmed_guests_count'] ?? $totalGuests }} khách
-                                                </span>
-                                            @endif
-                                        @elseif($isAtCutoff)
-                                            <!-- ĐẾN CUTOFF: Button CHỐT ĐOÀN nổi bật -->
-                                            @if(!$isConfirmed)
-                                                <button class="btn btn-sm btn-warning fw-bold animate-pulse"
-                                                    onclick="openConfirmGroupModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}', {{ $totalGuests }}, false, '')"
-                                                    @if(!($group['can_confirm_group'] ?? true)) disabled @endif>
-                                                    <i class="fas fa-exclamation-triangle me-1"></i> CHỐT ĐOÀN NGAY!
-                                                </button>
-                                                <small class="text-warning d-block w-100 mt-1">
-                                                    <i class="fas fa-info-circle"></i> Sau khi chốt, booking sẽ bị khóa
-                                                </small>
-                                            @else
-                                                <span class="badge bg-success px-3 py-2">
-                                                    <i class="fas fa-check-double me-1"></i>Đã chốt: {{ $group['confirmed_guests_count'] ?? $totalGuests }} khách
-                                                </span>
-                                            @endif
-                                        @else
-                                            <!-- SAU CUTOFF: Disable editing, chỉ xem -->
-                                            @if($isConfirmed)
-                                                <span class="badge bg-success px-3 py-2">
-                                                    <i class="fas fa-lock me-1"></i>Đã chốt: {{ $group['confirmed_guests_count'] ?? $totalGuests }} khách
-                                                </span>
-                                            @else
-                                                <span class="badge bg-danger px-3 py-2" 
-                                                      title="Đã quá hạn cutoff, liên hệ Admin để override"
-                                                      data-bs-toggle="tooltip">
-                                                    <i class="fas fa-lock me-1"></i>Quá hạn chốt - Chưa chốt
-                                                </span>
-                                                @if(auth()->user()->hasRole('admin'))
-                                                    <button class="btn btn-sm btn-outline-danger"
-                                                        onclick="openConfirmGroupModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}', {{ $totalGuests }}, true, '{{ $cutoffDate ? $cutoffDate->format('d/m/Y') : '' }}')">
-                                                        <i class="fas fa-unlock me-1"></i> Admin Override
-                                                    </button>
-                                                @endif
-                                            @endif
-                                        @endif
-                                    @else
-                                        <!-- ĐÃ KHỞI HÀNH HOẶC KẾT THÚC -->
-                                        <span class="badge bg-dark px-3 py-2">
-                                            <i class="fas fa-lock me-1"></i>{{ $isConfirmed ? 'Đã chốt' : 'Không chốt' }}: {{ $group['confirmed_guests_count'] ?? $totalGuests }} khách
-                                        </span>
-                                    @endif
-                                </div>
-                                
-                                @if(!($group['can_confirm_group'] ?? true) && !$isConfirmed && $isBeforeCutoff)
-                                    <small class="text-danger d-block mt-2">
-                                        <i class="fas fa-exclamation-triangle"></i> 
-                                        Chưa thể chốt: {{ count($group['unconfirmed_bookings'] ?? []) }} booking chưa xác nhận, {{ count($group['unpaid_bookings'] ?? []) }} booking chưa thanh toán
-                                    </small>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Bookings Table (lazy render) -->
-                    <div id="booking-panel-{{ $departureKey }}" class="collapse" data-bs-parent="#departureAccordion" data-departure-key="{{ $departureKey }}" data-loaded="false">
-                        <div class="p-3">
-                            <div class="booking-placeholder d-flex align-items-center justify-content-center gap-2 text-muted" aria-live="polite">
-                                <i class="fas fa-info-circle"></i>
-                                <span>Nhấn "Xem booking" để tải danh sách. Dữ liệu lớn sẽ được tải khi cần.</span>
-                            </div>
-                            <div class="booking-table-wrapper d-none"></div>
-                        </div>
-                    </div>
+                                                <ul class="dropdown-menu dropdown-menu-end" id="operationMenu-{{ $departureKey }}">
+                                                    <li><a class="dropdown-item" href="#" onclick="openAssignGuideModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}', {{ $group['tour_id'] ?? 'null' }}, {{ $group['departure_id'] ?? 'null' }})">
+                                                        <i class="fas fa-user-tie me-2"></i> Gán HDV
+                                                    </a></li>
+                                                    <li><a class="dropdown-item" href="#" onclick="openAssignVehicleModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}', {{ $group['tour_id'] ?? 'null' }}, {{ $group['departure_id'] ?? ($group['departure']->id ?? 'null') }}, {{ $totalGuests }})">
+                                                        <i class="fas fa-bus me-2"></i> Gán xe
+                                                    </a></li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    @if(!$isConfirmed && $diffInDays !== null && $diffInDays > 0 && $diffInDays <= 3)
+                                                        <li><a class="dropdown-item text-success fw-bold" href="#" onclick="openConfirmGroupModal('{{ $group['date'] ? $group['date']->format('Y-m-d') : 'no-date' }}', {{ $totalGuests }}, false, '{{ $cutoffDate ? $cutoffDate->format('d/m/Y') : '' }}')">
+                                                            <i class="fas fa-check-double me-2"></i> Chốt đoàn
+                                                        </a></li>
+                                                        <li><hr class="dropdown-divider"></li>
+                                                    @endif
+                                                    <li><a class="dropdown-item text-danger" href="#" onclick="window.openEndTourModal({{ $group['departure_id'] ?? 'null' }}, '{{ addslashes($group['tour']->title ?? 'N/A') }}', '{{ $group['date'] ? $group['date']->format('d/m/Y') : 'N/A' }}')">
+                                                        <i class="fas fa-flag-checkered me-2"></i> Kết thúc tour
+                                                    </a></li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
                 </div>
-            @endforeach
+                <div class="p-3 d-flex justify-content-end">
+                    {{ $groupedBookings->links() }}
+                </div>
+                </div>
+            </div>
         </div>
     @else
+        <!-- Empty State -->
         <div class="card border-0 shadow-sm">
             <div class="card-body text-center py-5">
-                <i class="fas fa-calendar-times fa-4x text-muted mb-4"></i>
-                <h4>Chưa có đặt tour nào</h4>
-                <p class="text-muted">Khách hàng chưa đặt tour nào</p>
+                <div class="empty-state">
+                    <i class="fas fa-search fa-4x text-muted mb-4" style="opacity: 0.5;"></i>
+                    <h4 class="text-muted mb-2">Không tìm thấy kết quả</h4>
+                    <p class="text-muted mb-4">Không có tour nào phù hợp với bộ lọc hiện tại</p>
+                    @if(request()->hasAny(['search', 'tour_status', 'date_range', 'quick_filter', 'source', 'sale', 'payment_status']))
+                        <a href="{{ route('admin.bookings') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-redo me-1"></i> Xóa tất cả bộ lọc
+                        </a>
+                    @endif
+                </div>
             </div>
         </div>
     @endif
@@ -613,26 +405,34 @@
     <style>
         /* Animate pulse for cutoff warning */
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.6;
+            }
         }
+
         .animate-pulse {
             animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
-        
+
         /* Card border for after cutoff */
         .departure-card.border-start {
             border-left-width: 4px !important;
         }
-        
+
         /* Badge styling improvements */
         .badge {
             font-weight: 500;
         }
-        
-        /* Fix lỗi lệch cột trong bảng - tham khảo từ quản lý khởi hành */
+
+        /* Fix lỗi lệch cột trong bảng - sử dụng auto layout để tự co lại */
         .table {
-            table-layout: fixed;
+            table-layout: auto;
             width: 100%;
             border-collapse: collapse;
         }
@@ -681,56 +481,20 @@
             padding: 0;
         }
 
-        /* Cột MÃ ĐẶT TOUR */
-        .table th:nth-child(1),
-        .table td:nth-child(1) {
-            width: 12%;
-        }
-
-        /* Cột KHÁCH HÀNG */
-        .table th:nth-child(2),
-        .table td:nth-child(2) {
-            width: 18%;
-        }
-
-        /* Cột TOUR */
+        /* Cột Số lượng (L/T/E) - nhỏ nhất có thể */
         .table th:nth-child(3),
         .table td:nth-child(3) {
-            width: 20%;
+            width: 1% !important;
+            white-space: nowrap !important;
+            text-align: center !important;
         }
 
-        /* Cột SỐ KHÁCH */
-        .table th:nth-child(4),
-        .table td:nth-child(4) {
-            width: 12%;
-        }
-
-        /* Cột TỔNG TIỀN */
-        .table th:nth-child(5),
-        .table td:nth-child(5) {
-            width: 12%;
-            text-align: right;
-        }
-
-        /* Cột TRẠNG THÁI */
-        .table th:nth-child(6),
-        .table td:nth-child(6) {
-            width: 12%;
-            text-align: center;
-        }
-
-        /* Cột NGÀY ĐẶT */
+        /* Cột Thao tác - cố định width và căn phải */
         .table th:nth-child(7),
         .table td:nth-child(7) {
-            width: 10%;
-            text-align: center;
-        }
-
-        /* Cột THAO TÁC */
-        .table th:nth-child(8),
-        .table td:nth-child(8) {
-            width: 12%;
-            text-align: right;
+            width: 150px !important;
+            text-align: right !important;
+            white-space: nowrap !important;
         }
 
         /* Chống lệch do badge hoặc nút */
@@ -768,7 +532,80 @@
 
         .badge {
             border-radius: 8px;
-            font-weight: 500;
+            font-weight: 700 !important;
+            padding: 6px 12px !important;
+            display: inline-block !important;
+            position: relative;
+            z-index: 1;
+            line-height: 1.4;
+        }
+
+        /* Đảm bảo màu chữ tương phản cao cho các badge trạng thái */
+        .badge.bg-secondary.text-secondary {
+            background-color: #6c757d !important;
+            color: #ffffff !important;
+        }
+
+        .badge.bg-warning.text-warning {
+            background-color: #ffc107 !important;
+            color: #000000 !important;
+        }
+
+        .badge.bg-primary.text-primary {
+            background-color: #0EA5E9 !important;
+            color: #ffffff !important;
+        }
+
+        .badge.bg-success.text-success {
+            background-color: #10b981 !important;
+            color: #ffffff !important;
+        }
+
+        .badge.bg-danger.bg-opacity-10.text-danger {
+            background-color: rgba(220, 53, 69, 0.15) !important;
+            color: #dc3545 !important;
+            border: 1px solid rgba(220, 53, 69, 0.3);
+        }
+
+        .badge.bg-warning.bg-opacity-10.text-warning {
+            background-color: rgba(255, 193, 7, 0.15) !important;
+            color: #856404 !important;
+            border: 1px solid rgba(255, 193, 7, 0.3);
+        }
+
+        .badge.bg-secondary.bg-opacity-10.text-secondary {
+            background-color: rgba(108, 117, 125, 0.15) !important;
+            color: #495057 !important;
+            border: 1px solid rgba(108, 117, 125, 0.3);
+        }
+
+        /* Badge trạng thái mới - Đang chạy */
+        .badge.bg-info.text-info {
+            background-color: #0dcaf0 !important;
+            color: #000000 !important;
+            font-weight: 700 !important;
+        }
+
+        /* Badge trạng thái mới - Sắp khởi hành */
+        .badge.bg-warning.text-warning {
+            background-color: #ffc107 !important;
+            color: #000000 !important;
+            font-weight: 700 !important;
+        }
+
+        /* Badge cảnh báo chốt đoàn */
+        .badge.bg-success.bg-opacity-10.text-success {
+            background-color: rgba(25, 135, 84, 0.15) !important;
+            color: #198754 !important;
+            border: 1px solid rgba(25, 135, 84, 0.3);
+            font-weight: 700 !important;
+        }
+
+        .badge.bg-danger.bg-opacity-10.text-danger {
+            background-color: rgba(220, 53, 69, 0.15) !important;
+            color: #dc3545 !important;
+            border: 1px solid rgba(220, 53, 69, 0.3);
+            font-weight: 700 !important;
         }
 
         .bg-opacity-10 {
@@ -821,6 +658,60 @@
             box-shadow: 0 0 0 0.2rem rgba(14, 165, 233, 0.25);
         }
 
+        /* ==========================================
+           FILTER STYLES - Tối ưu bộ lọc
+           ========================================== */
+        .form-select {
+            font-size: 0.875rem;
+            font-weight: 400;
+            min-width: 150px;
+        }
+
+        .form-control {
+            font-size: 0.875rem;
+        }
+
+        /* Quick Filter Buttons */
+        .btn-sm.btn-outline-warning.active,
+        .btn-sm.btn-outline-info.active,
+        .btn-sm.btn-outline-danger.active {
+            background-color: var(--bs-warning);
+            border-color: var(--bs-warning);
+            color: #000;
+        }
+
+        .btn-sm.btn-outline-info.active {
+            background-color: var(--bs-info);
+            border-color: var(--bs-info);
+            color: #000;
+        }
+
+        .btn-sm.btn-outline-danger.active {
+            background-color: var(--bs-danger);
+            border-color: var(--bs-danger);
+            color: #fff;
+        }
+
+        /* Empty State */
+        .empty-state {
+            padding: 2rem 0;
+        }
+
+        .empty-state i {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 0.5;
+                transform: translateY(0);
+            }
+        }
+
         /* Notification styles */
         .notification {
             position: fixed;
@@ -851,6 +742,94 @@
         .notification i {
             margin-right: 8px;
         }
+
+        /* ==========================================
+           FIX DROPDOWN MENU - Không bị nhấp nháy
+           ========================================== */
+        .btn-group {
+            position: relative;
+        }
+
+        .dropdown-menu {
+            background-color: #fff !important;
+            border: 1px solid #ddd !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+            z-index: 9999 !important;
+            margin-top: 0 !important;
+            padding: 4px 0 !important;
+            min-width: 180px;
+        }
+
+        .dropdown-menu-end {
+            right: 0;
+            left: auto;
+        }
+
+        /* Fix dropdown không bị che bởi các element khác - Chuyển sang click event */
+        .table td .btn-group {
+            position: relative !important;
+        }
+
+        .table td .dropdown-menu {
+            position: absolute !important;
+            top: 100% !important;
+            left: auto !important;
+            right: 0 !important;
+            margin-top: 0.125rem !important;
+            display: none;
+        }
+
+        .table td .dropdown-menu.show {
+            display: block !important;
+        }
+
+        /* Đảm bảo dropdown toggle chỉ dùng click, không dùng hover */
+        .table td .btn-group .dropdown-toggle {
+            cursor: pointer;
+        }
+
+        .table td .btn-group .dropdown-toggle:focus {
+            outline: none;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+
+        .dropdown-item {
+            padding: 8px 16px !important;
+            transition: all 0.2s ease !important;
+            cursor: pointer;
+        }
+
+        .dropdown-item:hover {
+            background-color: #f8f9fa !important;
+            color: #212529 !important;
+            transform: translateX(2px);
+        }
+
+        .dropdown-item.text-danger:hover {
+            background-color: #fee !important;
+            color: #dc3545 !important;
+        }
+
+        .dropdown-divider {
+            margin: 4px 0 !important;
+        }
+
+        /* Đảm bảo dropdown không bị che bởi các element khác */
+        .table td .btn-group {
+            position: relative;
+        }
+
+        .table td .dropdown-menu {
+            position: absolute !important;
+            top: 100% !important;
+            left: auto !important;
+            right: 0 !important;
+        }
+
+        /* Fix khoảng cách giữa các nút */
+        .table td .d-flex.gap-2 {
+            gap: 0.5rem !important;
+        }
     </style>
 @endsection
 
@@ -859,18 +838,80 @@
     <script>
         // Cache để lưu bookings đã load (tránh gọi AJAX lại)
         const bookingsCache = {};
-        
+
         // URL base cho API (dùng prefix thay vì route với placeholder)
         const BOOKINGS_API_BASE = '{{ url('admin/bookings/by-departure') }}/';
+        const DEBUG = false;
 
         document.addEventListener('DOMContentLoaded', function() {
+
+            // Auto-submit khi thay đổi trạng thái tour
+            const tourStatusSelect = document.getElementById('tourStatusSelect');
+            if (tourStatusSelect) {
+                tourStatusSelect.addEventListener('change', function() {
+                    document.getElementById('filterForm').submit();
+                });
+            }
+
+            // Fix dropdown menu - Chuyển hoàn toàn sang click event (không dùng hover)
+            document.querySelectorAll('.table td .btn-group .dropdown-toggle').forEach(function(toggleBtn) {
+                // Xóa các event listener cũ nếu có
+                const newToggleBtn = toggleBtn.cloneNode(true);
+                toggleBtn.parentNode.replaceChild(newToggleBtn, toggleBtn);
+                
+                // Thêm click event mới
+                newToggleBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const dropdownMenu = this.nextElementSibling;
+                    if (dropdownMenu && dropdownMenu.classList.contains('dropdown-menu')) {
+                        // Đảm bảo menu có z-index cao và background
+                        dropdownMenu.style.zIndex = '9999';
+                        dropdownMenu.style.backgroundColor = '#fff';
+                        
+                        // Toggle menu
+                        const isShowing = dropdownMenu.classList.contains('show');
+                        
+                        // Đóng tất cả menu khác
+                        document.querySelectorAll('.table td .dropdown-menu.show').forEach(function(menu) {
+                            if (menu !== dropdownMenu) {
+                                menu.classList.remove('show');
+                            }
+                        });
+                        
+                        // Toggle menu hiện tại
+                        if (isShowing) {
+                            dropdownMenu.classList.remove('show');
+                        } else {
+                            dropdownMenu.classList.add('show');
+                        }
+                    }
+                });
+            });
+
+            // Đóng dropdown khi click bên ngoài
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.table td .btn-group')) {
+                    document.querySelectorAll('.table td .dropdown-menu.show').forEach(function(menu) {
+                        menu.classList.remove('show');
+                    });
+                }
+            });
+
+            // Ngăn dropdown đóng khi click vào menu items
+            document.querySelectorAll('.table td .dropdown-menu').forEach(function(menu) {
+                menu.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                });
+            });
 
             // Đảm bảo meta[name="csrf-token"] tồn tại trong layout của bạn
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
             if (!csrfToken) {
                 console.error(
                     'Lỗi: Không tìm thấy CSRF Token. Hãy thêm <meta name="csrf-token" content="{{ csrf_token() }}"> vào layout chính.'
-                    );
+                );
             }
 
             // Helper functions
@@ -897,13 +938,37 @@
              */
             function buildStatusBadge(status) {
                 const map = {
-                    hold: { class: 'bg-secondary', icon: 'fa-pause-circle', label: 'HOLD' },
-                    pending: { class: 'bg-warning text-dark', icon: 'fa-clock', label: 'PENDING' },
-                    confirmed: { class: 'bg-success', icon: 'fa-check-circle', label: 'CONFIRMED' },
-                    paid: { class: 'bg-info', icon: 'fa-money-bill-wave', label: 'PAID' },
-                    cancelled: { class: 'bg-danger', icon: 'fa-times-circle', label: 'CANCELLED' },
+                    hold: {
+                        class: 'bg-secondary',
+                        icon: 'fa-pause-circle',
+                        label: 'HOLD'
+                    },
+                    pending: {
+                        class: 'bg-warning text-dark',
+                        icon: 'fa-clock',
+                        label: 'PENDING'
+                    },
+                    confirmed: {
+                        class: 'bg-success',
+                        icon: 'fa-check-circle',
+                        label: 'CONFIRMED'
+                    },
+                    paid: {
+                        class: 'bg-info',
+                        icon: 'fa-money-bill-wave',
+                        label: 'PAID'
+                    },
+                    cancelled: {
+                        class: 'bg-danger',
+                        icon: 'fa-times-circle',
+                        label: 'CANCELLED'
+                    },
                 };
-                return map[status] || { class: 'bg-secondary', icon: 'fa-question-circle', label: status?.toUpperCase() || 'UNKNOWN' };
+                return map[status] || {
+                    class: 'bg-secondary',
+                    icon: 'fa-question-circle',
+                    label: status?.toUpperCase() || 'UNKNOWN'
+                };
             }
 
             /**
@@ -912,14 +977,34 @@
             function buildSourceBadge(source) {
                 const s = (source || 'website').toLowerCase();
                 const map = {
-                    website: { class: 'bg-primary', icon: 'fa-globe', label: '🌐 Website' },
-                    zalo: { class: 'bg-info', icon: 'fa-comment-dots', label: '💬 Zalo Sale' },
-                    facebook: { class: 'bg-primary', icon: 'fa-facebook', label: '📘 Facebook' },
-                    phone: { class: 'bg-success', icon: 'fa-phone', label: '📞 Điện thoại' },
+                    website: {
+                        class: 'bg-primary',
+                        icon: 'fa-globe',
+                        label: '🌐 Website'
+                    },
+                    zalo: {
+                        class: 'bg-info',
+                        icon: 'fa-comment-dots',
+                        label: '💬 Zalo Sale'
+                    },
+                    facebook: {
+                        class: 'bg-primary',
+                        icon: 'fa-facebook',
+                        label: '📘 Facebook'
+                    },
+                    phone: {
+                        class: 'bg-success',
+                        icon: 'fa-phone',
+                        label: '📞 Điện thoại'
+                    },
                 };
-                return map[s] || { class: 'bg-secondary', icon: 'fa-question', label: source || 'Khác' };
+                return map[s] || {
+                    class: 'bg-secondary',
+                    icon: 'fa-question',
+                    label: source || 'Khác'
+                };
             }
-            
+
             /**
              * Build action buttons based on booking status and cutoff
              */
@@ -929,17 +1014,17 @@
                 const isAfterCutoff = metadata.isAfterCutoff || false;
                 const tourStatus = metadata.tourStatus || 'open';
                 const departureStatus = metadata.departureStatus || 'open';
-                
+
                 // Xác định quyền theo trạng thái tour
                 const isCompleted = tourStatus === 'completed' || departureStatus === 'completed';
                 const isRunning = tourStatus === 'running' || departureStatus === 'running';
                 const isConfirmed = tourStatus === 'confirmed' || departureStatus === 'confirmed';
-                
+
                 // Nút Xem chi tiết luôn có
                 actions += `<a href="${booking.url}" class="btn btn-sm btn-outline-primary" title="Xem chi tiết">
                     <i class="fas fa-eye"></i>
                 </a>`;
-                
+
                 if (isCompleted) {
                     // ĐÃ KẾT THÚC: Chỉ xem, đối soát
                     actions += `<span class="ms-1 text-muted" title="Tour đã kết thúc - chỉ xem và đối soát" data-bs-toggle="tooltip">
@@ -952,7 +1037,8 @@
                     </span>`;
                 } else if (isAfterCutoff || isConfirmed) {
                     // SAU CUTOFF hoặc ĐÃ CHỐT: Chỉ xem, không cho sửa
-                    const tooltip = isConfirmed ? 'Đoàn đã chốt - không thể chỉnh sửa' : 'Đã quá cutoff - không thể chỉnh sửa';
+                    const tooltip = isConfirmed ? 'Đoàn đã chốt - không thể chỉnh sửa' :
+                        'Đã quá cutoff - không thể chỉnh sửa';
                     actions += `<span class="ms-1 text-muted" title="${tooltip}" data-bs-toggle="tooltip">
                         <i class="fas fa-lock"></i>
                     </span>`;
@@ -973,7 +1059,7 @@
                         </button>`;
                     }
                 }
-                
+
                 return actions;
             }
 
@@ -999,11 +1085,13 @@
                 const rows = bookings.map((booking) => {
                     const statusMeta = buildStatusBadge(booking.status);
                     const sourceMeta = buildSourceBadge(booking.booking_source);
-                    const totalGuests = (booking.adults || 0) + (booking.children || 0) + (booking.infants || 0);
-                    const guestTooltip = `Người lớn: ${booking.adults || 0}, Trẻ em: ${booking.children || 0}, Em bé: ${booking.infants || 0}`;
+                    const totalGuests = (booking.adults || 0) + (booking.children || 0) + (booking
+                        .infants || 0);
+                    const guestTooltip =
+                        `Người lớn: ${booking.adults || 0}, Trẻ em: ${booking.children || 0}, Em bé: ${booking.infants || 0}`;
                     const actionButtons = buildActionButtons(booking, metadata);
                     const saleStaff = booking.sale_staff_name || '-';
-                    
+
                     return `
                         <tr class="${booking.status === 'cancelled' ? 'table-secondary text-muted' : ''}">
                             <td class="px-3">
@@ -1072,7 +1160,7 @@
                         </table>
                     </div>
                 `;
-                
+
                 // Initialize tooltips for guest count
                 const tooltipTriggerList = wrapper.querySelectorAll('[data-bs-toggle="tooltip"]');
                 tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el));
@@ -1082,13 +1170,13 @@
             async function fetchBookingsByDeparture(departureId) {
                 // Check cache first
                 if (bookingsCache[departureId]) {
-                    console.log('[AJAX] Using cached data for departure:', departureId);
+                    if (DEBUG) console.log('[AJAX] Using cached data for departure:', departureId);
                     return bookingsCache[departureId];
                 }
-                
+
                 const url = BOOKINGS_API_BASE + departureId;
-                console.log('[AJAX] Fetching bookings from:', url);
-                
+                if (DEBUG) console.log('[AJAX] Fetching bookings from:', url);
+
                 try {
                     const response = await fetch(url, {
                         method: 'GET',
@@ -1097,14 +1185,14 @@
                             'X-CSRF-TOKEN': csrfToken
                         }
                     });
-                    
+
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
-                    
+
                     const result = await response.json();
-                    console.log('[AJAX] Response:', result);
-                    
+                    if (DEBUG) console.log('[AJAX] Response:', result);
+
                     if (result.success && result.data) {
                         // Cache the result with all metadata
                         bookingsCache[departureId] = {
@@ -1120,24 +1208,35 @@
                         };
                         return bookingsCache[departureId];
                     }
-                    return { bookings: [], isAfterCutoff: false, departureStatus: 'open', tourStatus: 'open' };
+                    return {
+                        bookings: [],
+                        isAfterCutoff: false,
+                        departureStatus: 'open',
+                        tourStatus: 'open'
+                    };
                 } catch (error) {
                     console.error('[AJAX] Error fetching bookings:', error);
-                    return { bookings: [], isAfterCutoff: false, departureStatus: 'open', tourStatus: 'open' };
+                    return {
+                        bookings: [],
+                        isAfterCutoff: false,
+                        departureStatus: 'open',
+                        tourStatus: 'open'
+                    };
                 }
             }
 
             async function loadPanelOnce(panel) {
                 if (!panel || panel.dataset.loaded === 'true') return;
                 const departureId = panel.dataset.departureKey;
-                
+
                 // Show loading state
                 const wrapper = panel.querySelector('.booking-table-wrapper');
                 const placeholder = panel.querySelector('.booking-placeholder');
                 if (placeholder) {
-                    placeholder.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Đang tải danh sách booking...';
+                    placeholder.innerHTML =
+                        '<i class="fas fa-spinner fa-spin me-2"></i> Đang tải danh sách booking...';
                 }
-                
+
                 const result = await fetchBookingsByDeparture(departureId);
                 renderBookingTable(panel, result.bookings, result);
                 panel.dataset.loaded = 'true';
@@ -1146,28 +1245,37 @@
             function setupLazyBookingTables() {
                 const toggleButtons = document.querySelectorAll('[data-toggle-bookings]');
                 toggleButtons.forEach(btn => {
-                    btn.addEventListener('click', async function () {
+                    btn.addEventListener('click', async function() {
                         const targetId = this.dataset.target;
                         const departureId = String(this.dataset.departureId);
-                        const panel = document.getElementById(targetId) || this.closest('.departure-card')?.querySelector(`#${targetId}`);
-                        console.log('[Xem booking] Click', { departureId, targetId, hasPanel: !!panel });
+                        const panel = document.getElementById(targetId) || this.closest(
+                            '.departure-card')?.querySelector(`#${targetId}`);
+                        if (DEBUG) console.log('[Xem booking] Click', {
+                            departureId,
+                            targetId,
+                            hasPanel: !!panel
+                        });
                         if (!panel) return;
 
                         // Check if already loaded
                         if (panel.dataset.loaded === 'true') {
-                            console.log('[Xem booking] Already loaded, skipping fetch');
+                            if (DEBUG) console.log('[Xem booking] Already loaded, skipping fetch');
                             return;
                         }
 
                         // Show loading state
                         const placeholder = panel.querySelector('.booking-placeholder');
                         if (placeholder) {
-                            placeholder.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Đang tải danh sách booking...';
+                            placeholder.innerHTML =
+                                '<i class="fas fa-spinner fa-spin me-2"></i> Đang tải danh sách booking...';
                         }
 
                         // Fetch via AJAX
                         const result = await fetchBookingsByDeparture(departureId);
-                        console.log('[Xem booking] Loaded bookings', { departureId, count: result.bookings?.length });
+                        if (DEBUG) console.log('[Xem booking] Loaded bookings', {
+                            departureId,
+                            count: result.bookings?.length
+                        });
 
                         renderBookingTable(panel, result.bookings, result);
                         panel.dataset.loaded = 'true';
@@ -1177,7 +1285,7 @@
                 // Phòng trường hợp người dùng mở collapse bằng các cách khác
                 const collapses = document.querySelectorAll('.collapse[data-departure-key]');
                 collapses.forEach(panel => {
-                    panel.addEventListener('show.bs.collapse', async function () {
+                    panel.addEventListener('show.bs.collapse', async function() {
                         await loadPanelOnce(panel);
                     });
                 });
@@ -1386,12 +1494,12 @@
                 button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
                 button.disabled = true;
 
-                console.log('Generating invoice for booking:', bookingId);
+                if (DEBUG) console.log('Generating invoice for booking:', bookingId);
 
                 // First test simple debug route
                 const debugResponse = await fetch(`/debug-invoice-simple/${bookingId}`);
                 const debugData = await debugResponse.json();
-                console.log('Debug response:', debugData);
+                if (DEBUG) console.log('Debug response:', debugData);
 
                 if (!debugData.success) {
                     throw new Error('Debug failed: ' + debugData.message);
@@ -1406,14 +1514,14 @@
                     }
                 });
 
-                console.log('Response status:', response.status);
+                if (DEBUG) console.log('Response status:', response.status);
 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
                 const data = await response.json();
-                console.log('Response data:', data);
+                if (DEBUG) console.log('Response data:', data);
 
                 if (data.success && data.data && data.data.download_url) {
                     // Open PDF in new tab
@@ -1523,7 +1631,7 @@
                     </ul>
                 </div>
             ` : '';
-            
+
             const modalHtml = `
                 <div class="modal fade" id="confirmGroupModal" tabindex="-1">
                     <div class="modal-dialog">
@@ -1558,17 +1666,17 @@
                     </div>
                 </div>
             `;
-            
+
             document.body.insertAdjacentHTML('beforeend', modalHtml);
             const modal = new bootstrap.Modal(document.getElementById('confirmGroupModal'));
             modal.show();
-            
+
             document.getElementById('confirmGroupForm').addEventListener('submit', async function(e) {
                 e.preventDefault();
                 const formData = new FormData(this);
-                
+
                 try {
-                    const response = await fetch('{{ route("admin.bookings.confirm-group") }}', {
+                    const response = await fetch('{{ route('admin.bookings.confirm-group') }}', {
                         method: 'POST',
                         headers: {
                             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
@@ -1576,7 +1684,7 @@
                         },
                         body: formData
                     });
-                    
+
                     const data = await response.json();
                     if (data.success) {
                         showAlert('success', data.message);
@@ -1589,7 +1697,7 @@
                     showAlert('danger', 'Lỗi: ' + error.message);
                 }
             });
-            
+
             document.getElementById('confirmGroupModal').addEventListener('hidden.bs.modal', function() {
                 this.remove();
             });
@@ -1657,36 +1765,38 @@
                     </div>
                 </div>
             `;
-            
+
             document.body.insertAdjacentHTML('beforeend', modalHtml);
             const modal = new bootstrap.Modal(document.getElementById('assignGuideModal'));
             modal.show();
 
             // Gọi API để lấy danh sách HDV có sẵn
             try {
-                const availableGuidesUrl = '{{ route("admin.bookings.available-guides") }}';
-                const url = availableGuidesUrl + '?departure_date=' + encodeURIComponent(departureDate) + '&tour_id=' + encodeURIComponent(tourId);
+                const availableGuidesUrl = '{{ route('admin.bookings.available-guides') }}';
+                const url = availableGuidesUrl + '?departure_date=' + encodeURIComponent(departureDate) + '&tour_id=' +
+                    encodeURIComponent(tourId);
                 const response = await fetch(url, {
                     headers: {
                         'Accept': 'application/json'
                     }
                 });
-                
+
                 const data = await response.json();
                 const selectElement = document.getElementById('guide_id');
                 const guidesData = {}; // Lưu thông tin chi tiết HDV
-                
+
                 if (data.success && data.data.length > 0) {
                     let optionsHtml = '<option value="">-- Chọn hướng dẫn viên --</option>';
                     data.data.forEach(guide => {
-                        optionsHtml += `<option value="${guide.id}" data-phone="${guide.phone || ''}" data-email="${guide.email || ''}">${guide.name} (${guide.email || 'N/A'})</option>`;
+                        optionsHtml +=
+                            `<option value="${guide.id}" data-phone="${guide.phone || ''}" data-email="${guide.email || ''}">${guide.name} (${guide.email || 'N/A'})</option>`;
                         guidesData[guide.id] = {
                             phone: guide.phone || 'Chưa có',
                             email: guide.email || 'Chưa có'
                         };
                     });
                     selectElement.innerHTML = optionsHtml;
-                    
+
                     // Event listener để hiển thị thông tin chi tiết khi chọn HDV
                     selectElement.addEventListener('change', function() {
                         const selectedId = this.value;
@@ -1707,21 +1817,22 @@
                 console.error('Error loading guides:', error);
                 document.getElementById('guide_id').innerHTML = '<option value="">Lỗi khi tải danh sách HDV</option>';
             }
-            
+
             document.getElementById('assignGuideForm').addEventListener('submit', async function(e) {
                 e.preventDefault();
                 const formData = new FormData(this);
-                
+
                 try {
-                    const response = await fetch('{{ route("admin.bookings.assign-guide") }}', {
+                    const response = await fetch('{{ route('admin.bookings.assign-guide') }}', {
                         method: 'POST',
                         headers: {
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')
+                                .content,
                             'Accept': 'application/json'
                         },
                         body: formData
                     });
-                    
+
                     const data = await response.json();
                     if (data.success) {
                         showAlert('success', data.message);
@@ -1734,7 +1845,7 @@
                     showAlert('danger', 'Lỗi: ' + error.message);
                 }
             });
-            
+
             document.getElementById('assignGuideModal').addEventListener('hidden.bs.modal', function() {
                 this.remove();
             });
@@ -1745,12 +1856,12 @@
             // Lấy thông tin tổng số khách hiện tại
             // Ưu tiên dùng giá trị truyền vào, nếu không có thì fetch từ API
             let totalGuests = parseInt(initialTotalGuests) || 0;
-            
+
             // Nếu không có totalGuests ban đầu và có departureId, fetch từ API
             if (totalGuests === 0 && departureId && departureId !== 'null') {
                 try {
                     const bookingsResult = await fetchBookingsByDeparture(departureId);
-                    console.log('[Gán xe] Bookings result:', bookingsResult);
+                    if (DEBUG) console.log('[Gán xe] Bookings result:', bookingsResult);
                     if (bookingsResult) {
                         // Ưu tiên lấy từ metadata
                         if (bookingsResult.total_guests !== undefined && bookingsResult.total_guests > 0) {
@@ -1758,18 +1869,20 @@
                         } else if (bookingsResult.bookings && Array.isArray(bookingsResult.bookings)) {
                             // Tính lại từ danh sách booking nếu không có trong metadata
                             totalGuests = bookingsResult.bookings.reduce((sum, booking) => {
-                                return sum + (parseInt(booking.adults) || 0) + (parseInt(booking.children) || 0);
+                                return sum + (parseInt(booking.adults) || 0) + (parseInt(booking.children) ||
+                                    0);
                             }, 0);
                         }
                     }
-                    console.log('[Gán xe] Total guests from API:', totalGuests);
+                    if (DEBUG) console.log('[Gán xe] Total guests from API:', totalGuests);
                 } catch (e) {
                     console.warn('Could not fetch total guests:', e);
                 }
             }
-            
-            console.log('[Gán xe] Final total guests:', totalGuests, 'Initial:', initialTotalGuests, 'DepartureId:', departureId);
-            
+
+            if (DEBUG) console.log('[Gán xe] Final total guests:', totalGuests, 'Initial:', initialTotalGuests, 'DepartureId:',
+                departureId);
+
             // Hiển thị modal với loading state
             const modalHtml = `
                 <div class="modal fade" id="assignVehicleModal" tabindex="-1">
@@ -1844,29 +1957,31 @@
                     </div>
                 </div>
             `;
-            
+
             document.body.insertAdjacentHTML('beforeend', modalHtml);
             const modal = new bootstrap.Modal(document.getElementById('assignVehicleModal'));
             modal.show();
 
             // Gọi API để lấy danh sách xe có sẵn
             try {
-                const availableVehiclesUrl = '{{ route("admin.bookings.available-vehicles") }}';
-                const url = availableVehiclesUrl + '?departure_date=' + encodeURIComponent(departureDate) + '&tour_id=' + encodeURIComponent(tourId);
+                const availableVehiclesUrl = '{{ route('admin.bookings.available-vehicles') }}';
+                const url = availableVehiclesUrl + '?departure_date=' + encodeURIComponent(departureDate) +
+                    '&tour_id=' + encodeURIComponent(tourId);
                 const response = await fetch(url, {
                     headers: {
                         'Accept': 'application/json'
                     }
                 });
-                
+
                 const data = await response.json();
                 const selectElement = document.getElementById('vehicle_id');
                 const vehiclesData = {}; // Lưu thông tin chi tiết xe
-                
+
                 if (data.success && data.data.length > 0) {
                     let optionsHtml = '<option value="">-- Chọn xe --</option>';
                     data.data.forEach(vehicle => {
-                        const label = vehicle.label || `${vehicle.license_plate || 'N/A'} - ${vehicle.vehicle_type || 'N/A'} chỗ`;
+                        const label = vehicle.label ||
+                            `${vehicle.license_plate || 'N/A'} - ${vehicle.vehicle_type || 'N/A'} chỗ`;
                         const capacity = parseInt(vehicle.capacity || vehicle.seats || 0);
                         optionsHtml += `<option value="${vehicle.id}" 
                             data-driver="${vehicle.driver_name || ''}" 
@@ -1881,7 +1996,7 @@
                         };
                     });
                     selectElement.innerHTML = optionsHtml;
-                    
+
                     // Cập nhật lại totalGuests nếu có departureId và chưa có giá trị (lấy từ cache hoặc tính lại)
                     if (departureId && departureId !== 'null' && totalGuests === 0) {
                         try {
@@ -1892,29 +2007,30 @@
                                     updatedTotalGuests = parseInt(bookingsResult.total_guests) || 0;
                                 } else if (bookingsResult.bookings && Array.isArray(bookingsResult.bookings)) {
                                     updatedTotalGuests = bookingsResult.bookings.reduce((sum, booking) => {
-                                        return sum + (parseInt(booking.adults) || 0) + (parseInt(booking.children) || 0);
+                                        return sum + (parseInt(booking.adults) || 0) + (parseInt(booking
+                                            .children) || 0);
                                     }, 0);
                                 }
                                 if (updatedTotalGuests > 0) {
                                     document.getElementById('currentTotalGuests').textContent = updatedTotalGuests;
                                     totalGuests = updatedTotalGuests;
-                                    console.log('[Gán xe] Updated total guests from API:', updatedTotalGuests);
+                                    if (DEBUG) console.log('[Gán xe] Updated total guests from API:', updatedTotalGuests);
                                 }
                             }
                         } catch (e) {
                             console.warn('Could not update total guests:', e);
                         }
                     }
-                    
+
                     // Event listener để hiển thị thông tin chi tiết và cảnh báo khi chọn xe
                     selectElement.addEventListener('change', function() {
                         const selectedId = this.value;
                         const vehicleInfoCard = document.getElementById('vehicleInfoCard');
                         const capacityWarning = document.getElementById('capacityWarning');
                         const confirmBtn = document.getElementById('confirmVehicleBtn');
-                        
-                        console.log('[Gán xe] Vehicle selected:', selectedId, vehiclesData[selectedId]);
-                        
+
+                        if (DEBUG) console.log('[Gán xe] Vehicle selected:', selectedId, vehiclesData[selectedId]);
+
                         if (selectedId && vehiclesData[selectedId]) {
                             const vehicle = vehiclesData[selectedId];
                             document.getElementById('vehicleDriver').textContent = vehicle.driver;
@@ -1922,27 +2038,29 @@
                             document.getElementById('vehicleCompany').textContent = vehicle.company;
                             document.getElementById('vehicleCapacity').textContent = vehicle.capacity + ' chỗ';
                             vehicleInfoCard.classList.remove('d-none');
-                            
+
                             // Kiểm tra sức chứa - ĐẢM BẢO SO SÁNH ĐÚNG KIỂU DỮ LIỆU
-                            const currentGuestsText = document.getElementById('currentTotalGuests').textContent.trim();
+                            const currentGuestsText = document.getElementById('currentTotalGuests').textContent
+                                .trim();
                             const currentGuests = parseInt(currentGuestsText) || 0;
                             const vehicleCapacity = parseInt(vehicle.capacity) || 0;
-                            
-                            console.log('[Gán xe] Capacity check:', {
+
+                            if (DEBUG) console.log('[Gán xe] Capacity check:', {
                                 currentGuests,
                                 vehicleCapacity,
                                 currentGuestsText,
                                 vehicleCapacityRaw: vehicle.capacity
                             });
-                            
+
                             if (vehicleCapacity > 0 && currentGuests > vehicleCapacity) {
                                 const excess = currentGuests - vehicleCapacity;
-                                document.getElementById('capacityWarningText').innerHTML = 
+                                document.getElementById('capacityWarningText').innerHTML =
                                     `Số khách (<strong>${currentGuests}</strong>) vượt quá sức chứa xe (<strong>${vehicleCapacity} chỗ</strong>). Vượt <strong class="text-danger">${excess} khách</strong>. Vui lòng xác nhận lại!`;
                                 capacityWarning.classList.remove('d-none');
                                 confirmBtn.classList.remove('btn-warning');
                                 confirmBtn.classList.add('btn-danger');
-                                confirmBtn.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i> Xác nhận gán xe (Vượt sức chứa)';
+                                confirmBtn.innerHTML =
+                                    '<i class="fas fa-exclamation-triangle me-1"></i> Xác nhận gán xe (Vượt sức chứa)';
                             } else {
                                 capacityWarning.classList.add('d-none');
                                 confirmBtn.classList.remove('btn-danger');
@@ -1965,21 +2083,22 @@
                 console.error('Error loading vehicles:', error);
                 document.getElementById('vehicle_id').innerHTML = '<option value="">Lỗi khi tải danh sách xe</option>';
             }
-            
+
             document.getElementById('assignVehicleForm').addEventListener('submit', async function(e) {
                 e.preventDefault();
                 const formData = new FormData(this);
-                
+
                 try {
-                    const response = await fetch('{{ route("admin.bookings.assign-vehicle") }}', {
+                    const response = await fetch('{{ route('admin.bookings.assign-vehicle') }}', {
                         method: 'POST',
                         headers: {
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')
+                                .content,
                             'Accept': 'application/json'
                         },
                         body: formData
                     });
-                    
+
                     const data = await response.json();
                     if (data.success) {
                         showAlert('success', data.message);
@@ -1992,7 +2111,7 @@
                     showAlert('danger', 'Lỗi: ' + error.message);
                 }
             });
-            
+
             document.getElementById('assignVehicleModal').addEventListener('hidden.bs.modal', function() {
                 this.remove();
             });
@@ -2029,17 +2148,17 @@
                     </div>
                 </div>
             `;
-            
+
             document.body.insertAdjacentHTML('beforeend', modalHtml);
             const modal = new bootstrap.Modal(document.getElementById('sendPreTourInfoModal'));
             modal.show();
-            
+
             document.getElementById('sendPreTourInfoForm').addEventListener('submit', async function(e) {
                 e.preventDefault();
                 const formData = new FormData(this);
-                
+
                 try {
-                    const response = await fetch('{{ route("admin.bookings.send-pre-tour-info") }}', {
+                    const response = await fetch('{{ route('admin.bookings.send-pre-tour-info') }}', {
                         method: 'POST',
                         headers: {
                             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
@@ -2047,7 +2166,7 @@
                         },
                         body: formData
                     });
-                    
+
                     const data = await response.json();
                     if (data.success) {
                         showAlert('success', data.message);
@@ -2059,7 +2178,7 @@
                     showAlert('danger', 'Lỗi: ' + error.message);
                 }
             });
-            
+
             document.getElementById('sendPreTourInfoModal').addEventListener('hidden.bs.modal', function() {
                 this.remove();
             });
@@ -2101,20 +2220,20 @@
                     </div>
                 </div>
             `;
-            
+
             document.body.insertAdjacentHTML('beforeend', modalHtml);
             const modal = new bootstrap.Modal(document.getElementById('operationNoteModal'));
             modal.show();
-            
+
             document.getElementById('operationNoteForm').addEventListener('submit', async function(e) {
                 e.preventDefault();
                 const formData = new FormData(this);
-                
+
                 // TODO: Implement API endpoint for saving operation notes
                 // For now, just show success message
                 showAlert('info', 'Chức năng lưu ghi chú đang được phát triển');
                 modal.hide();
-                
+
                 /* Uncomment when API is ready:
                 try {
                     const response = await fetch('/admin/bookings/save-operation-note', {
@@ -2138,22 +2257,22 @@
                 }
                 */
             });
-            
+
             document.getElementById('operationNoteModal').addEventListener('hidden.bs.modal', function() {
                 this.remove();
             });
         }
-        
+
         // ==========================================
         // BOOKING ACTIONS (từ table booking)
         // ==========================================
-        
+
         /**
          * Xác nhận booking (chuyển từ HOLD sang PENDING hoặc CONFIRMED)
          */
         async function confirmBooking(bookingId) {
             if (!confirm('Bạn có chắc muốn xác nhận booking này?')) return;
-            
+
             try {
                 const response = await fetch(`{{ url('admin/bookings') }}/${bookingId}/confirm`, {
                     method: 'POST',
@@ -2162,7 +2281,7 @@
                         'Accept': 'application/json'
                     }
                 });
-                
+
                 const data = await response.json();
                 if (data.success) {
                     showAlert('success', data.message || 'Đã xác nhận booking thành công!');
@@ -2177,13 +2296,13 @@
                 showAlert('danger', 'Lỗi: ' + error.message);
             }
         }
-        
+
         /**
          * Huỷ giữ chỗ (booking HOLD)
          */
         async function cancelHoldBooking(bookingId) {
             if (!confirm('Bạn có chắc muốn huỷ giữ chỗ này? Booking sẽ chuyển sang trạng thái CANCELLED.')) return;
-            
+
             try {
                 const response = await fetch(`{{ url('admin/bookings') }}/${bookingId}/cancel`, {
                     method: 'POST',
@@ -2192,7 +2311,7 @@
                         'Accept': 'application/json'
                     }
                 });
-                
+
                 const data = await response.json();
                 if (data.success) {
                     showAlert('success', data.message || 'Đã huỷ giữ chỗ thành công!');
@@ -2207,14 +2326,120 @@
                 showAlert('danger', 'Lỗi: ' + error.message);
             }
         }
-        
+
         /**
          * In danh sách khách của booking
          */
         function printGuestList(bookingId) {
             window.open(`{{ url('admin/bookings') }}/${bookingId}/print-guests`, '_blank');
         }
+    });
+
+    /**
+     * Mở modal xác nhận kết thúc tour - Global function để có thể gọi từ onclick
+     */
+    window.openEndTourModal = function(departureId, tourTitle = 'N/A', departureDate = 'N/A') {
+            if (!departureId || departureId === 'null') {
+                showAlert('warning', 'Không tìm thấy thông tin departure');
+                return;
+            }
+
+            const modalHtml = `
+                <div class="modal fade" id="endTourModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header bg-danger text-white">
+                                <h5 class="modal-title">
+                                    <i class="fas fa-flag-checkered me-2"></i>
+                                    Xác nhận kết thúc tour
+                                </h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <form id="endTourForm">
+                                <div class="modal-body">
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        <strong>Cảnh báo!</strong> Hành động này sẽ đánh dấu tour đã kết thúc và không thể hoàn tác.
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Thông tin tour:</label>
+                                        <div class="card bg-light">
+                                            <div class="card-body">
+                                                <p class="mb-1"><strong>Tour:</strong> ${tourTitle}</p>
+                                                <p class="mb-0"><strong>Ngày khởi hành:</strong> ${departureDate}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <input type="hidden" name="departure_id" value="${departureId}">
+                                    <div class="mb-3">
+                                        <label for="end_tour_notes" class="form-label">Ghi chú (tùy chọn)</label>
+                                        <textarea class="form-control" id="end_tour_notes" name="notes" rows="3" 
+                                                  placeholder="Nhập ghi chú về việc kết thúc tour (ví dụ: Tour đã hoàn thành thành công, Khách đã về an toàn...)"></textarea>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                                    <button type="submit" class="btn btn-danger">
+                                        <i class="fas fa-check me-1"></i> Xác nhận kết thúc
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Xóa modal cũ nếu có
+            document.getElementById('endTourModal')?.remove();
+            
+            // Thêm modal mới vào DOM
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // Hiển thị modal
+            const modal = new bootstrap.Modal(document.getElementById('endTourModal'));
+            modal.show();
+
+            // Xử lý submit form
+            document.getElementById('endTourForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+                const submitBtn = this.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                
+                try {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Đang xử lý...';
+
+                    const response = await fetch('{{ route('admin.bookings.end-tour') }}', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json'
+                        },
+                        body: formData
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        showAlert('success', data.message || 'Tour đã được kết thúc thành công!');
+                        modal.hide();
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        showAlert('danger', data.message || 'Có lỗi xảy ra khi kết thúc tour');
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalText;
+                    }
+                } catch (error) {
+                    showAlert('danger', 'Lỗi: ' + error.message);
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                }
+            });
+
+            // Xóa modal khỏi DOM khi đóng
+            document.getElementById('endTourModal').addEventListener('hidden.bs.modal', function() {
+                this.remove();
+            });
+    };
     </script>
 @endsection
-
-

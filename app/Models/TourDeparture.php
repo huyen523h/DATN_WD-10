@@ -120,12 +120,17 @@ class TourDeparture extends Model
             return 'sold_out';
         }
 
-        // Sắp khởi hành: còn ≤ 7 ngày
-        if ($daysUntilDeparture >= 0 && $daysUntilDeparture <= 7) {
+        // Đang chạy: ngày hiện tại == ngày khởi hành (diffInDays == 0)
+        if ($daysUntilDeparture == 0) {
+            return 'running';
+        }
+
+        // Sắp khởi hành: còn > 0 và ≤ 3 ngày
+        if ($daysUntilDeparture > 0 && $daysUntilDeparture <= 3) {
             return 'upcoming';
         }
 
-        // Đang mở bán: ngày hiện tại < ngày khởi hành và còn chỗ
+        // Đang mở bán: ngày hiện tại < ngày khởi hành và còn chỗ (khoảng cách > 3 ngày)
         if ($today->lt($departureDate) && $this->seats_available > 0) {
             return 'available';
         }
