@@ -179,27 +179,6 @@
     </div>
 </div>
 
-                    {{-- <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold">
-                            Chọn xe <span class="text-danger">*</span>
-                        </label>
-                        <select name="vehicle_id" class="form-select" required>
-                            <option value="">-- Chọn xe --</option>
-                            @foreach($vehicles as $vehicle)
-                                @php
-                                    $typeMap = ['16' => '16 chỗ', '29' => '29 chỗ', '45' => '45 chỗ'];
-                                    $typeLabel = $typeMap[$vehicle->vehicle_type] ?? ($vehicle->vehicle_type . ' chỗ');
-                                    $label = '[' . $typeLabel . '] ' . ($vehicle->brand ?? '') . ' ' . ($vehicle->color ?? '') . ' - ' . $vehicle->license_plate;
-                                @endphp
-                                <option value="{{ $vehicle->id }}" 
-                                    {{ $booking->departure && $booking->departure->vehicle_id == $vehicle->id ? 'selected' : '' }}>
-                                    {{ trim($label) }}
-                                </option>
-                            @endforeach
-                        </select>
-                        <small class="text-muted">Danh sách lấy từ mục <strong>Quản lý xe</strong>. Chỉ hiển thị các xe đang hoạt động.</small>
-                    </div> --}}
-
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-bold">
                             Thông tin xe & Tài xế
@@ -282,17 +261,22 @@
         </div>
         <div class="card-body">
             <div class="d-flex align-items-center">
-                <div class="me-3">
-                    {{-- Hiển thị ảnh thumb nhỏ --}}
-                    <img src="{{ Storage::url($booking->receipt_image) }}" alt="Receipt" 
-                         class="img-thumbnail" style="height: 80px; width: 80px; object-fit: cover;">
-                </div>
+               <div class="me-3">
+    {{-- Hiển thị ảnh thumb nhỏ --}}
+    <img src="{{ Str::startsWith($booking->receipt_image, '/storage') ? asset($booking->receipt_image) : asset('storage/' . $booking->receipt_image) }}" 
+         alt="Receipt" 
+         class="img-thumbnail" 
+         style="height: 80px; width: 80px; object-fit: cover;"
+         onerror="this.src='https://placehold.co/80x80?text=Lỗi+Ảnh'">
+</div>
                 <div>
                     <h6 class="font-weight-bold text-success mb-1">Đã lưu ảnh phiếu thu</h6>
                     <p class="small text-muted mb-2">Ảnh này được upload bởi Admin/Nhân viên khi xác nhận thu tiền.</p>
-                    <a href="{{ Storage::url($booking->receipt_image) }}" target="_blank" class="btn btn-sm btn-outline-success">
-                        <i class="fas fa-expand"></i> Xem ảnh gốc (Full Size)
-                    </a>
+                 <a href="{{ Str::startsWith($booking->receipt_image, '/storage') ? asset($booking->receipt_image) : asset('storage/' . $booking->receipt_image) }}" 
+   target="_blank" 
+   class="btn btn-sm btn-outline-success">
+    <i class="fas fa-expand"></i> Xem ảnh gốc (Full Size)
+</a>
                 </div>
             </div>
         </div>
@@ -596,7 +580,7 @@
     <div class="d-grid gap-2">
 
         {{-- 1. Nút Xác nhận đơn (Chỉ hiện khi Pending) --}}
-        @if ($booking->status === 'pending')
+        {{-- @if ($booking->status === 'pending')
             <form action="{{ route('admin.bookings.confirm', $booking) }}" method="POST" class="d-inline"
                   onsubmit="return confirm('Bạn có chắc chắn muốn XÁC NHẬN đơn hàng này?')">
                 @csrf
@@ -604,10 +588,10 @@
                     <i class="fas fa-check"></i> Xác nhận đơn
                 </button>
             </form>
-        @endif
+        @endif --}}
 
         {{-- 2. Nút Thu tiền (Chỉ hiện khi Confirmed) --}}
-        @if ($booking->status === 'confirmed')
+        @if (in_array($booking->status, ['pending', 'confirmed']))
             <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#paymentModal">
                 <i class="fas fa-money-bill-wave me-2"></i> Xác nhận Thu tiền mặt
             </button>
@@ -770,22 +754,6 @@
     </div>
 </div>
 
-{{-- HIỂN THỊ ẢNH PHIẾU THU (NẾU CÓ) --}}
-{{-- @if($booking->receipt_image)
-    <div class="alert alert-success d-flex align-items-center shadow-sm mt-3">
-        <div class="me-3">
-            <i class="fas fa-file-invoice-dollar fa-3x text-success"></i>
-        </div>
-        <div>
-            <h6 class="fw-bold mb-1">Đã có biên lai thu tiền mặt</h6>
-            <p class="mb-1 small">Ảnh bằng chứng đã được lưu trữ trên hệ thống.</p>
-            <a href="{{ Storage::url($booking->receipt_image) }}" target="_blank" class="btn btn-sm btn-success">
-                <i class="fas fa-eye me-1"></i> Xem ảnh hóa đơn gốc
-            </a>
-        </div>
-    </div>
-@endif --}}
-
 {{-- Lý do hủy tour phía ad --}}
 <div class="modal fade" id="cancelModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -810,7 +778,7 @@
                     </div>
 
                     {{-- 2. LOGIC TỰ ĐỘNG TÍNH TIỀN --}}
-                    @if($booking->status === 'paid')
+                 @if($booking->status === 'paid' || $booking->status === 'cancel_requested')
                         @php 
                             $refundInfo = $booking->getRefundInfo(); 
                         @endphp

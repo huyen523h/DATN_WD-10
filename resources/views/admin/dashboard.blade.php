@@ -138,28 +138,48 @@
                 </div>
                 <div class="card-body">
                     <!-- Thống kê nhanh -->
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <div class="stat-box bg-primary text-white p-3 rounded">
-                                <div class="stat-label">Tổng doanh thu năm {{ $selectedYear }}</div>
-                                <div class="stat-value">{{ number_format($yearlyTotal, 0, ',', '.') }} đ</div>
+                   <div class="row mb-4">
+                        {{-- 1. Tổng tiền thu vào (Gross) --}}
+                        <div class="col-md-4 mb-2">
+                            <div class="stat-box bg-primary text-white p-3 rounded shadow-sm h-100">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="text-uppercase small opacity-75 mb-1 fw-bold">Tổng thu tháng này</div>
+                                        <div class="h4 mb-0 fw-bold">
+                                            {{ number_format($stats['revenue_this_month'] ?? 0) }} ₫
+                                        </div>
+                                    </div>
+                                    <i class="fas fa-wallet fa-2x opacity-50"></i>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="stat-box bg-success text-white p-3 rounded">
-                                <div class="stat-label">
-                                    @if($selectedMonth)
-                                        Doanh thu tháng {{ $selectedMonth }}/{{ $selectedYear }}
-                                    @else
-                                        Xem theo tháng cụ thể
-                                    @endif
+
+                        {{-- 2. Tổng tiền hoàn ra (Refund) --}}
+                        <div class="col-md-4 mb-2">
+                            <div class="stat-box bg-danger text-white p-3 rounded shadow-sm h-100">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="text-uppercase small opacity-75 mb-1 fw-bold">Đã hoàn tiền (Hủy)</div>
+                                        <div class="h4 mb-0 fw-bold">
+                                            - {{ number_format($stats['refund_this_month'] ?? 0) }} ₫
+                                        </div>
+                                    </div>
+                                    <i class="fas fa-undo-alt fa-2x opacity-50"></i>
                                 </div>
-                                <div class="stat-value">
-                                    @if($selectedMonth)
-                                        {{ number_format($monthlyTotal, 0, ',', '.') }} đ
-                                    @else
-                                        Chọn tháng để xem
-                                    @endif
+                            </div>
+                        </div>
+
+                        {{-- 3. Thực thu (Net) - QUAN TRỌNG NHẤT --}}
+                        <div class="col-md-4 mb-2">
+                            <div class="stat-box bg-success text-white p-3 rounded shadow-sm h-100">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="text-uppercase small opacity-75 mb-1 fw-bold">THỰC THU (Lãi gộp)</div>
+                                        <div class="h4 mb-0 fw-bold">
+                                            {{ number_format($stats['net_income'] ?? 0) }} ₫
+                                        </div>
+                                    </div>
+                                    <i class="fas fa-coins fa-2x opacity-50"></i>
                                 </div>
                             </div>
                         </div>
@@ -263,42 +283,53 @@
                                                     {{ number_format($booking->total_amount, 0, ',', '.') }}đ
                                                 </div>
                                             </td>
-                                            <td class="px-6 py-4">
-                                                @switch($booking->status)
-                                                    @case('pending')
-                                                        <span class="badge badge-warning">
-                                                            <i class="fas fa-circle mr-1" style="font-size: 8px;"></i>
-                                                            Chờ xác nhận
-                                                        </span>
-                                                    @break
+                                           <td class="px-6 py-4">
+    @switch($booking->status)
+        {{-- [SỬA ĐOẠN NÀY]: Đổi text từ "Chờ xác nhận" -> "Chờ thanh toán" --}}
+        @case('pending')
+            <span class="badge badge-warning">
+                <i class="fas fa-clock mr-1" style="font-size: 8px;"></i>
+                Chờ thanh toán
+            </span>
+        @break
 
-                                                    @case('confirmed')
-                                                        <span class="badge badge-success">
-                                                            <i class="fas fa-circle mr-1" style="font-size: 8px;"></i>
-                                                            Đã xác nhận
-                                                        </span>
-                                                    @break
+        {{-- [THÊM MỚI]: Thêm trạng thái đã thanh toán (Paid) --}}
+        @case('paid')
+            <span class="badge badge-success">
+                <i class="fas fa-check-circle mr-1" style="font-size: 8px;"></i>
+                Đã thanh toán
+            </span>
+        @break
 
-                                                    @case('cancelled')
-                                                        <span class="badge badge-danger">
-                                                            <i class="fas fa-circle mr-1" style="font-size: 8px;"></i>
-                                                            Đã hủy
-                                                        </span>
-                                                    @break
+        {{-- Các trạng thái cũ giữ nguyên --}}
+        @case('confirmed')
+            <span class="badge badge-info"> {{-- Đổi màu info cho khác biệt --}}
+                <i class="fas fa-check mr-1" style="font-size: 8px;"></i>
+                Đã xác nhận (Cọc)
+            </span>
+        @break
 
-                                                    @case('completed')
-                                                        <span class="badge badge-info">
-                                                            <i class="fas fa-circle mr-1" style="font-size: 8px;"></i>
-                                                            Hoàn thành
-                                                        </span>
-                                                    @break
+        @case('cancelled')
+        @case('cancel_requested') {{-- Gộp cả yêu cầu hủy vào đây --}}
+            <span class="badge badge-danger">
+                <i class="fas fa-times-circle mr-1" style="font-size: 8px;"></i>
+                Đã hủy / Yêu cầu hủy
+            </span>
+        @break
 
-                                                    @default
-                                                        <span class="badge badge-secondary">
-                                                            {{ $booking->status }}
-                                                        </span>
-                                                @endswitch
-                                            </td>
+        @case('completed')
+            <span class="badge badge-primary">
+                <i class="fas fa-flag-checkered mr-1" style="font-size: 8px;"></i>
+                Hoàn thành
+            </span>
+        @break
+
+        @default
+            <span class="badge badge-secondary">
+                {{ ucfirst($booking->status) }}
+            </span>
+    @endswitch
+</td>
                                             <td class="px-6 py-4 text-center">
                                                 <a href="{{ route('admin.bookings.show', $booking) }}"
                                                     class="btn btn-primary btn-sm" title="Xem chi tiết">

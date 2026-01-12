@@ -140,6 +140,7 @@
                             @endif
                         </div>
 
+
                         <div class="mb-2">
                             <strong>HDV dự phòng:</strong>
                             @if($dep->backupGuide)
@@ -150,6 +151,64 @@
                             @else
                                 <div class="text-muted">Chưa gán</div>
                             @endif
+
+                    @if($booking->service_details || $booking->contract_file)
+<div class="card mb-4 border-success shadow-sm">
+    <div class="card-header bg-success text-white">
+        <h6 class="mb-0 fw-bold"><i class="fas fa-file-signature me-2"></i> Cam kết & Hợp đồng</h6>
+    </div>
+    <div class="card-body">
+        @if($booking->service_details)
+            <div class="mb-3">
+                <strong class="text-success">Dịch vụ bao gồm:</strong>
+                <div class="bg-light p-2 rounded mt-1 border border-success border-opacity-25">
+                    {!! nl2br(e($booking->service_details)) !!}
+                </div>
+            </div>
+        @endif
+        @if($booking->contract_file)
+            <div>
+                <strong>Ảnh hợp đồng:</strong>
+                <a href="{{ Storage::url($booking->contract_file) }}" target="_blank" class="btn btn-sm btn-outline-success fw-bold ms-2">
+                    <i class="fas fa-download me-1"></i> Tải về xem
+                </a>
+            </div>
+        @endif
+    </div>
+</div>
+@endif
+                </div>
+            @else
+                <div class="alert alert-warning mb-4">
+                    <i class="fas fa-exclamation-triangle"></i> Lịch khởi hành đã bị thay đổi. Vui lòng liên hệ Admin để cập nhật lại.
+                </div>
+            @endif
+
+            <div class="card mb-4 border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0 text-primary"><i class="fas fa-images me-2"></i> Hình ảnh & Lịch trình</h6>
+                </div>
+                <div class="card-body">
+                    @if($booking->tour->images->count() > 0)
+                        <div class="row g-2 mb-3">
+                            @foreach($booking->tour->images as $image)
+                                <div class="col-md-4">
+                                    <img src="{{ $image->image_url }}" class="img-fluid rounded" style="height: 120px; width: 100%; object-fit: cover;">
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                    @if($booking->tour->schedules->count() > 0)
+                        <div class="timeline ms-2 border-start ps-3 border-primary">
+                            @foreach($booking->tour->schedules->sortBy('day_number') as $schedule)
+                                <div class="mb-3 position-relative">
+                                    <span class="position-absolute top-0 start-0 translate-middle bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" 
+                                          style="width: 20px; height: 20px; font-size: 10px; left: -17px;">{{ $schedule->day_number }}</span>
+                                    <h6 class="fw-bold mb-1">Ngày {{ $schedule->day_number }}: {{ $schedule->title }}</h6>
+                                    <div class="text-muted small">{{ $schedule->description }}</div>
+                                </div>
+                            @endforeach
+
                         </div>
                     @else
                         <p class="text-muted mb-0">Hướng dẫn viên sẽ được cập nhật khi có phân công.</p>
@@ -163,11 +222,151 @@
                             @if($dep->vehicle->driver_name)
                                 <div class="small text-muted"><i class="fas fa-user"></i> Tài xế: {{ $dep->vehicle->driver_name }} @if($dep->vehicle->driver_phone) - {{ $dep->vehicle->driver_phone }} @endif</div>
                             @endif
+
+                            <h5 class="alert-heading h6 fw-bold mb-1">Biên lai thu tiền</h5>
+                           <a href="{{ Str::startsWith($booking->receipt_image, '/storage') ? asset($booking->receipt_image) : Storage::url($booking->receipt_image) }}" 
+   target="_blank" 
+   class="btn btn-sm btn-light text-success fw-bold">
+    <i class="fas fa-eye me-1"></i> Xem hóa đơn
+</a>
+
                         </div>
                     @else
                         <p class="text-muted mb-0">Thông tin xe sẽ được cập nhật khi phân công.</p>
                     @endif
                 </div>
+
+            {{-- TRƯỜNG HỢP 2: ĐÃ THANH TOÁN --}}
+            @elseif ($booking->status === 'paid' || $booking->status === 'completed')
+                <div class="alert alert-success text-center mb-0 p-3">
+                    <i class="fas fa-check-circle fa-2x mb-2"></i><br>
+                    <strong>Đã thanh toán thành công</strong>
+                </div>
+
+        {{-- TRƯỜNG HỢP 3: MỚI ĐẶT (PENDING) HOẶC ĐÃ DUYỆT (CONFIRMED) -> THANH TOÁN LUÔN --}}
+            {{-- [SỬA LẠI]: Gộp cả 2 trạng thái này để hiện nút thanh toán ngay lập tức --}}
+            @elseif (in_array($booking->status, ['pending', 'confirmed']))
+                
+                <div class="alert alert-warning text-center mb-3 p-2 small border-warning" style="background-color: #fff3cd;">
+                    <i class="fas fa-clock text-warning"></i> Đơn hàng đang giữ chỗ. Vui lòng thanh toán ngay để hoàn tất!
+                </div>
+
+                {{-- CODE CHECKBOX CŨ CỦA BẠN (GIỮ NGUYÊN) --}}
+                <div class="alert alert-light border mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="agreeTermsBooking" required>
+                        <label class="form-check-label" for="agreeTermsBooking">
+                            Tôi đã đọc và đồng ý với 
+                            <a href="{{ route('payment-policy') }}" target="_blank" class="text-primary fw-bold">
+                                Chính sách & Điều khoản Tour Đoàn
+                                <i class="fas fa-external-link-alt ms-1"></i>
+                            </a>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    {{-- Form MoMo --}}
+                    <form action="{{ route('momo_payment', $booking->id) }}" method="POST" class="d-inline" id="momoForm" onsubmit="return validateTermsBeforePayment(event)">
+                        @csrf
+                        <button type="submit" class="btn w-100 fw-bold shadow-sm" 
+                                style="background: linear-gradient(135deg, #A50064 0%, #FF007F 100%); border: none; color: white; padding: 12px;">
+                            <i class="fas fa-mobile-alt me-2"></i>Thanh toán với MoMo
+                        </button>
+                    </form>
+                    
+                    {{-- Form VNPay --}}
+                    <form action="{{ route('payment.vnpay', $booking->id) }}" method="POST" class="d-inline" id="vnpayForm" onsubmit="return validateTermsBeforePayment(event)">
+                        @csrf
+                        <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm" 
+                                style="background: linear-gradient(135deg, #005C97 0%, #363795 100%); border: none; padding: 12px;">
+                            <i class="fas fa-university me-2"></i>Thanh toán với VNPay
+                        </button>
+                    </form>
+                </div>
+                
+                <div class="mt-3 text-center">
+                    <small class="text-muted fst-italic">Vui lòng thanh toán để hệ thống giữ chỗ cho bạn.</small>
+                </div>
+            @else
+                {{-- Trường hợp khác (Expired...) --}}
+                <div class="alert alert-danger text-center">
+                    Trạng thái đơn: {{ $booking->status }}
+                </div>
+            @endif
+        </div>
+    </div>
+
+            {{-- LOGIC HIỂN THỊ NÚT HỦY --}}
+{{-- LOGIC HIỂN THỊ NÚT HỦY TOUR (ĐÃ UPDATE CHECK NGÀY) --}}
+<div class="mt-3 pt-3 border-top">
+
+    @php
+        // 1. Kiểm tra xem Tour đã khởi hành hay chưa
+        $departureDate = \Carbon\Carbon::parse($booking->departure->departure_date);
+        $isTourStarted = $departureDate->isPast(); // True nếu ngày đi < ngày hiện tại
+    @endphp
+
+    {{-- TRƯỜNG HỢP 1: Tour ĐÃ KHỞI HÀNH hoặc ĐÃ KẾT THÚC --}}
+    @if($isTourStarted && $booking->status !== 'cancelled')
+        <div class="alert alert-secondary text-center mb-0 p-2 bg-light border-secondary">
+            <i class="fas fa-flag-checkered fa-2x mb-2 text-secondary"></i><br>
+            <strong class="text-uppercase text-secondary">Tour đã kết thúc / Đã khởi hành</strong>
+            <div class="small text-muted mt-1">Không thể hủy hoặc hoàn tiền sau ngày khởi hành.</div>
+        </div>
+
+    {{-- TRƯỜNG HỢP 2: Đã thanh toán + CHƯA ĐI -> Hiện nút "Yêu cầu Hoàn tiền" --}}
+    @elseif(($booking->status === 'paid' || $booking->status === 'completed') && !$isTourStarted)
+        <div class="text-center">
+            <small class="d-block text-muted mb-2">Bạn muốn thay đổi kế hoạch?</small>
+            <button type="button" class="btn btn-warning w-100 fw-bold text-dark shadow-sm" 
+                    data-bs-toggle="modal" data-bs-target="#requestRefundModal">
+                <i class="fas fa-headset me-1"></i> Yêu cầu Hủy / Hoàn tiền
+            </button>
+        </div>
+
+    {{-- TRƯỜNG HỢP 3: Chưa thanh toán + CHƯA ĐI -> Hiện nút "Hủy đơn" --}}
+    @elseif(in_array($booking->status, ['pending', 'confirmed']) && !$isTourStarted)
+        <button type="button" class="btn btn-outline-danger w-100" 
+                data-bs-toggle="modal" data-bs-target="#userCancelModal">
+            <i class="fas fa-times-circle me-1"></i> Hủy đơn hàng này
+        </button>
+
+    {{-- TRƯỜNG HỢP 4: Đã hủy --}}
+    @elseif($booking->status === 'cancelled')
+        <div class="alert alert-secondary text-center mb-0 p-2 small">
+            <i class="fas fa-ban me-1"></i> Đơn hàng đã hủy
+        </div>
+        
+    {{-- TRƯỜNG HỢP 5: Đang chờ hủy --}}
+    @elseif($booking->status === 'cancel_requested')
+        <div class="alert alert-warning text-center mb-0 p-2 small">
+            <i class="fas fa-clock me-1"></i> Đang chờ xử lý hoàn tiền
+        </div>
+    @endif
+</div>
+            
+          <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white">
+        <h6 class="mb-0 fw-bold text-primary"><i class="fas fa-users me-2"></i>Danh sách đoàn</h6>
+    </div>
+    <div class="card-body">
+        {{-- LOGIC CHẶT CHẼ: Phải thanh toán xong mới được nộp danh sách --}}
+        @if($booking->status === 'paid' || $booking->status === 'completed')
+            
+            {{-- Nút tải file mẫu --}}
+            <div class="mb-3 p-3 bg-light rounded border">
+                <label class="form-label fw-bold mb-2 d-block">
+                    <i class="fas fa-file-download text-success"></i> Tải file mẫu danh sách đoàn
+                </label>
+                <a href="{{ route('bookings.download-manifest-template') }}" 
+                   class="btn btn-success btn-sm" target="_blank">
+                    <i class="fas fa-download"></i> Tải file mẫu danh sách đoàn
+                </a>
+                <small class="text-muted d-block mt-2">
+                    <i class="fas fa-info-circle"></i> File CSV - Mở bằng Excel hoặc Google Sheets để điền thông tin
+                </small>
+
             </div>
 
             {{-- PAYMENT --}}
@@ -256,14 +455,73 @@
 
 @section('scripts')
 <script>
-function validateTermsBeforePayment(event) {
-    const cb = document.getElementById('agreeTerms');
-    if (cb && !cb.checked) {
-        event.preventDefault();
-        alert('Vui lòng đồng ý điều khoản trước khi thanh toán');
-        return false;
+    // 1. Hàm xử lý chọn sao đánh giá
+    function setRating(label, bookingId) {
+        // Tìm input radio tương ứng để check
+        const inputId = label.getAttribute('for');
+        const input = document.getElementById(inputId);
+        if(input) input.checked = true;
+
+        // Tìm modal hiện tại
+        const modal = document.getElementById('reviewModal-' + bookingId);
+        if (!modal) return;
+
+        // Reset màu tất cả các sao về xám
+        const labels = modal.querySelectorAll('.rating-group label');
+        labels.forEach(l => {
+            l.classList.remove('text-warning');
+            l.classList.add('text-muted');
+        });
+
+        // Tô màu vàng cho sao được chọn và các sao phía trước
+        let currentLabel = label;
+        currentLabel.classList.remove('text-muted');
+        currentLabel.classList.add('text-warning');
+
+        let nextSibling = currentLabel.nextElementSibling;
+        while(nextSibling) {
+            if(nextSibling.tagName === 'LABEL') {
+                nextSibling.classList.remove('text-muted');
+                nextSibling.classList.add('text-warning');
+            }
+            nextSibling = nextSibling.nextElementSibling;
+        }
     }
-    return true;
-}
+
+    // 2. Validate điều khoản trước khi thanh toán
+    // Lưu ý: Trong HTML nút submit phải gọi: onsubmit="return validateTermsBeforePayment(event, {{ $booking->id }})"
+    function validateTermsBeforePayment(event, bookingId) {
+        // Tìm checkbox theo ID động (ví dụ: agreeTerms-15)
+        // Nếu bạn đang dùng ID tĩnh 'agreeTermsBooking' thì sửa dòng dưới thành: 
+        // const agreeTerms = document.getElementById('agreeTermsBooking'); 
+        // (Nhưng khuyên dùng ID động cho trang danh sách)
+        
+        const agreeTerms = document.getElementById('agreeTermsBooking'); 
+
+        if (agreeTerms && !agreeTerms.checked) {
+            event.preventDefault();
+            
+            // Tạo thông báo đẹp (Alert Bootstrap)
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-warning alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3 shadow';
+            alertDiv.style.zIndex = '9999';
+            alertDiv.innerHTML = `
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Vui lòng tích chọn "Đồng ý với điều khoản" trước khi thanh toán!</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+            
+            // Scroll tới checkbox để user thấy
+            agreeTerms.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            agreeTerms.focus();
+            
+            // Tự tắt sau 3 giây
+            setTimeout(() => alertDiv.remove(), 3000);
+            
+            return false;
+        }
+        return true;
+    }
 </script>
 @endsection
