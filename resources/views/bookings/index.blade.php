@@ -26,7 +26,7 @@
                                                         class="img-fluid rounded" alt="{{ $booking->tour->title }}"
                                                         style="height: 150px; object-fit: cover; width: 100%;">
                                                 @else
-                                                    <img src="https://via.placeholder.com/300x150/4F46E5/ffffff?text={{ urlencode($booking->tour->title) }}"
+                                                    <img src="{{ placeholder_url('300x150','4F46E5','ffffff',$booking->tour->title) }}"
                                                         class="img-fluid rounded" alt="{{ $booking->tour->title }}"
                                                         style="height: 150px; object-fit: cover; width: 100%;">
                                                 @endif

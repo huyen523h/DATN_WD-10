@@ -30,6 +30,15 @@ use App\Http\Controllers\Guide\GuideSalaryController;
 
 use App\Http\Controllers\Staff\StaffBookingMailController;
 
+// Development fallback: serve storage images when webserver doesn't follow the storage symlink.
+// This helps `php artisan serve` on Windows where the symlink/junction may not be served.
+Route::get('/storage/tours/{path}', function ($path) {
+    $file = storage_path('app/public/tours/' . $path);
+    if (file_exists($file)) {
+        return response()->file($file);
+    }
+    abort(404);
+})->where('path', '.*');
 
 Route::get('/', function () {
     return view('welcome');
@@ -329,13 +338,9 @@ Route::middleware('auth')->group(function () {
         return view('profile.index');
     })->name('profile.index');
 
-    // Route upload danh sách đoàn 
-    Route::post('/bookings/{booking}/upload-manifest', [BookingController::class, 'uploadManifest'])
-        ->name('bookings.upload-manifest');
+    // NOTE: Upload manifest routes removed per request.
 
-    // Route tải file mẫu danh sách đoàn (cho khách hàng)
-    Route::get('/bookings/download-manifest-template', [\App\Http\Controllers\AdminController::class, 'downloadManifestTemplate'])
-        ->name('bookings.download-manifest-template');
+    // NOTE: download/upload manifest routes removed per request.
 
 
     // Lịch sử yêu cầu tour đoàn
@@ -560,8 +565,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         ->name('departures.update_management');
 
 
-    Route::get('/bookings/download-manifest-template', [AdminController::class, 'downloadManifestTemplate'])->name('bookings.download-manifest-template');
-    Route::post('/bookings/{booking}/admin-upload-manifest', [AdminController::class, 'uploadManifest'])->name('bookings.upload-manifest');
+    // admin download manifest template route removed
 
     // Guides management
     Route::resource('guides', GuideWebController::class);

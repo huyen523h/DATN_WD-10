@@ -551,15 +551,7 @@
         <div class="card-body">
             
             {{-- PHẦN HIỂN THỊ FILE ĐÃ CÓ --}}
-            @if($booking->passenger_manifest_file)
-                <div class="mb-3">
-                    <span class="badge bg-success mb-2">Đã có file lưu trữ</span><br>
-                    <a href="{{ Storage::url($booking->passenger_manifest_file) }}" target="_blank" class="btn btn-sm btn-outline-primary">
-                        <i class="fas fa-download"></i> Tải về / Xem danh sách cũ
-                    </a>
-                </div>
-                <hr>
-            @endif
+            {{-- Hiển thị file manifest đã bị ẩn theo yêu cầu; không hiển thị link tải --}}
 
            @if($booking->status !== 'cancelled')
                 
@@ -573,48 +565,10 @@
                         </div>
                     @endif
                     
-                    {{-- Nút tải file mẫu - Nổi bật --}}
                     <div class="mb-3 p-3 bg-light rounded border">
-                        <label class="form-label fw-bold mb-2">
-                            <i class="fas fa-file-download text-success"></i> Tải file mẫu danh sách đoàn
-                        </label>
-                        <a href="{{ route('admin.bookings.download-manifest-template') }}" 
-                           class="btn btn-success" target="_blank">
-                            <i class="fas fa-download"></i> Tải file mẫu danh sách đoàn
-                        </a>
-                        <small class="text-muted d-block mt-2">
-                            <i class="fas fa-info-circle"></i> File CSV - Khách hàng có thể mở bằng Excel hoặc Google Sheets để điền thông tin
-                        </small>
+                        {{-- <div class="fw-bold mb-2"><i class="fas fa-file-download text-muted"></i> Tải file mẫu danh sách đoàn</div>
+                        <div class="text-muted small">Chức năng tải/upload danh sách đoàn đã bị vô hiệu hóa trên hệ thống.</div> --}}
                     </div>
-                    
-                    <hr class="my-3">
-                    
-                    {{-- Form upload file đã điền --}}
-                    <div class="mb-2">
-                        <label class="form-label fw-bold">
-                            <i class="fas fa-upload text-primary"></i> Upload file đã điền thông tin
-                        </label>
-                        <p class="small text-muted mb-2">
-                            Sau khi khách hàng điền thông tin vào file mẫu và gửi lại, vui lòng upload file đã điền lên hệ thống tại đây.
-                        </p>
-                    </div>
-                    <form action="{{ route('admin.bookings.upload-manifest', $booking->id) }}" method="POST" enctype="multipart/form-data">
-                        @csrf
-                        <div class="input-group">
-                            <input type="file" 
-                                   name="manifest_file" 
-                                   class="form-control" 
-                                   accept=".csv,.xls,.xlsx" 
-                                   required>
-                            <button class="btn btn-primary" type="submit">
-                                <i class="fas fa-cloud-upload-alt"></i> Cập nhật danh sách
-                            </button>
-                        </div>
-                        <small class="text-muted d-block mt-1">
-                            <i class="fas fa-info-circle"></i> Chấp nhận file: CSV, XLS, XLSX (tối đa 5MB)
-                        </small>
-                    </form>
-
                 @else
                     {{-- Nếu chưa thanh toán: KHÓA FORM và hiện nhắc nhở --}}
                     <div class="alert alert-secondary small mb-0 text-center">

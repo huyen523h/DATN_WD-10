@@ -22,17 +22,7 @@
                             <div class="carousel-inner">
                                 @foreach ($tour->images as $index => $image)
                                     @php
-                                        $imageUrl = $image->image_url;
-                                        // Nếu là path (không bắt đầu bằng http), xử lý storage path
-                                        if (!str_starts_with($imageUrl, 'http')) {
-                                            // Nếu path đã có /storage/, dùng trực tiếp
-                                            if (str_starts_with($imageUrl, '/storage/')) {
-                                                $imageUrl = asset($imageUrl);
-                                            } else {
-                                                // Nếu là path tương đối, thêm storage/
-                                                $imageUrl = asset('storage/' . $imageUrl);
-                                            }
-                                        }
+                                        $imageUrl = image_url($image->image_url, '800x400');
                                     @endphp
                                     <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
                                         <img src="{{ $imageUrl }}" class="d-block w-100 rounded"
@@ -53,7 +43,7 @@
                             @endif
                         </div>
                     @else
-                        <img src="https://via.placeholder.com/600x400/4F46E5/ffffff?text={{ urlencode($tour->title) }}"
+                        <img src="{{ placeholder_url('600x400','4F46E5','ffffff',$tour->title) }}"
                             class="img-fluid rounded" alt="{{ $tour->title }}">
                     @endif
                 </div>

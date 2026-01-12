@@ -159,11 +159,11 @@
                             </a>
                             <a href="{{ route('admin.bookings', ['cutoff_status' => 'near']) }}" 
                                class="btn btn-sm {{ request('cutoff_status') == 'near' ? 'btn-warning' : 'btn-outline-warning' }}">
-                                <i class="fas fa-clock me-1"></i> Sắp cutoff
+                                <i class="fas fa-clock me-1"></i> Sắp chốt
                             </a>
                             <a href="{{ route('admin.bookings', ['cutoff_status' => 'passed']) }}" 
                                class="btn btn-sm {{ request('cutoff_status') == 'passed' ? 'btn-danger' : 'btn-outline-danger' }}">
-                                <i class="fas fa-exclamation-circle me-1"></i> Quá cutoff
+                                <i class="fas fa-exclamation-circle me-1"></i> Quá hạn chốt
                             </a>
                         </div>
                     </div>
@@ -289,11 +289,11 @@
                     if ($isAfterCutoff) {
                         $cutoffStatus = 'passed';
                         $cutoffBadge = 'bg-danger';
-                        $cutoffLabel = 'Quá cutoff';
+                        $cutoffLabel = 'Quá hạn chốt';
                     } elseif ($isAtCutoff) {
                         $cutoffStatus = 'today';
                         $cutoffBadge = 'bg-warning text-dark';
-                        $cutoffLabel = 'Cutoff hôm nay!';
+                        $cutoffLabel = 'Hạn chốt hôm nay!';
                     } elseif ($daysUntilCutoff !== null && $daysUntilCutoff <= 2) {
                         $cutoffStatus = 'near';
                         $cutoffBadge = 'bg-warning text-dark';
@@ -301,7 +301,7 @@
                     } else {
                         $cutoffStatus = 'ok';
                         $cutoffBadge = 'bg-light text-muted';
-                        $cutoffLabel = $cutoffDate ? 'Cutoff: ' . $cutoffDate->format('d/m') : '';
+                        $cutoffLabel = $cutoffDate ? 'Hạn chốt: ' . $cutoffDate->format('d/m') : '';
                     }
                     
                     // TRẠNG THÁI SẴN SÀNG VẬN HÀNH
@@ -351,7 +351,7 @@
                                             if ($isAfterCutoff) {
                                                 $cutoffTooltip = "⚠️ Đã quá hạn chốt khách!\n❌ Không thể nhận thêm booking\n❌ Không thể tăng số khách\n✅ Chỉ xem và ghi chú nội bộ";
                                             } elseif ($daysUntilCutoff !== null && $daysUntilCutoff <= 2) {
-                                                $cutoffTooltip = "⏰ Còn {$daysUntilCutoff} ngày đến cutoff!\nSau cutoff sẽ không thể nhận booking mới";
+                                                $cutoffTooltip = "⏰ Còn {$daysUntilCutoff} ngày đến hạn chốt!\nSau hạn chốt sẽ không thể nhận booking mới";
                                             }
                                         @endphp
                                         <span class="badge {{ $cutoffBadge }} ms-2" 
@@ -557,7 +557,7 @@
                                                 <span class="badge bg-danger px-3 py-2" 
                                                       title="Đã quá hạn cutoff, liên hệ Admin để override"
                                                       data-bs-toggle="tooltip">
-                                                    <i class="fas fa-lock me-1"></i>Quá cutoff - Chưa chốt
+                                                    <i class="fas fa-lock me-1"></i>Quá hạn chốt - Chưa chốt
                                                 </span>
                                                 @if(auth()->user()->hasRole('admin'))
                                                     <button class="btn btn-sm btn-outline-danger"

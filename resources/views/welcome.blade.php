@@ -332,7 +332,7 @@
             <div class="col-lg-4 col-md-6">
                 <article class="blog-card">
                     <div class="blog-image">
-                        <img src="https://via.placeholder.com/400x250/0EA5E9/ffffff?text=Travel+Tips" 
+                        <img src="{{ placeholder_url('400x250','0EA5E9','ffffff','Travel Tips') }}"
                              alt="Mẹo du lịch" class="img-fluid" style="height: 200px; object-fit: cover;">
                         <div class="blog-category">
                             <span class="badge bg-primary">Mẹo du lịch</span>
@@ -363,8 +363,8 @@
             <div class="col-lg-4 col-md-6">
                 <article class="blog-card">
                     <div class="blog-image">
-                        <img src="https://via.placeholder.com/400x250/06B6D4/ffffff?text=Destinations" 
-                             alt="Điểm đến" class="img-fluid" style="height: 200px; object-fit: cover;">
+                            <img src="{{ placeholder_url('400x250','06B6D4','ffffff','Destinations') }}"
+                                alt="Điểm đến" class="img-fluid" style="height: 200px; object-fit: cover;">
                         <div class="blog-category">
                             <span class="badge bg-success">Điểm đến</span>
                         </div>
@@ -394,8 +394,8 @@
             <div class="col-lg-4 col-md-6">
                 <article class="blog-card">
                     <div class="blog-image">
-                        <img src="https://via.placeholder.com/400x250/0284C7/ffffff?text=Promotions" 
-                             alt="Ưu đãi" class="img-fluid" style="height: 200px; object-fit: cover;">
+                            <img src="{{ placeholder_url('400x250','0284C7','ffffff','Promotions') }}"
+                                alt="Ưu đãi" class="img-fluid" style="height: 200px; object-fit: cover;">
                         <div class="blog-category">
                             <span class="badge bg-warning">Ưu đãi</span>
                         </div>
@@ -502,7 +502,7 @@
                                  class="card-img-top" alt="{{ $tour->title }}" loading="lazy" 
                                  style="height: 250px; object-fit: cover;">
                         @else
-                            <img src="https://via.placeholder.com/400x250/0EA5E9/ffffff?text={{ urlencode($tour->title) }}" 
+                            <img src="{{ placeholder_url('400x250','0EA5E9','ffffff', $tour->title) }}" 
                                  class="card-img-top" alt="{{ $tour->title }}" loading="lazy" 
                                  style="height: 250px; object-fit: cover;">
                         @endif

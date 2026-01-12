@@ -106,30 +106,13 @@
 
             {{-- UPLOAD MANIFEST --}}
             <div class="card mb-4 shadow-sm">
-                <div class="card-header fw-bold text-primary">
+                {{-- <div class="card-header fw-bold text-primary">
                     <i class="fas fa-file-upload"></i> Danh sách đoàn
-                </div>
+                </div> --}}
                 <div class="card-body">
-                    @if(in_array($booking->status, ['paid','completed']))
-                        <a href="{{ route('bookings.download-manifest-template') }}"
-                           class="btn btn-success btn-sm mb-3">
-                            <i class="fas fa-download"></i> Tải file mẫu
-                        </a>
+                    {{-- Nút tải file mẫu đã bị gỡ: chức năng tải/upload danh sách đoàn không còn trên giao diện khách hàng --}}
 
-                        <form method="POST"
-                              action="{{ route('bookings.upload-manifest', $booking->id) }}"
-                              enctype="multipart/form-data">
-                            @csrf
-                            <input type="file" name="manifest_file" class="form-control mb-2" required>
-                            <button class="btn btn-primary btn-sm w-100">
-                                <i class="fas fa-upload"></i> Upload danh sách
-                            </button>
-                        </form>
-                    @else
-                        <div class="alert alert-secondary text-center">
-                            Thanh toán để mở chức năng upload danh sách đoàn
-                        </div>
-                    @endif
+                    {{-- Hiển thị file đã bị ẩn hoàn toàn theo yêu cầu; không hiển thị link tải hoặc thông báo upload --}}
                 </div>
             </div>
 
@@ -138,16 +121,90 @@
         {{-- RIGHT --}}
         <div class="col-lg-4">
 
+            {{-- GUIDE & VEHICLE (hiển thị cho khách) --}}
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="fw-bold border-bottom pb-2 mb-3">Hướng dẫn viên & Xe</h5>
+                    @php $dep = $booking->departure; @endphp
+
+                    @if($dep && ($dep->guide || $dep->backupGuide))
+                        <div class="mb-2">
+                            <strong>HDV chính:</strong>
+                            @if($dep->guide)
+                                <div class="fw-bold">{{ $dep->guide->name }}</div>
+                                @if($dep->guide->phone)
+                                    <div class="small text-muted"><i class="fas fa-phone"></i> {{ $dep->guide->phone }}</div>
+                                @endif
+                            @else
+                                <div class="text-muted">Chưa gán</div>
+                            @endif
+                        </div>
+
+                        <div class="mb-2">
+                            <strong>HDV dự phòng:</strong>
+                            @if($dep->backupGuide)
+                                <div class="fw-bold">{{ $dep->backupGuide->name }}</div>
+                                @if($dep->backupGuide->phone)
+                                    <div class="small text-muted"><i class="fas fa-phone"></i> {{ $dep->backupGuide->phone }}</div>
+                                @endif
+                            @else
+                                <div class="text-muted">Chưa gán</div>
+                            @endif
+                        </div>
+                    @else
+                        <p class="text-muted mb-0">Hướng dẫn viên sẽ được cập nhật khi có phân công.</p>
+                    @endif
+
+                    @if($dep && $dep->vehicle)
+                        <hr>
+                        <div>
+                            <strong>Xe:</strong>
+                            <div class="fw-bold">{{ $dep->vehicle->vehicle_type ?? 'Xe' }} - {{ $dep->vehicle->license_plate ?? '---' }}</div>
+                            @if($dep->vehicle->driver_name)
+                                <div class="small text-muted"><i class="fas fa-user"></i> Tài xế: {{ $dep->vehicle->driver_name }} @if($dep->vehicle->driver_phone) - {{ $dep->vehicle->driver_phone }} @endif</div>
+                            @endif
+                        </div>
+                    @else
+                        <p class="text-muted mb-0">Thông tin xe sẽ được cập nhật khi phân công.</p>
+                    @endif
+                </div>
+            </div>
+
             {{-- PAYMENT --}}
             <div class="card shadow-sm mb-4">
                 <div class="card-body">
                     <h5 class="fw-bold border-bottom pb-2 mb-3">Thanh toán</h5>
 
-                    <div class="d-flex justify-content-between mb-3">
-                        <span>Tổng tiền:</span>
-                        <span class="fw-bold text-primary fs-5">
-                            {{ number_format($booking->total_amount) }}đ
-                        </span>
+                    @php
+                        $dep = $booking->departure;
+                        $adultPrice = $dep->price ?? ($booking->tour->price ?? 0);
+                        $childPrice = $dep->child_price ?? 0;
+                        $adultTotal = ($booking->adults ?? 0) * $adultPrice;
+                        $childTotal = ($booking->children ?? 0) * $childPrice;
+                        $services = $booking->additional_services ?? [];
+                        $servicesTotal = $booking->additional_services_total ?? 0;
+                        $subtotal = $adultTotal + $childTotal + $servicesTotal;
+                        $discount = max(0, $subtotal - $booking->total_amount);
+                    @endphp
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between"><div>Ngày khởi hành</div><div class="text-end">{{ $dep?->departure_date?->format('d/m/Y') ?? '-' }}</div></div>
+                        <div class="d-flex justify-content-between"><div>Người lớn ({{ $booking->adults ?? 0 }})</div><div class="text-end">{{ number_format($adultPrice) }}đ × {{ $booking->adults ?? 0 }} = <strong>{{ number_format($adultTotal) }}đ</strong></div></div>
+                        <div class="d-flex justify-content-between"><div>Trẻ em ({{ $booking->children ?? 0 }})</div><div class="text-end">{{ number_format($childPrice) }}đ × {{ $booking->children ?? 0 }} = <strong>{{ number_format($childTotal) }}đ</strong></div></div>
+
+                        @if(count($services) > 0)
+                            <div class="mt-2"><strong>Dịch vụ thêm</strong></div>
+                            @foreach($services as $s)
+                                <div class="d-flex justify-content-between"><div>{{ $s['label'] ?? ($s['key'] ?? '') }}</div><div class="text-end">{{ number_format($s['amount'] ?? 0) }}đ</div></div>
+                            @endforeach
+                        @endif
+
+                        <hr>
+                        <div class="d-flex justify-content-between"><div>Tạm tính</div><div class="text-end">{{ number_format($subtotal) }}đ</div></div>
+                        @if($discount > 0)
+                            <div class="d-flex justify-content-between text-danger"><div>Giảm giá</div><div class="text-end">-{{ number_format($discount) }}đ</div></div>
+                        @endif
+                        <div class="d-flex justify-content-between mt-2"><div class="fw-bold">Tổng phải trả</div><div class="fw-bold text-primary">{{ number_format($booking->total_amount) }}đ</div></div>
                     </div>
 
                     @if($booking->status === 'confirmed')

@@ -14,9 +14,9 @@
                 <div class="card-body row">
                     <div class="col-md-4">
                         @if ($tour->images->count())
-                            <img src="{{ $tour->images->first()->image_url }}" class="img-fluid rounded">
+                            <img src="{{ image_url($tour->images->first()->image_url, '300x200') }}" class="img-fluid rounded">
                         @else
-                            <img src="https://via.placeholder.com/300x200" class="img-fluid rounded">
+                            <img src="{{ placeholder_url('300x200') }}" class="img-fluid rounded">
                         @endif
                     </div>
                     <div class="col-md-8">
@@ -33,6 +33,7 @@
             <form method="POST" action="{{ route('bookings.store') }}" id="bookingForm">
                 @csrf
                 <input type="hidden" name="tour_id" value="{{ $tour->id }}">
+                <div id="formErrors" class="alert alert-danger" style="display:none;"></div>
 
                 {{-- DEPARTURE --}}
                 <div class="mb-4">
@@ -54,6 +55,11 @@
 
                 {{-- PASSENGER COUNT --}}
                 <div class="row mb-4">
+                    <div class="col-12 mb-2">
+                        <div class="alert alert-info py-2 mb-0">
+                            <strong>Quy định:</strong> Một người lớn tối đa kèm 2 trẻ em. Trẻ em phải đi cùng ít nhất một người lớn. Người từ 12 tuổi trở lên tính giá người lớn.
+                        </div>
+                    </div>
                     <div class="col-md-6">
                         <label>Người lớn *</label>
                         <input type="number" class="form-control" id="adults" name="adults" value="1" min="1">
@@ -149,7 +155,7 @@
                               placeholder="Yêu cầu đặc biệt, dị ứng thức ăn..."></textarea>
                 </div>
 
-                <button type="submit" class="btn btn-primary btn-lg w-100">
+                <button type="submit" id="submitBookingBtn" class="btn btn-primary btn-lg w-100">
                     <i class="fas fa-calendar-check"></i> Đặt tour
                 </button>
             </form>
@@ -179,6 +185,9 @@ const adultsInput = document.getElementById('adults');
 const childrenInput = document.getElementById('children');
 const passengerForms = document.getElementById('passengerForms');
 const bookingForm = document.getElementById('bookingForm');
+const departureSelect = document.getElementById('departure_id');
+const bookingSummary = document.getElementById('bookingSummary');
+const formErrorsEl = document.getElementById('formErrors');
 
 /* ===== RENDER THÔNG TIN HÀNH KHÁCH ===== */
 function passengerForm(type, index) {
@@ -238,6 +247,110 @@ function renderPassengers() {
 });
 renderPassengers();
 
+/* ===== BOOKING SUMMARY ===== */
+function formatCurrency(n) {
+    return new Intl.NumberFormat('vi-VN').format(n) + 'đ';
+}
+
+function updateSummary() {
+    const adults = Math.max(0, parseInt(adultsInput.value) || 0);
+    const children = Math.max(0, parseInt(childrenInput.value) || 0);
+    const selected = departureSelect.options[departureSelect.selectedIndex];
+
+    if (!selected || !selected.value) {
+        bookingSummary.innerHTML = '<div class="text-muted text-center py-4">Chọn ngày khởi hành và số lượng người</div>';
+        return;
+    }
+
+    const depText = selected.textContent.trim();
+    const adultPrice = parseFloat(selected.dataset.price || 0);
+    const childPrice = parseFloat(selected.dataset.childPrice || 0);
+
+    // Additional services
+    const serviceEls = document.querySelectorAll('input[name="additional_services[]"]:checked');
+    let servicesHtml = '';
+    let additionalTotal = 0;
+    serviceEls.forEach(el => {
+        const price = parseFloat(el.dataset.price || 0);
+        let label = el.closest('.form-check') ? el.closest('.form-check').querySelector('.form-check-label').innerText.trim() : el.value;
+        // Determine multiplicity: insurance => per person, others => per booking
+        if (el.value === 'insurance') {
+            additionalTotal += price * (adults + children);
+            servicesHtml += `<div>${label}: ${formatCurrency(price)} × ${adults + children} = <strong>${formatCurrency(price * (adults + children))}</strong></div>`;
+        } else {
+            additionalTotal += price;
+            servicesHtml += `<div>${label}: ${formatCurrency(price)}</div>`;
+        }
+    });
+
+    const adultTotal = adultPrice * adults;
+    const childTotal = childPrice * children;
+    const subtotal = adultTotal + childTotal + additionalTotal;
+
+    bookingSummary.innerHTML = `
+        <div>
+            <div class="mb-2"><strong>Ngày khởi hành:</strong><div>${depText}</div></div>
+            <div class="mb-2"><strong>Số khách:</strong><div>Người lớn: ${adults}, Trẻ em: ${children}</div></div>
+            <div class="mb-2"><strong>Giá:</strong>
+                <div>Người lớn: ${formatCurrency(adultPrice)} × ${adults} = <strong>${formatCurrency(adultTotal)}</strong></div>
+                <div>Trẻ em: ${formatCurrency(childPrice)} × ${children} = <strong>${formatCurrency(childTotal)}</strong></div>
+            </div>
+            ${ servicesHtml ? `<div class="mb-2"><strong>Dịch vụ thêm:</strong>${servicesHtml}</div>` : '' }
+            <hr>
+            <div class="d-flex justify-content-between"><div><strong>Tổng tạm tính</strong></div><div><strong>${formatCurrency(subtotal)}</strong></div></div>
+        </div>
+    `;
+}
+
+// Update when departure or passenger counts or services change
+departureSelect.addEventListener('change', updateSummary);
+[adultsInput, childrenInput].forEach(el => el.addEventListener('input', updateSummary));
+document.querySelectorAll('input[name="additional_services[]"]').forEach(el => el.addEventListener('change', updateSummary));
+
+// Initial summary render
+updateSummary();
+
+/* ===== REALTIME BUSINESS-RULE VALIDATION FOR COUNTS ===== */
+const submitBtn = document.getElementById('submitBookingBtn');
+const childrenErrorEl = document.getElementById('childrenError');
+
+function validateCountsRealtime() {
+    const adults = Math.max(0, parseInt(adultsInput.value) || 0);
+    const children = Math.max(0, parseInt(childrenInput.value) || 0);
+
+    let messages = [];
+
+    if (adults === 0 && children > 0) {
+        messages.push('Trẻ em phải đi cùng ít nhất một người lớn.');
+    }
+
+    if (children > adults * 2) {
+        messages.push(`Tối đa ${adults * 2} trẻ em cho ${adults} người lớn. Hiện có ${children} trẻ em.`);
+    }
+
+    if (messages.length) {
+        childrenErrorEl.style.display = 'block';
+        childrenErrorEl.innerText = messages.join(' ');
+        childrenInput.classList.add('is-invalid');
+        submitBtn.disabled = true;
+    } else {
+        childrenErrorEl.style.display = 'none';
+        childrenErrorEl.innerText = '';
+        childrenInput.classList.remove('is-invalid');
+        submitBtn.disabled = false;
+    }
+}
+
+// run realtime validation on input changes
+[adultsInput, childrenInput].forEach(el => el.addEventListener('input', function(){
+    renderPassengers();
+    updateSummary();
+    validateCountsRealtime();
+}));
+
+// initial validation
+validateCountsRealtime();
+
 /* ===== VALIDATE THÔNG TIN HÀNH KHÁCH ===== */
 bookingForm.addEventListener('submit', function(e) {
     const cards = document.querySelectorAll('#passengerForms .card');
@@ -250,8 +363,73 @@ bookingForm.addEventListener('submit', function(e) {
 
     if (errors.length) {
         e.preventDefault();
-        alert(errors.join('\n'));
+        showFormErrors(errors);
+        return false;
     }
 });
+
+// Additional validation: check birth_year vs passenger_type and enforce business rules
+function validatePassengerBusinessRules() {
+    const cards = document.querySelectorAll('#passengerForms .card');
+    const mismatches = [];
+    let effectiveAdults = 0;
+    let effectiveChildren = 0;
+    const currentYear = new Date().getFullYear();
+
+    cards.forEach(card => {
+        const typeField = card.querySelector('input[name$="[passenger_type]"]');
+        const birthField = card.querySelector('input[name$="[birth_year]"]');
+        const nameField = card.querySelector('input[name$="[full_name]"]');
+        const ptype = typeField ? typeField.value : 'adult';
+        const birth = birthField ? parseInt(birthField.value) : null;
+        const age = birth ? (currentYear - birth) : null;
+
+        if (age !== null && !isNaN(age)) {
+            if (age >= 12) {
+                effectiveAdults++;
+                if (ptype === 'child') mismatches.push(`${nameField.value || 'Hành khách'}: ${age} tuổi — phải tính giá người lớn.`);
+            } else {
+                effectiveChildren++;
+                if (ptype === 'adult' && age < 12) mismatches.push(`${nameField.value || 'Hành khách'}: ${age} tuổi — nên khai là Trẻ em.`);
+            }
+        } else {
+            // no birth info: fall back to declared type
+            if (ptype === 'adult') effectiveAdults++; else effectiveChildren++;
+        }
+    });
+
+    // Enforce child/adult ratio
+    if (effectiveAdults === 0 && effectiveChildren > 0) {
+        mismatches.push('Trẻ em phải đi cùng ít nhất một người lớn.');
+    }
+    if (effectiveChildren > effectiveAdults * 2) {
+        mismatches.push(`Mỗi người lớn chỉ kèm tối đa 2 trẻ em. Hiện có ${effectiveChildren} trẻ em và ${effectiveAdults} người lớn.`);
+    }
+
+    return mismatches;
+}
+
+bookingForm.addEventListener('submit', function(e){
+    const biz = validatePassengerBusinessRules();
+    if (biz.length) {
+        e.preventDefault();
+        showFormErrors(biz);
+        return false;
+    }
+    return true;
+});
+
+function showFormErrors(messages) {
+    if (!formErrorsEl) return alert(messages.join('\n'));
+    formErrorsEl.style.display = 'block';
+    formErrorsEl.innerHTML = '<ul style="margin:0;padding-left:18px;">' + messages.map(m => '<li>' + m + '</li>').join('') + '</ul>';
+    formErrorsEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function clearFormErrors() {
+    if (!formErrorsEl) return;
+    formErrorsEl.style.display = 'none';
+    formErrorsEl.innerHTML = '';
+}
 </script>
 @endsection

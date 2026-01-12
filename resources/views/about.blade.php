@@ -47,7 +47,7 @@
                 </div>
             </div>
             <div class="col-lg-6">
-                <img src="https://via.placeholder.com/600x400/0EA5E9/ffffff?text=About+Tour365"
+                 <img src="{{ placeholder_url('600x400','0EA5E9','ffffff','About Tour365') }}"
                      alt="About Tour365" class="img-fluid rounded-3 shadow">
             </div>
         </div>
@@ -121,8 +121,8 @@
                 <div class="card team-card border-0 shadow-sm">
                     <div class="card-body text-center">
                         <div class="team-avatar mb-3">
-                            <img src="https://via.placeholder.com/150x150/4F46E5/ffffff?text=CEO"
-                                 alt="CEO" class="rounded-circle">
+                               <img src="{{ placeholder_url('150x150','4F46E5','ffffff','CEO') }}"
+                                   alt="CEO" class="rounded-circle">
                         </div>
                         <h5 class="card-title">Nguyễn Văn A</h5>
                         <p class="text-primary">CEO & Founder</p>
@@ -148,8 +148,8 @@
                 <div class="card team-card border-0 shadow-sm">
                     <div class="card-body text-center">
                         <div class="team-avatar mb-3">
-                            <img src="https://via.placeholder.com/150x150/059669/ffffff?text=CTO"
-                                 alt="CTO" class="rounded-circle">
+                               <img src="{{ placeholder_url('150x150','059669','ffffff','CTO') }}"
+                                   alt="CTO" class="rounded-circle">
                         </div>
                         <h5 class="card-title">Trần Thị B</h5>
                         <p class="text-success">CTO</p>
@@ -175,8 +175,8 @@
                 <div class="card team-card border-0 shadow-sm">
                     <div class="card-body text-center">
                         <div class="team-avatar mb-3">
-                            <img src="https://via.placeholder.com/150x150/DC2626/ffffff?text=CMO"
-                                 alt="CMO" class="rounded-circle">
+                               <img src="{{ placeholder_url('150x150','DC2626','ffffff','CMO') }}"
+                                   alt="CMO" class="rounded-circle">
                         </div>
                         <h5 class="card-title">Lê Văn C</h5>
                         <p class="text-danger">CMO</p>
@@ -202,8 +202,8 @@
                 <div class="card team-card border-0 shadow-sm">
                     <div class="card-body text-center">
                         <div class="team-avatar mb-3">
-                            <img src="https://via.placeholder.com/150x150/7C3AED/ffffff?text=CFO"
-                                 alt="CFO" class="rounded-circle">
+                               <img src="{{ placeholder_url('150x150','7C3AED','ffffff','CFO') }}"
+                                   alt="CFO" class="rounded-circle">
                         </div>
                         <h5 class="card-title">Phạm Thị D</h5>
                         <p class="text-warning">CFO</p>
