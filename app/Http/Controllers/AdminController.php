@@ -1434,7 +1434,7 @@ class AdminController extends Controller
                 // Chỉ admin mới có thể override
                 if (!auth()->user()->hasRole('admin')) {
                     return back()->withInput()->withErrors([
-                        'departure_id' => 'Tour đã quá cutoff (' . $cutoffDate->format('d/m/Y') . '). Không thể thêm booking mới. Vui lòng liên hệ Admin.'
+                        'departure_id' => 'Tour đã quá hạn chốt (' . $cutoffDate->format('d/m/Y') . '). Không thể thêm booking mới. Vui lòng liên hệ Admin.'
                     ]);
                 }
                 // Admin override - ghi log
@@ -2244,22 +2244,7 @@ class AdminController extends Controller
         return response()->stream($callback, 200, $headers);
     }
 
-    public function uploadManifest(Request $request, Booking $booking)
-    {
-        $request->validate([
-            'manifest_file' => 'required|file|mimes:csv,xls,xlsx|max:5120',
-        ]);
-
-        if ($request->hasFile('manifest_file')) {
-            if ($booking->passenger_manifest_file) {
-                Storage::disk('public')->delete($booking->passenger_manifest_file);
-            }
-            $path = $request->file('manifest_file')->store('manifests', 'public');
-            $booking->update(['passenger_manifest_file' => $path]);
-            return back()->with('success', 'Đã cập nhật danh sách đoàn thành công!');
-        }
-        return back()->with('error', 'Lỗi upload.');
-    }
+    // Admin manifest upload removed — uploads are disabled.
 
     /**
      * B2: Chốt đoàn (chốt số lượng khách)

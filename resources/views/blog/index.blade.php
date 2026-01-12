@@ -118,7 +118,7 @@
                             [
                                 'title' => '10 mẹo săn vé máy bay giá rẻ không thể bỏ qua',
                                 'tag' => 'Mẹo du lịch',
-                                'img' => 'https://via.placeholder.com/600x360/0EA5E9/ffffff?text=Tips',
+                                'img' => placeholder_url('600x360','0EA5E9','ffffff','Tips'),
                                 'excerpt' => 'Cách đặt vé, thời điểm vàng, và bí quyết tối ưu chi phí cho mọi chuyến bay. Từ việc chọn thời gian đến việc sử dụng các công cụ so sánh giá...',
                                 'author' => 'Admin',
                                 'date' => '15/01/2025',
@@ -128,7 +128,7 @@
                             [
                                 'title' => 'Checklist chuẩn bị hành lý thông minh cho mọi chuyến đi',
                                 'tag' => 'Cẩm nang',
-                                'img' => 'https://via.placeholder.com/600x360/06B6D4/ffffff?text=Checklist',
+                                'img' => placeholder_url('600x360','06B6D4','ffffff','Checklist'),
                                 'excerpt' => 'Mang đủ nhưng gọn nhẹ: danh sách vật dụng cần thiết cho mọi chuyến đi. Từ quần áo đến đồ dùng cá nhân, không bỏ sót gì...',
                                 'author' => 'Admin',
                                 'date' => '12/01/2025',
@@ -138,7 +138,7 @@
                             [
                                 'title' => 'Top 5 điểm đến biển đẹp nhất mùa hè 2025',
                                 'tag' => 'Điểm đến',
-                                'img' => 'https://via.placeholder.com/600x360/0284C7/ffffff?text=Beach',
+                                'img' => placeholder_url('600x360','0284C7','ffffff','Beach'),
                                 'excerpt' => 'Phú Quốc, Nha Trang, Quy Nhơn và những bãi biển không thể bỏ lỡ. Khám phá vẻ đẹp thiên nhiên và trải nghiệm độc đáo...',
                                 'author' => 'Admin',
                                 'date' => '10/01/2025',
@@ -148,7 +148,7 @@
                             [
                                 'title' => 'Hướng dẫn du lịch bụi an toàn cho người mới bắt đầu',
                                 'tag' => 'Cẩm nang',
-                                'img' => 'https://via.placeholder.com/600x360/10B981/ffffff?text=Backpack',
+                                'img' => placeholder_url('600x360','10B981','ffffff','Backpack'),
                                 'excerpt' => 'Những điều cần biết khi du lịch bụi lần đầu. Từ việc lập kế hoạch đến cách ứng phó với tình huống bất ngờ...',
                                 'author' => 'Admin',
                                 'date' => '08/01/2025',
@@ -158,7 +158,7 @@
                             [
                                 'title' => 'Khám phá ẩm thực đường phố Việt Nam',
                                 'tag' => 'Điểm đến',
-                                'img' => 'https://via.placeholder.com/600x360/F59E0B/ffffff?text=Food',
+                                'img' => placeholder_url('600x360','F59E0B','ffffff','Food'),
                                 'excerpt' => 'Hành trình khám phá những món ăn đường phố ngon nhất từ Bắc vào Nam. Từ phở Hà Nội đến bún bò Huế...',
                                 'author' => 'Admin',
                                 'date' => '05/01/2025',
@@ -168,7 +168,7 @@
                             [
                                 'title' => 'Cách chụp ảnh du lịch đẹp như nhiếp ảnh gia',
                                 'tag' => 'Mẹo du lịch',
-                                'img' => 'https://via.placeholder.com/600x360/EF4444/ffffff?text=Photo',
+                                'img' => placeholder_url('600x360','EF4444','ffffff','Photo'),
                                 'excerpt' => 'Bí quyết chụp ảnh du lịch đẹp với điện thoại. Từ góc chụp đến ánh sáng, tất cả những gì bạn cần biết...',
                                 'author' => 'Admin',
                                 'date' => '03/01/2025',
@@ -252,7 +252,7 @@
                         <div class="popular-posts">
                             <div class="popular-post">
                                 <div class="post-image">
-                                    <img src="https://via.placeholder.com/80x60/0EA5E9/ffffff?text=1" alt="Post 1">
+                                    <img src="{{ placeholder_url('80x60','0EA5E9','ffffff','1') }}" alt="Post 1">
                                 </div>
                                 <div class="post-content">
                                     <h6><a href="#">10 mẹo săn vé máy bay giá rẻ</a></h6>
@@ -264,7 +264,7 @@
                             </div>
                             <div class="popular-post">
                                 <div class="post-image">
-                                    <img src="https://via.placeholder.com/80x60/06B6D4/ffffff?text=2" alt="Post 2">
+                                    <img src="{{ placeholder_url('80x60','06B6D4','ffffff','2') }}" alt="Post 2">
                                 </div>
                                 <div class="post-content">
                                     <h6><a href="#">Checklist hành lý thông minh</a></h6>
@@ -276,7 +276,7 @@
                             </div>
                             <div class="popular-post">
                                 <div class="post-image">
-                                    <img src="https://via.placeholder.com/80x60/0284C7/ffffff?text=3" alt="Post 3">
+                                    <img src="{{ placeholder_url('80x60','0284C7','ffffff','3') }}" alt="Post 3">
                                 </div>
                                 <div class="post-content">
                                     <h6><a href="#">Top 5 điểm đến biển đẹp</a></h6>

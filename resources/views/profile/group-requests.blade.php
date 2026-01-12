@@ -81,7 +81,7 @@
                         </div>
                     @else
                         <div class="text-center py-5">
-                            <img src="https://via.placeholder.com/150?text=No+Request" alt="Empty" class="mb-3 opacity-50" style="width: 100px;">
+                            <img src="{{ placeholder_url('150','6B7280','ffffff','No Request') }}" alt="Empty" class="mb-3 opacity-50" style="width: 100px;">
                             <p class="text-muted">Bạn chưa gửi yêu cầu đặt tour đoàn nào.</p>
                             <a href="{{ route('group-tour.create') }}" class="btn btn-outline-primary">
                                 Gửi yêu cầu ngay

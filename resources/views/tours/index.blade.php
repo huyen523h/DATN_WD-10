@@ -17,7 +17,7 @@
                     </a>
                 </div>
                 <div class="col-lg-6">
-                    <img src="https://via.placeholder.com/600x400/667eea/ffffff?text=Travel+with+Tour365" alt="Travel"
+                    <img src="{{ image_url('tours/UFZz4FhLEyDcbke1xUMgkC4ZJJEifI7VNmf9bywl.jpg','600x400') }}" alt="Travel with Tour365"
                         class="img-fluid rounded shadow">
                 </div>
             </div>
@@ -169,7 +169,7 @@
                                             sizes="(min-width: 992px) 400px, 100vw"
                                             style="height: 250px; object-fit: cover;">
                                     @else
-                                        <img src="https://via.placeholder.com/400x250/4F46E5/ffffff?text={{ urlencode($tour->title) }}"
+                                        <img src="{{ placeholder_url('400x250','4F46E5','ffffff',$tour->title) }}"
                                             class="card-img-top" alt="{{ $tour->title }}" loading="lazy"
                                             sizes="(min-width: 992px) 400px, 100vw"
                                             style="height: 250px; object-fit: cover;">

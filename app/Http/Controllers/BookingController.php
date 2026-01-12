@@ -76,9 +76,41 @@ class BookingController extends Controller
         $children = $validated['children'] ?? 0;
         $infants = $validated['infants'] ?? 0;
 
-        // Quy tắc kèm trẻ/em bé
-        $childLimit = $adults * 2;
-        $infantLimit = $adults * 1;
+        // If passenger birth years are provided, compute effective adult/child counts by age.
+        if ($request->has('passengers')) {
+            $computedAdults = 0;
+            $computedChildren = 0;
+            foreach ($request->input('passengers') as $groupType => $group) {
+                foreach ($group as $p) {
+                    $birth = $p['birth_year'] ?? null;
+                    if ($birth && is_numeric($birth)) {
+                        $age = (int) date('Y') - (int) $birth;
+                        if ($age >= 12) {
+                            $computedAdults++;
+                        } else {
+                            $computedChildren++;
+                        }
+                    } else {
+                        // Fallback to provided grouping (adult/child)
+                        if (($p['passenger_type'] ?? $groupType) === 'adult') {
+                            $computedAdults++;
+                        } else {
+                            $computedChildren++;
+                        }
+                    }
+                }
+            }
+
+            // Override counts with computed values to ensure pricing rules are applied
+            $adults = max(0, $computedAdults);
+            $children = max(0, $computedChildren);
+        }
+
+        // Business rules
+        // Một người lớn đi kèm tối đa 2 trẻ em
+        $childLimit = max(0, $adults * 2);
+        // Em bé (infant) - giới hạn 1 infant / adult
+        $infantLimit = max(0, $adults * 1);
 
         if ($children > $childLimit) {
             return back()->withInput()->withErrors([
@@ -89,6 +121,13 @@ class BookingController extends Controller
         if ($infants > $infantLimit) {
             return back()->withInput()->withErrors([
                 'infants' => "{$adults} người lớn chỉ có thể đi kèm tối đa {$infantLimit} em bé. Vui lòng tăng số người lớn hoặc giảm số em bé.",
+            ]);
+        }
+
+        // Trẻ em phải đi cùng người lớn
+        if ($adults === 0 && $children > 0) {
+            return back()->withInput()->withErrors([
+                'adults' => 'Trẻ em phải đi cùng ít nhất một người lớn. Vui lòng thêm người lớn.',
             ]);
         }
 
@@ -246,50 +285,7 @@ class BookingController extends Controller
         return redirect()->back()->with('error', 'Không thể hủy tour đã hoàn thành hoặc đã thanh toán.');
     }
 
-    public function uploadManifest(Request $request, $id)
-    {
-        $booking = Booking::where('user_id', Auth::id())->findOrFail($id);
-
-        // Kiểm tra trạng thái booking
-        if (!in_array($booking->status, ['paid', 'completed'])) {
-            return back()->with('error', 'Chỉ có thể upload danh sách đoàn khi đơn hàng đã thanh toán.');
-        }
-
-        $request->validate([
-            // Cho phép: CSV, Excel, PDF, Word
-            'manifest_file' => 'required|file|mimes:csv,xls,xlsx,pdf,doc,docx|max:5120', // Max 5MB
-        ], [
-            'manifest_file.required' => 'Vui lòng chọn file để upload.',
-            'manifest_file.mimes' => 'File phải có định dạng: CSV, XLS, XLSX, PDF, DOC, DOCX.',
-            'manifest_file.max' => 'File không được vượt quá 5MB.',
-        ]);
-
-        if ($request->hasFile('manifest_file')) {
-            try {
-                // Xóa file cũ nếu có
-                if ($booking->passenger_manifest_file) {
-                    Storage::disk('public')->delete($booking->passenger_manifest_file);
-                }
-
-                // Lưu file mới
-                $path = $request->file('manifest_file')->store('manifests', 'public');
-
-                $booking->update([
-                    'passenger_manifest_file' => $path
-                ]);
-
-                // Refresh booking để đảm bảo dữ liệu mới nhất
-                $booking->refresh();
-
-                return redirect()->route('bookings.show', $booking->id)
-                    ->with('success', 'Đã tải lên danh sách đoàn thành công! Bạn có thể xem file đã upload ở phần "Danh sách đoàn".');
-            } catch (\Exception $e) {
-                return back()->with('error', 'Có lỗi xảy ra khi upload file: ' . $e->getMessage());
-            }
-        }
-
-        return back()->with('error', 'Vui lòng chọn file.');
-    }
+    // Manifest upload/delete removed — handled outside app now.
 
     public function handle(Booking $booking, string $action)
     {

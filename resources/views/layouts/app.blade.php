@@ -1170,7 +1170,7 @@ white-space: nowrap !important;
 
                                     @foreach ($payments as [$text, $alt, $color])
                                         <div class="payment-item">
-                                            <img src="https://via.placeholder.com/60x40/{{ $color }}/ffffff?text={{ $text }}"
+                                            <img src="{{ placeholder_url('60x40', $color, 'ffffff', $text) }}"
                                                 alt="{{ $alt }}" class="payment-logo">
                                         </div>
                                     @endforeach
@@ -1193,11 +1193,11 @@ white-space: nowrap !important;
                             <h6 class="footer-heading">Tải ứng dụng Tour365</h6>
                             <div class="app-download">
                                 <a href="#" class="app-btn">
-                                    <img src="https://via.placeholder.com/160x48/000000/ffffff?text=Google+Play"
+                                    <img src="{{ placeholder_url('160x48','000000','ffffff','Google Play') }}"
                                         alt="Google Play" class="app-logo">
                                 </a>
                                 <a href="#" class="app-btn">
-                                    <img src="https://via.placeholder.com/160x48/000000/ffffff?text=App+Store"
+                                    <img src="{{ placeholder_url('160x48','000000','ffffff','App Store') }}"
                                         alt="App Store" class="app-logo">
                                 </a>
                             </div>

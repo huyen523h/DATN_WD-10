@@ -158,18 +158,18 @@
         if (!tourId) return;
         const tour = tours.find(t => String(t.id) === String(tourId));
         if (!tour) return;
-        
+
         tour.departures.forEach(d => {
             const opt = document.createElement('option');
             let label = `${d.date || ''} (Còn ${d.seats_available}/${d.seats_total} chỗ)`;
             
-            // Đánh dấu departure đã chốt hoặc sau cutoff
+            // Đánh dấu departure đã chốt hoặc sau hạn chốt
             if (d.group_confirmed) {
                 label += ' [ĐÃ CHỐT]';
                 opt.disabled = true;
                 opt.style.color = '#999';
             } else if (d.is_after_cutoff) {
-                label += ' [QUÁ CUTOFF]';
+                label += ' [QUÁ HẠN CHỐT]';
             }
             
             opt.value = d.id;
@@ -206,7 +206,7 @@
         } else if (isAfterCutoff) {
             const isAdmin = {{ auth()->user()->hasRole('admin') ? 'true' : 'false' }};
             warningDiv.className = 'alert alert-warning mt-2 mb-0';
-            warningDiv.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i><strong>Cảnh báo:</strong> Tour đã quá cutoff (${cutoffDate || 'N/A'}). ${isAdmin ? 'Bạn có quyền Admin - có thể override, hành động sẽ được ghi log.' : 'Chỉ Admin mới có thể thêm booking sau cutoff.'}`;
+            warningDiv.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i><strong>Cảnh báo:</strong> Tour đã quá hạn chốt (${cutoffDate || 'N/A'}). ${isAdmin ? 'Bạn có quyền Admin - có thể override, hành động sẽ được ghi log.' : 'Chỉ Admin mới có thể thêm booking sau hạn chốt.'}`;
             warningDiv.classList.remove('d-none');
             if (submitBtn && !isAdmin) {
                 submitBtn.disabled = true;

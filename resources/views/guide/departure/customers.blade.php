@@ -83,17 +83,9 @@
                                         @endif
                                     </td>
 
-                                    {{-- FILE DANH SÁCH ĐOÀN --}}
+                                    {{-- FILE DANH SÁCH ĐOÀN - (Ẩn theo yêu cầu) --}}
                                     <td>
-                                        @if($booking->passenger_manifest_file)
-                                            <a href="{{ asset('storage/' . $booking->passenger_manifest_file) }}"
-                                               target="_blank" 
-                                               class="btn btn-sm btn-outline-primary">
-                                                <i class="fas fa-file-download"></i> Tải danh sách
-                                            </a>
-                                        @else
-                                            <span class="badge bg-warning text-dark">Chưa có danh sách</span>
-                                        @endif
+                                        <span class="text-muted">—</span>
                                     </td>
 
                                     {{-- TỔNG TIỀN --}}

@@ -18,7 +18,7 @@
         <div class="row">
             <div class="col-lg-8">
                 <article class="prose">
-                    <img src="https://via.placeholder.com/900x450/0EA5E9/ffffff?text=Blog+Cover" class="img-fluid rounded-3 shadow mb-4" alt="cover" loading="lazy">
+                    <img src="{{ placeholder_url('900x450','0EA5E9','ffffff','Blog Cover') }}" class="img-fluid rounded-3 shadow mb-4" alt="cover" loading="lazy">
                     <p class="text-muted">Đăng ngày {{ now()->format('d/m/Y') }} • 6 phút đọc • Chuyên mục Mẹo du lịch</p>
                     <h2>Giới thiệu</h2>
                     <p>Đây là bài viết minh hoạ cho trang chi tiết blog. Bạn có thể kết nối dữ liệu thật từ CSDL sau.</p>
