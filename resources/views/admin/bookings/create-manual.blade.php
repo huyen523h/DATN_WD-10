@@ -158,18 +158,18 @@
         if (!tourId) return;
         const tour = tours.find(t => String(t.id) === String(tourId));
         if (!tour) return;
-        
-            tour.departures.forEach(d => {
+
+        tour.departures.forEach(d => {
             const opt = document.createElement('option');
             let label = `${d.date || ''} (Còn ${d.seats_available}/${d.seats_total} chỗ)`;
             
-            // Đánh dấu departure đã chốt hoặc sau cutoff
+            // Đánh dấu departure đã chốt hoặc sau hạn chốt
             if (d.group_confirmed) {
                 label += ' [ĐÃ CHỐT]';
                 opt.disabled = true;
                 opt.style.color = '#999';
             } else if (d.is_after_cutoff) {
-                    label += ' [QUÁ HẠN CHỐT]';
+                label += ' [QUÁ HẠN CHỐT]';
             }
             
             opt.value = d.id;
