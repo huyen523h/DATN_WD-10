@@ -179,14 +179,14 @@
 
                     {{-- Ghi chú dịch vụ --}}
 <div class="mb-3">
-    <label class="form-label fw-bold">Chi tiết dịch vụ cam kết <span class="text-danger">*</span></label>
+    <label class="form-label fw-bold">Chi tiết dịch vụ cam kết, lịch trình tour <span class="text-danger">*</span></label>
     <textarea name="service_details" class="form-control" rows="3" 
-              placeholder="VD: Xe Universe 45 chỗ, Ăn 200k/suất, KS Mường Thanh..." required></textarea>
+              placeholder="VD: Xe Universe 45 chỗ, Ăn 200k/suất, ..." required></textarea>
 </div>
 
 {{-- Upload Hợp đồng --}}
 <div class="mb-3">
-    <label class="form-label fw-bold">File Hợp đồng / Báo giá (PDF/Ảnh) <span class="text-danger">*</span></label>
+    <label class="form-label fw-bold">Ảnh Hợp đồng / Cam kết(PDF/Ảnh) <span class="text-danger">*</span></label>
     <input type="file" name="contract_file" class="form-control" accept=".pdf,.doc,.docx,.jpg,.png" required>
 </div>
 

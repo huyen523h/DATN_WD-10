@@ -196,26 +196,26 @@ class Booking extends Model
         }
 
         // bổ xung thêm code mới khi chưa xác nhận đã hiện nút thanh toán 2/1/2026
-    if ($this->status !== 'confirmed') {
-            $msg = 'Đơn hàng chưa sẵn sàng thanh toán.';
+    // if ($this->status !== 'confirmed') {
+    //         $msg = 'Đơn hàng chưa sẵn sàng thanh toán.';
             
-            if ($this->status === 'pending') {
-                $msg = 'Đơn hàng đang chờ Admin xác nhận chỗ. Vui lòng quay lại sau.';
-            }
+    //         if ($this->status === 'pending') {
+    //             $msg = 'Đơn hàng đang chờ Admin xác nhận chỗ. Vui lòng quay lại sau.';
+    //         }
 
-            return [
-                'can_pay' => false,
-                'message' => $msg
-            ];
-        }
+    //         return [
+    //             'can_pay' => false,
+    //             'message' => $msg
+    //         ];
+    //     }
 
         // Booking phải ở trạng thái 'confirmed' hoặc 'pending' để có thể thanh toán
-        // if (!in_array($this->status, ['confirmed', 'pending'])) {
-        //     return [
-        //         'can_pay' => false,
-        //         'message' => 'Đặt tour này không thể thanh toán. Trạng thái: ' . $this->status
-        //     ];
-        // }
+        if (!in_array($this->status, ['confirmed', 'pending'])) {
+            return [
+                'can_pay' => false,
+                'message' => 'Đặt tour này không thể thanh toán. Trạng thái: ' . $this->status
+            ];
+        }
 
         // Kiểm tra xem đã có payment completed chưa
         $hasCompletedPayment = $this->payment()
@@ -255,20 +255,15 @@ class Booking extends Model
         return $this->status === 'completed';
     }
 
-    /**
-     * Tính toán thông tin hoàn tiền dựa trên ngày khởi hành
-     * Trả về mảng: % hoàn, số tiền hoàn, và lý do gợi ý.
-     */
     public function getRefundInfo()
     {
         // 1. Nếu chưa có lịch khởi hành hoặc chưa thanh toán -> Hoàn 100% (hoặc 0đ)
-        if (!$this->departure || $this->status !== 'paid') {
-            return [
-                'percent' => 100,
-                'amount' => $this->total_amount, // Hoàn toàn bộ
-                'policy' => 'Khách chưa chốt lịch hoặc chưa thanh toán. Hủy không mất phí.'
-            ];
-        }
+        if ($this->status !== 'paid' && $this->status !== 'cancel_requested') {
+    return [
+        'amount' => $this->total_amount, 
+        'policy' => 'Khách chưa chốt lịch hoặc chưa thanh toán. Hủy không mất phí.'
+    ];
+}
 
         // 2. Tính khoảng cách ngày: (Ngày khởi hành) - (Hôm nay)
         $departureDate = Carbon::parse($this->departure->departure_date);

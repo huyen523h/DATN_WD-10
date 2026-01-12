@@ -39,6 +39,7 @@
                                                         ? \Carbon\Carbon::parse($booking->departure->departure_date)->format('d/m/Y')
                                                         : 'Chưa có ngày khởi hành' }}
                                                 </p>
+                                                {{-- <small class="text-danger">DEBUG STATUS: {{ $booking->status }}</small> --}}
                                                 <p class="text-muted mb-2">
                                                     <i class="fas fa-users"></i>
                                                     {{ $booking->adults }} người lớn
@@ -50,43 +51,32 @@
                                                     @endif
                                                 </p>
                                                 <div class="d-flex justify-content-between align-items-center">
-                                                    <div>
-                                                        <span
-                                                            class="badge 
-                                                        @if ($booking->status === 'pending') bg-warning
-                                                        @elseif($booking->status === 'confirmed') bg-success
-                                                        @elseif($booking->status === 'cancelled') bg-danger
-                                                        @else bg-secondary @endif">
-                                                            @switch($booking->status)
-                                                                @case('pending')
-                                                                    Chờ xác nhận
-                                                                @break
+    <div>
+        {{-- BADGE HIỂN THỊ TRẠNG THÁI --}}
+        @php
+            $statusBadges = [
+                'pending'   => ['class' => 'bg-warning text-dark', 'icon' => 'fa-clock', 'text' => 'Chờ thanh toán'],
+                'paid'      => ['class' => 'bg-success', 'icon' => 'fa-check-circle', 'text' => 'Đã thanh toán'],
+                'confirmed' => ['class' => 'bg-info text-dark', 'icon' => 'fa-check', 'text' => 'Đã xác nhận'],
+                'cancelled' => ['class' => 'bg-danger', 'icon' => 'fa-times-circle', 'text' => 'Đã hủy'],
+                'completed' => ['class' => 'bg-primary', 'icon' => 'fa-flag-checkered', 'text' => 'Hoàn thành'],
+            ];
+            $currentStatus = $statusBadges[$booking->status] ?? ['class' => 'bg-secondary', 'icon' => 'fa-info-circle', 'text' => ucfirst($booking->status)];
+        @endphp
 
-                                                                @case('confirmed')
-                                                                    Đã xác nhận
-                                                                @break
-
-                                                                @case('cancelled')
-                                                                    Đã hủy
-                                                                @break
-
-                                                                @case('completed')
-                                                                    Hoàn thành
-                                                                @break
-
-                                                                @default
-                                                                    {{ $booking->status }}
-                                                                @break
-                                                            @endswitch
-                                                        </span>
-                                                    </div>
-                                                    <div class="text-end">
-                                                        <div class="h5 text-primary mb-0">
-                                                            {{ number_format($booking->total_amount, 0, ',', '.') }}đ
-                                                        </div>
-                                                        <small class="text-muted">Tổng cộng</small>
-                                                    </div>
-                                                </div>
+        <span class="badge {{ $currentStatus['class'] }} shadow-sm">
+            <i class="fas {{ $currentStatus['icon'] }} me-1"></i> {{ $currentStatus['text'] }}
+        </span>
+    </div>
+    
+    {{-- PHẦN GIÁ TIỀN (GIỮ NGUYÊN) --}}
+    <div class="text-end">
+        <div class="h5 text-primary mb-0">
+            {{ number_format($booking->total_amount, 0, ',', '.') }}đ
+        </div>
+        <small class="text-muted">Tổng cộng</small>
+    </div>
+</div>
                                             </div>
                                         </div>
                                     </div>
@@ -100,45 +90,34 @@
                                                     class="btn btn-outline-primary btn-sm">
                                                     <i class="fas fa-eye"></i> Xem chi tiết
                                                 </a>
-                                               {{-- LOGIC MỚI: Chỉ hiện nút thanh toán khi trạng thái là CONFIRMED --}}
-                                                @if($booking->status === 'confirmed')
-                                                    <div class="form-check d-inline-flex align-items-center ms-2">
-                                                        <input class="form-check-input" type="checkbox" 
-                                                               id="agreeTerms{{ $booking->id }}" 
-                                                               style="margin-top: 0;">
-                                                        <label class="form-check-label small" 
-                                                               for="agreeTerms{{ $booking->id }}"
-                                                               style="white-space: nowrap;">
-                                                            <a href="{{ route('payment-policy') }}" 
-                                                               target="_blank" 
-                                                               class="text-primary fw-bold">
-                                                                Đã đọc điều khoản
-                                                                <i class="fas fa-external-link-alt ms-1" style="font-size: 0.7rem;"></i>
-                                                            </a>
-                                                        </label>
-                                                    </div>
 
-                                                    <form action="{{ route('momo_payment', $booking->id) }}" 
-                                                          method="POST" 
-                                                          class="d-inline ms-1"
-                                                          id="momoForm{{ $booking->id }}"
-                                                          onsubmit="return validateTermsBeforePayment(event, {{ $booking->id }})">
-                                                        @csrf
-                                                        <button type="submit" class="btn btn-danger btn-sm shadow-sm">
-                                                            <i class="fas fa-wallet"></i> Thanh toán qua MOMO
-                                                        </button>
-                                                    </form>
+ {{-- [THÊM] Nút Đánh giá (Hiện cạnh nút Xem chi tiết) --}}
+@if ($booking->status === 'completed')
+    @if (!$booking->review)
+        <button type="button"
+                class="btn btn-warning btn-sm ms-2"
+                data-bs-toggle="modal"
+                data-bs-target="#reviewModal-{{ $booking->id }}">
+            <i class="fas fa-star"></i> Đánh giá
+        </button>
+    @else
+        <button class="btn btn-success btn-sm ms-2" disabled>
+            <i class="fas fa-check"></i> Đã đánh giá
+        </button>
+    @endif
+@endif
 
-                                                {{-- Nếu đang PENDING (Chờ xác nhận) thì hiện thông báo --}}
-                                                @elseif($booking->status === 'pending')
-                                                    <span class="badge bg-light text-warning border border-warning ms-2 shadow-sm">
-                                                        <i class="fas fa-hourglass-half me-1"></i> Đang chờ Admin xác nhận
-                                                    </span>
-                                                @endif
+                        @if(in_array($booking->status, ['pending', 'confirmed']))
+                                                <a href="{{ route('bookings.show', $booking) }}" 
+                                                  class="btn btn-danger btn-sm shadow-sm fw-bold">
+                                                  <i class="fas fa-credit-card me-1"></i> Thanh toán ngay
+                                              </a> 
+                        @endif
                                             </div>
                                         </div>
                                     </div>
                                 </div>
+
                             </div>
                         @endforeach
                     </div>
@@ -166,8 +145,85 @@
     </div>
 @endsection
 
+@foreach ($bookings as $booking)
+    @if ($booking->status === 'completed' && !$booking->review)
+    <div class="modal fade" id="reviewModal-{{ $booking->id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ route('bookings.reviews.store', $booking->id) }}" method="POST">
+                @csrf
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title text-dark">
+                        <i class="fas fa-star me-2"></i>Đánh giá: {{ Str::limit($booking->tour->title, 30) }}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                
+                <div class="modal-body">
+                    <div class="text-center mb-3">
+                        <p class="mb-2">Bạn chấm mấy sao cho chuyến đi này?</p>
+                        
+                        {{-- Rating Stars (Lưu ý: ID phải kèm booking->id để không bị trùng) --}}
+                        <div class="rating-group d-flex flex-row-reverse justify-content-center gap-2">
+                            @for($i = 5; $i >= 1; $i--)
+                                <input type="radio" name="rating" id="star{{$i}}-{{$booking->id}}" value="{{$i}}" class="d-none peer" {{ $i==5 ? 'checked' : '' }}>
+                                <label for="star{{$i}}-{{$booking->id}}" class="fas fa-star fa-2x text-muted cursor-pointer hover:text-warning peer-checked:text-warning" 
+                                       onclick="setRating(this, {{$booking->id}})"></label>
+                            @endfor
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nhận xét chi tiết <span class="text-danger">*</span></label>
+                        <textarea name="comment" class="form-control" rows="3" placeholder="Chia sẻ cảm nhận của bạn..." required></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary">Gửi đánh giá</button>
+                </div>
+            </form>
+        </div>
+    </div>
+  </div>
+@endif
+@endforeach
 @section('scripts')
 <script>
+
+    // Hàm xử lý đổi màu sao đơn giản
+    function setRating(label, bookingId) {
+        // Tìm input radio tương ứng
+        const inputId = label.getAttribute('for');
+        const input = document.getElementById(inputId);
+        if(input) input.checked = true;
+
+        // Tìm tất cả các sao trong modal hiện tại
+        const modal = document.getElementById('reviewModal-' + bookingId);
+        const labels = modal.querySelectorAll('.rating-group label');
+        
+        // Reset hết về màu xám
+        labels.forEach(l => {
+            l.classList.remove('text-warning');
+            l.classList.add('text-muted');
+        });
+        
+        let currentLabel = label;
+        // Tô màu chính nó
+        currentLabel.classList.remove('text-muted');
+        currentLabel.classList.add('text-warning');
+
+        // Tô màu các sao bên phải (thực ra là các sao nhỏ hơn vì flex-row-reverse)
+        let nextSibling = currentLabel.nextElementSibling;
+        while(nextSibling) {
+            if(nextSibling.tagName === 'LABEL') {
+                nextSibling.classList.remove('text-muted');
+                nextSibling.classList.add('text-warning');
+            }
+            nextSibling = nextSibling.nextElementSibling;
+        }
+    }
     // Validate terms before payment for booking list page
     function validateTermsBeforePayment(event, bookingId) {
         const agreeTerms = document.getElementById('agreeTerms' + bookingId);
@@ -203,4 +259,5 @@
         return true;
     }
 </script>
+
 @endsection

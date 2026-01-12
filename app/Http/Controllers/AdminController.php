@@ -48,7 +48,7 @@ class AdminController extends Controller
             return 3;
         }
     }
-    public function dashboard(Request $request)
+public function dashboard(Request $request)
     {
         // Thống kê tổng quan
         $stats = [
@@ -70,6 +70,9 @@ class AdminController extends Controller
         $selectedMonth = $request->get('month', null);
         $selectedYear = (int) $request->get('year', now()->year);
 
+        // [SỬA LẠI QUAN TRỌNG]: Danh sách trạng thái chấp nhận cả Hoa và Thường
+        $validStatuses = ['paid', 'PAID', 'completed', 'COMPLETED'];
+
         if ($selectedMonth) {
             $dailyRevenue = $this->getDailyRevenue($selectedYear, $selectedMonth);
             $revenueData = $dailyRevenue;
@@ -80,7 +83,7 @@ class AdminController extends Controller
 
         // Tổng doanh thu theo tháng được chọn
         if ($selectedMonth) {
-            $monthlyTotal = Payment::whereIn('status', ['paid', 'completed'])
+            $monthlyTotal = Payment::whereIn('status', $validStatuses) // <--- Đã sửa
                 ->where(function ($query) use ($selectedYear, $selectedMonth) {
                     $query->where(function ($q) use ($selectedYear, $selectedMonth) {
                         $q->whereYear('payment_date', $selectedYear)
@@ -97,7 +100,7 @@ class AdminController extends Controller
         }
 
         // Tổng doanh thu cả năm
-        $yearlyTotal = Payment::whereIn('status', ['paid', 'completed'])
+        $yearlyTotal = Payment::whereIn('status', $validStatuses) // <--- Đã sửa
             ->where(function ($query) use ($selectedYear) {
                 $query->whereYear('payment_date', $selectedYear)
                       ->orWhere(function ($q) use ($selectedYear) {
@@ -107,8 +110,8 @@ class AdminController extends Controller
             })
             ->sum('amount');
 
-        // Danh sách năm có giao dịch + đảm bảo có năm hiện tại
-        $availableYears = Payment::whereIn('status', ['paid', 'completed'])
+        // Danh sách năm có giao dịch
+        $availableYears = Payment::whereIn('status', $validStatuses) // <--- Đã sửa
             ->selectRaw('YEAR(COALESCE(payment_date, created_at)) as year')
             ->distinct()
             ->orderBy('year', 'desc')
@@ -117,7 +120,7 @@ class AdminController extends Controller
 
         $availableYears = $availableYears->push(now()->year)->unique()->sortDesc()->values();
 
-        // Tour phổ biến theo danh mục 
+        // Tour phổ biến
         $popularToursByCategory = Category::where('name', '!=', 'Du lịch nước ngoài')
             ->withCount(['tours' => function ($query) {
                 $query->where('status', 'active');
@@ -146,13 +149,118 @@ class AdminController extends Controller
             'popularToursByCategory'
         ));
     }
+    // public function dashboard(Request $request)
+    // {
+    //     // Thống kê tổng quan
+    //     $stats = [
+    //         'total_tours' => Tour::count(),
+    //         'total_bookings' => Booking::count(),
+    //         'total_customers' => User::whereHas('roles', function ($query) {
+    //             $query->where('name', 'customer');
+    //         })->count(),
+    //         'pending_bookings' => Booking::where('status', 'pending')->count(),
+    //     ];
 
+    //     // Đơn đặt tour gần đây
+    //     $recent_bookings = Booking::with(['tour', 'user'])
+    //         ->orderBy('created_at', 'desc')
+    //         ->limit(5)
+    //         ->get();
+
+    //     // Bộ lọc doanh thu theo tháng / năm
+    //     $selectedMonth = $request->get('month', null);
+    //     $selectedYear = (int) $request->get('year', now()->year);
+
+    //     if ($selectedMonth) {
+    //         $dailyRevenue = $this->getDailyRevenue($selectedYear, $selectedMonth);
+    //         $revenueData = $dailyRevenue;
+    //     } else {
+    //         $revenueData = $this->getRevenueByMonth($selectedYear);
+    //         $dailyRevenue = [];
+    //     }
+
+    //     // Tổng doanh thu theo tháng được chọn
+    //     if ($selectedMonth) {
+    //         $monthlyTotal = Payment::whereIn('status', ['paid', 'completed'])
+    //             ->where(function ($query) use ($selectedYear, $selectedMonth) {
+    //                 $query->where(function ($q) use ($selectedYear, $selectedMonth) {
+    //                     $q->whereYear('payment_date', $selectedYear)
+    //                       ->whereMonth('payment_date', $selectedMonth);
+    //                 })->orWhere(function ($q) use ($selectedYear, $selectedMonth) {
+    //                     $q->whereNull('payment_date')
+    //                       ->whereYear('created_at', $selectedYear)
+    //                       ->whereMonth('created_at', $selectedMonth);
+    //                 });
+    //             })
+    //             ->sum('amount');
+    //     } else {
+    //         $monthlyTotal = 0;
+    //     }
+
+    //     // Tổng doanh thu cả năm
+    //     $yearlyTotal = Payment::whereIn('status', ['paid', 'completed'])
+    //         ->where(function ($query) use ($selectedYear) {
+    //             $query->whereYear('payment_date', $selectedYear)
+    //                   ->orWhere(function ($q) use ($selectedYear) {
+    //                       $q->whereNull('payment_date')
+    //                         ->whereYear('created_at', $selectedYear);
+    //                   });
+    //         })
+    //         ->sum('amount');
+
+    //     // Danh sách năm có giao dịch + đảm bảo có năm hiện tại
+    //     $availableYears = Payment::whereIn('status', ['paid', 'completed'])
+    //         ->selectRaw('YEAR(COALESCE(payment_date, created_at)) as year')
+    //         ->distinct()
+    //         ->orderBy('year', 'desc')
+    //         ->pluck('year')
+    //         ->filter();
+
+    //     $availableYears = $availableYears->push(now()->year)->unique()->sortDesc()->values();
+
+    //     // Tour phổ biến theo danh mục 
+    //     $popularToursByCategory = Category::where('name', '!=', 'Du lịch nước ngoài')
+    //         ->withCount(['tours' => function ($query) {
+    //             $query->where('status', 'active');
+    //         }])
+    //         ->having('tours_count', '>', 0)
+    //         ->orderByDesc('tours_count')
+    //         ->limit(10)
+    //         ->get()
+    //         ->map(function ($category) {
+    //             return [
+    //                 'name' => $category->name,
+    //                 'count' => $category->tours_count
+    //             ];
+    //         });
+
+    //     return view('admin.dashboard', compact(
+    //         'stats',
+    //         'recent_bookings',
+    //         'revenueData',
+    //         'dailyRevenue',
+    //         'selectedMonth',
+    //         'selectedYear',
+    //         'monthlyTotal',
+    //         'yearlyTotal',
+    //         'availableYears',
+    //         'popularToursByCategory'
+    //     ));
+    // }
+
+
+    /**
+     * Doanh thu theo tháng trong một năm.
+     */
     /**
      * Doanh thu theo tháng trong một năm.
      */
     protected function getRevenueByMonth(int $year): array
     {
-        $payments = Payment::whereIn('status', ['paid', 'completed'])
+        // [SỬA LẠI QUAN TRỌNG]
+        $validStatuses = ['paid', 'PAID', 'completed', 'COMPLETED'];
+
+        $payments = Payment::whereIn('status', $validStatuses)
             ->where(function ($query) use ($year) {
                 $query->whereYear('payment_date', $year)
                       ->orWhere(function ($q) use ($year) {
@@ -178,13 +286,51 @@ class AdminController extends Controller
 
         return $result;
     }
+    /**
+     * Doanh thu theo tháng trong một năm.
+     */
+    // protected function getRevenueByMonth(int $year): array
+    // {
+    //     $payments = Payment::whereIn('status', ['paid', 'completed'])
+    //         ->where(function ($query) use ($year) {
+    //             $query->whereYear('payment_date', $year)
+    //                   ->orWhere(function ($q) use ($year) {
+    //                       $q->whereNull('payment_date')
+    //                         ->whereYear('created_at', $year);
+    //                   });
+    //         })
+    //         ->selectRaw('MONTH(COALESCE(payment_date, created_at)) as month, SUM(amount) as revenue')
+    //         ->groupBy('month')
+    //         ->orderBy('month')
+    //         ->get();
+
+    //     // Chuẩn hoá đủ 12 tháng
+    //     $result = [];
+    //     for ($m = 1; $m <= 12; $m++) {
+    //         $item = $payments->firstWhere('month', $m);
+    //         $result[] = [
+    //             'month' => $m,
+    //             'monthName' => 'Tháng ' . $m,
+    //             'revenue' => $item ? (float) $item->revenue : 0,
+    //         ];
+    //     }
+
+    //     return $result;
+    // }
+
 
     /**
      * Doanh thu theo ngày trong một tháng.
      */
+   /**
+     * Doanh thu theo ngày trong một tháng.
+     */
     protected function getDailyRevenue(int $year, int $month): array
     {
-        $payments = Payment::whereIn('status', ['paid', 'completed'])
+        // [SỬA LẠI QUAN TRỌNG]
+        $validStatuses = ['paid', 'PAID', 'completed', 'COMPLETED'];
+
+        $payments = Payment::whereIn('status', $validStatuses)
             ->where(function ($query) use ($year, $month) {
                 $query->whereYear('payment_date', $year)
                       ->whereMonth('payment_date', $month)
@@ -212,6 +358,39 @@ class AdminController extends Controller
 
         return $result;
     }
+    /**
+     * Doanh thu theo ngày trong một tháng.
+     */
+    // protected function getDailyRevenue(int $year, int $month): array
+    // {
+    //     $payments = Payment::whereIn('status', ['paid', 'completed'])
+    //         ->where(function ($query) use ($year, $month) {
+    //             $query->whereYear('payment_date', $year)
+    //                   ->whereMonth('payment_date', $month)
+    //                   ->orWhere(function ($q) use ($year, $month) {
+    //                       $q->whereNull('payment_date')
+    //                         ->whereYear('created_at', $year)
+    //                         ->whereMonth('created_at', $month);
+    //                   });
+    //         })
+    //         ->selectRaw('DAY(COALESCE(payment_date, created_at)) as day, SUM(amount) as revenue')
+    //         ->groupBy('day')
+    //         ->orderBy('day')
+    //         ->get();
+
+    //     $daysInMonth = Carbon::createFromDate($year, $month, 1)->daysInMonth;
+    //     $result = [];
+
+    //     for ($d = 1; $d <= $daysInMonth; $d++) {
+    //         $item = $payments->firstWhere('day', $d);
+    //         $result[] = [
+    //             'day' => $d,
+    //             'revenue' => $item ? (float) $item->revenue : 0,
+    //         ];
+    //     }
+
+    //     return $result;
+    // }
 
     public function tours(Request $request)
     {
@@ -2097,7 +2276,8 @@ class AdminController extends Controller
         // 4. CẬP NHẬT TRẠNG THÁI ĐƠN HÀNG & LƯU ẢNH
         $booking->update([
             'status'        => 'paid',
-            'receipt_image' => $imagePath,
+            // 'receipt_image' => $imagePath,
+            'receipt_image' => Storage::url($imagePath), // <--- THÊM Storage::url() BAO QUANH
         ]);
 
         return back()->with('success', 'Đã xác nhận thu tiền và lưu ảnh phiếu thu thành công!');
@@ -2125,7 +2305,8 @@ class AdminController extends Controller
             $path = $request->file('receipt_image')->store('receipts', 'public');
 
             $booking->update([
-                'receipt_image' => $path,
+                // 'receipt_image' => $path,
+                'receipt_image' => Storage::url($path), // <--- THÊM Storage::url() BAO QUANH
             ]);
         }
 
@@ -2764,5 +2945,63 @@ class AdminController extends Controller
                 'errors' => $errors,
             ]
         ]);
+    }
+
+ public function convertGroupRequest(Request $request, $id)
+    {
+        // 1. Tìm yêu cầu gốc
+        $groupRequest = DB::table('group_tour_requests')->where('id', $id)->first();
+
+        if (!$groupRequest) {
+            return back()->with('error', 'Không tìm thấy yêu cầu.');
+        }
+
+        // 2. VALIDATE: Chỉ cho phép file ẢNH
+        $request->validate([
+            'tour_name'     => 'required|string|max:255',
+            'departure_date'=> 'required|date',
+            'final_price'   => 'required|numeric|min:0',
+            'service_details' => 'required|string',
+            
+            // CHỐT: Chỉ nhận ảnh jpg, jpeg, png (Tối đa 5MB)
+            'contract_file' => 'required|image|mimes:jpg,jpeg,png|max:5120', 
+        ], [
+            'contract_file.required' => 'Vui lòng upload ảnh chụp hợp đồng.',
+            'contract_file.image'    => 'File phải là định dạng hình ảnh.',
+            'contract_file.mimes'    => 'Chỉ chấp nhận file ảnh đuôi: .jpg, .jpeg, .png',
+            'contract_file.max'      => 'Ảnh quá lớn (Tối đa 5MB).',
+        ]);
+
+        // 3. LƯU ẢNH
+        $contractUrl = null;
+        if ($request->hasFile('contract_file')) {
+            $path = $request->file('contract_file')->store('contracts', 'public');
+            $contractUrl = Storage::url($path);
+        }
+
+        // 4. Xử lý User (như cũ)
+        $user = User::where('email', $groupRequest->contact_email)->first();
+        $userId = $user ? $user->id : Auth::id(); 
+
+        // 5. Tạo Booking (như cũ)
+        $booking = Booking::create([
+            'user_id'        => $userId,
+            'tour_id'        => $groupRequest->tour_id, 
+            'adults'         => $groupRequest->adults ?? 1,
+            'children'       => $groupRequest->children ?? 0,
+            'infants'        => $groupRequest->infants ?? 0,
+            'total_amount'   => $request->final_price,
+            'contract_file'  => $contractUrl, // Lưu link ảnh vào đây
+            'service_details'=> $request->service_details,
+            'status'         => 'pending', 
+            'booking_source' => 'group_request',
+            'note'           => "Tour đoàn từ yêu cầu #" . $id,
+        ]);
+
+        // 6. Cập nhật trạng thái cũ
+        DB::table('group_tour_requests')->where('id', $id)->update(['status' => 'contracted']);
+
+        return redirect()->route('admin.bookings.show', $booking->id)
+                         ->with('success', 'Đã tạo Booking thành công!');
     }
 }

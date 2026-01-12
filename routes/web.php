@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\GroupTourController;
 use App\Http\Controllers\Admin\GroupRequestController;
 use App\Http\Controllers\Staff\StaffBookingMailController;
+use App\Http\Controllers\Admin\DashboardController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -516,7 +517,8 @@ Route::get('/admin/schedules/{tourId}', function ($tourId) {
 // ============================================
 
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
+    // Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');  // code ban đâu
+    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
     // Tours management
     Route::get('/tours', [AdminController::class, 'tours'])->name('tours.index');
@@ -615,12 +617,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::delete('/categories/{category}', [AdminController::class, 'deleteCategory'])->name('categories.destroy');
 
 
-    // Reviews management  - code cũ của đánh giá 14/11  - rep 1-1 chạy ok 
-    // Route::get('/reviews', [AdminController::class, 'reviews'])->name('reviews');
-    // Route::post('/reviews/{review}/approve', [AdminController::class, 'approveReview'])->name('reviews.approve');
-    // Route::post('/reviews/{review}/hide', [AdminController::class, 'hideReview'])->name('reviews.hide');
-    // Route::post('/reviews/{review}/reply', [AdminController::class, 'storeReviewReply'])->name('reviews.reply');
-
     // ============================================
     // Yêu cầu Tour đoàn (Group Requests) - VIẾT TƯỜNG MINH
     // ============================================
@@ -631,7 +627,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::delete('/group-requests/{id}', [GroupRequestController::class, 'destroy'])->name('group-requests.destroy');
 
     // --- (THÊM MỚI) Route chuyển đổi thành Booking ---
-    // Route::post('/group-requests/{id}/convert', [GroupRequestController::class, 'convertToBooking'])->name('group-requests.convert');
+    Route::post('/group-requests/{id}/convert', [GroupRequestController::class, 'convertToBooking'])->name('group-requests.convert');
 
     // reviews mới admin có thêm 2 nút sửa - xóa đánh giá 
 

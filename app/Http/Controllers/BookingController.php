@@ -343,4 +343,68 @@ class BookingController extends Controller
         return redirect()->route('welcome')
             ->with('success', 'Booking đã được dời sang ngày ' . $newDeparture->departure_date->format('d/m/Y'));
     }
+
+    /**
+     * Xử lý hủy tour từ phía khách hàng
+     */
+    public function cancel(Request $request, $id)
+    {
+        $booking = Booking::findOrFail($id);
+
+        if ($booking->user_id !== auth()->id()) {
+            return redirect()->back()->with('error', 'Bạn không có quyền hủy đơn hàng này.');
+        }
+
+        // 2. Kiểm tra trạng thái hiện tại
+        if ($booking->status === 'cancelled') {
+            return redirect()->back()->with('error', 'Đơn hàng này đã bị hủy trước đó.');
+        }
+
+        // 3. Kiểm tra ngày khởi hành (Không cho hủy nếu tour đã chạy)
+        if ($booking->departure) {
+            $departureDate = \Carbon\Carbon::parse($booking->departure->departure_date);
+            if ($departureDate->isPast()) {
+                return redirect()->back()->with('error', 'Không thể hủy vì tour đã khởi hành hoặc kết thúc.');
+            }
+        }
+
+        $reason = $request->input('cancel_reason', 'Khách hàng hủy chủ động');
+
+        // TRƯỜNG HỢP 1: Đơn chưa thanh toán (Pending/Confirmed) -> Hủy ngay lập tức
+        if ($booking->status === 'pending' || $booking->status === 'confirmed') {
+            $booking->status = 'cancelled';
+            $booking->cancel_reason = $reason;
+            $booking->save();
+
+            //  Cộng lại số chỗ trống cho Lịch khởi hành
+            if ($booking->departure) {
+                // Chỉ cộng lại ghế người lớn và trẻ em (em bé thường không chiếm ghế)
+                $seatsToRestore = $booking->adults + $booking->children;
+                $booking->departure->increment('seats_available', $seatsToRestore);
+            }
+
+            return redirect()->back()->with('success', 'Đơn hàng đã được hủy thành công.');
+        }
+
+        // TRƯỜNG HỢP 2: Đơn đã thanh toán (Paid) -> Chuyển sang trạng thái "Yêu cầu hủy" để Admin hoàn tiền
+        elseif ($booking->status === 'paid') {
+            
+            // Lấy thông tin tài khoản ngân hàng khách nhập (nếu có)
+            $bankInfo = "";
+            if ($request->has('refund_bank')) {
+                $bankInfo = "\n\n--- THÔNG TIN NHẬN TIỀN ---\n" .
+                            "Ngân hàng: " . $request->refund_bank . "\n" .
+                            "Số TK: " . $request->refund_account . "\n" .
+                            "Chủ TK: " . $request->refund_holder;
+            }
+
+            $booking->status = 'cancel_requested'; // Trạng thái chờ Admin xử lý hoàn tiền
+            $booking->cancel_reason = $reason . $bankInfo;
+            $booking->save();
+
+            return redirect()->back()->with('success', 'Yêu cầu hủy đã được gửi. Admin sẽ liên hệ để hoàn tiền theo chính sách.');
+        }
+
+        return redirect()->back()->with('error', 'Trạng thái đơn hàng không hợp lệ để hủy.');
+    }
 }

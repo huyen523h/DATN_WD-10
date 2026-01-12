@@ -183,7 +183,7 @@
         @endif
         @if($booking->contract_file)
             <div>
-                <strong>File hợp đồng:</strong>
+                <strong>Ảnh hợp đồng:</strong>
                 <a href="{{ Storage::url($booking->contract_file) }}" target="_blank" class="btn btn-sm btn-outline-success fw-bold ms-2">
                     <i class="fas fa-download me-1"></i> Tải về xem
                 </a>
@@ -268,9 +268,11 @@
                         <i class="fas fa-receipt fa-2x me-3"></i>
                         <div>
                             <h5 class="alert-heading h6 fw-bold mb-1">Biên lai thu tiền</h5>
-                            <a href="{{ Storage::url($booking->receipt_image) }}" target="_blank" class="btn btn-sm btn-light text-success fw-bold">
-                                <i class="fas fa-eye me-1"></i> Xem hóa đơn
-                            </a>
+                           <a href="{{ Str::startsWith($booking->receipt_image, '/storage') ? asset($booking->receipt_image) : Storage::url($booking->receipt_image) }}" 
+   target="_blank" 
+   class="btn btn-sm btn-light text-success fw-bold">
+    <i class="fas fa-eye me-1"></i> Xem hóa đơn
+</a>
                         </div>
                     </div>
                 </div>
@@ -297,29 +299,15 @@
                     <strong>Đã thanh toán thành công</strong>
                 </div>
 
-            {{-- TRƯỜNG HỢP 3: MỚI ĐẶT (PENDING) -> CHỈ HIỆN THÔNG BÁO CHỜ --}}
-            @elseif ($booking->status === 'pending')
-                <div class="alert alert-warning text-center mb-3 p-3 border-warning" style="background-color: #fff3cd;">
-                    <i class="fas fa-user-clock fa-2x mb-2 text-warning"></i>
-                    <h6 class="fw-bold text-dark">Đang chờ xác nhận</h6>
-                    <p class="small mb-0 text-muted">
-                        Admin đang kiểm tra tình trạng chỗ trống. Vui lòng quay lại sau khi đơn hàng chuyển sang trạng thái 
-                        <span class="badge bg-success">Đã xác nhận</span>.
-                    </p>
-                </div>
-                {{-- Nút giả bị vô hiệu hóa để khách biết chưa thanh toán được --}}
-                <button class="btn btn-secondary w-100" disabled>
-                    <i class="fas fa-lock me-2"></i>Chưa mở cổng thanh toán
-                </button>
-
-            {{-- TRƯỜNG HỢP 4: ĐÃ XÁC NHẬN (CONFIRMED) -> HIỆN CHECKBOX & THANH TOÁN --}}
-            @elseif ($booking->status === 'confirmed')
+        {{-- TRƯỜNG HỢP 3: MỚI ĐẶT (PENDING) HOẶC ĐÃ DUYỆT (CONFIRMED) -> THANH TOÁN LUÔN --}}
+            {{-- [SỬA LẠI]: Gộp cả 2 trạng thái này để hiện nút thanh toán ngay lập tức --}}
+            @elseif (in_array($booking->status, ['pending', 'confirmed']))
                 
-                <div class="alert alert-info text-center mb-3 p-2 small border-info bg-info bg-opacity-10">
-                    <i class="fas fa-check-circle text-info"></i> Admin đã xác nhận chỗ! Mời bạn thanh toán.
+                <div class="alert alert-warning text-center mb-3 p-2 small border-warning" style="background-color: #fff3cd;">
+                    <i class="fas fa-clock text-warning"></i> Đơn hàng đang giữ chỗ. Vui lòng thanh toán ngay để hoàn tất!
                 </div>
 
-                {{-- CODE CHECKBOX CŨ CỦA BẠN ĐÂY --}}
+                {{-- CODE CHECKBOX CŨ CỦA BẠN (GIỮ NGUYÊN) --}}
                 <div class="alert alert-light border mb-3">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="agreeTermsBooking" required>
@@ -364,7 +352,6 @@
             @endif
         </div>
     </div>
-
 
             {{-- LOGIC HIỂN THỊ NÚT HỦY --}}
 {{-- LOGIC HIỂN THỊ NÚT HỦY TOUR (ĐÃ UPDATE CHECK NGÀY) --}}
@@ -619,9 +606,9 @@
 
 
                             // --- (BẮT ĐẦU CODE MỚI - GỬI REVIEW BẰNG AJAX) ---
-                            document.querySelectorAll('.form-review-submission').forEach(form => {
-                                form.addEventListener('submit', function(e) {
-                                    e.preventDefault(); // Ngăn form gửi đi
+                            // document.querySelectorAll('.form-review-submission').forEach(form => {
+                            //     form.addEventListener('submit', function(e) {
+                                    // e.preventDefault(); // Ngăn form gửi đi
 
                                     const modal = this.closest('.modal');
                                     const form = this;
